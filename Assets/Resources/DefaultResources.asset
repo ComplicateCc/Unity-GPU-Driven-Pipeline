@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dbd0823b00f58a4caf0bda5f81b5c91, type: 3}
+  m_Name: DefaultResources
+  m_EditorClassIdentifier: 
+  gpuFrustumCulling: {fileID: 7200000, guid: 27a4a69f28f2cb946a2de4928422fcd8, type: 3}
+  skinCulling: {fileID: 7200000, guid: 1adff947a70ac5a45a170dab2f5737d1, type: 3}
+  pointLightFrustumCulling: {fileID: 7200000, guid: 7011edaf13151fd4d8c2d60c5d147390,
+    type: 3}
+  taaShader: {fileID: 4800000, guid: 51bcf79c50dc92e47ba87821b61100c3, type: 3}
+  indirectDepthShader: {fileID: 4800000, guid: 2896c2d5ef5101b46942a11a481cb2d6, type: 3}
+  HizLodShader: {fileID: 4800000, guid: 26c0c9d0c19bd4f4d958db01aa775f53, type: 3}
+  spotlightShader: {fileID: 4800000, guid: 2082b8d833666e6489704a7cec5c2e39, type: 3}
+  motionVectorShader: {fileID: 4800000, guid: af8fd14c9f7a6d941b247fe88b7e37f6, type: 3}
+  shadowMaskShader: {fileID: 4800000, guid: 59587a2c9dce614429a67657b3058d89, type: 3}
+  reflectionShader: {fileID: 4800000, guid: 570f61f4159173a449116b777a6d5480, type: 3}
+  linearDepthShader: {fileID: 4800000, guid: 77485821d74bdd841b30cd6723eff35e, type: 3}
+  pointLightShader: {fileID: 4800000, guid: 63808577f167c0f48965284bec7283ab, type: 3}
+  cubeDepthShader: {fileID: 4800000, guid: b33fc3a2454d9ca46b31777fb5e46e00, type: 3}
+  occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
