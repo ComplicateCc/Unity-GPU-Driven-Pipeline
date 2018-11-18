@@ -33,18 +33,19 @@ struct Property{
 	Texture2DArray<half> _OcclusionMap; SamplerState sampler_OcclusionMap;
 	Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
 	StructuredBuffer<Property> _PropertiesBuffer;
-		inline void surf (float2 uv, uint index, inout SurfaceOutputStandardSpecular o) {
-			Property prop = _PropertiesBuffer[index];
-			half4 c = _MainTex.Sample(sampler_MainTex, float3(uv, index)) * prop._Color;
-			o.Albedo = c.rgb;
-			o.Alpha = c.a;
-			o.Occlusion = lerp(1, _OcclusionMap.Sample(sampler_OcclusionMap, float3(uv, index)).r, prop._Occlusion);
-			half3 spec = _SpecularMap.Sample(sampler_SpecularMap, float3(uv, index));
-			o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity * spec.g); 
-			o.Smoothness = prop._Glossiness * spec.b;
-			o.Normal = UnpackNormal(_BumpMap.Sample(sampler_BumpMap, float3(uv, index)));
-			o.Emission = prop._EmissionColor * prop._EmissionMultiplier;
-		}
+	
+	void surf (float2 uv, uint index, inout SurfaceOutputStandardSpecular o) {
+		Property prop = _PropertiesBuffer[index];
+		half4 c = _MainTex.Sample(sampler_MainTex, float3(uv, index)) * prop._Color;
+		o.Albedo = c.rgb;
+		o.Alpha = c.a;
+		o.Occlusion = lerp(1, _OcclusionMap.Sample(sampler_OcclusionMap, float3(uv, index)).r, prop._Occlusion);
+		half3 spec = _SpecularMap.Sample(sampler_SpecularMap, float3(uv, index));
+		o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity * spec.g); 
+		o.Smoothness = prop._Glossiness * spec.b;
+		o.Normal = UnpackNormal(_BumpMap.Sample(sampler_BumpMap, float3(uv, index)));
+		o.Emission = prop._EmissionColor * prop._EmissionMultiplier;
+	}
 
 
 #define GetScreenPos(pos) ((float2(pos.x, pos.y) * 0.5) / pos.w + 0.5)
@@ -57,14 +58,11 @@ half4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, floa
     s.Albedo = EnergyConservationBetweenDiffuseAndSpecular (s.Albedo, s.Specular, /*out*/ oneMinusReflectivity);
     // RT0: diffuse color (rgb), occlusion (a) - sRGB rendertarget
     outGBuffer0 = half4(s.Albedo, s.Occlusion);
-
     // RT1: spec color (rgb), smoothness (a) - sRGB rendertarget
     outGBuffer1 = half4(s.Specular, s.Smoothness);
-
     // RT2: normal (rgb), --unused, very low precision-- (a)
     outGBuffer2 = half4(s.Normal * 0.5f + 0.5f, 0);
     half4 emission = half4(s.Emission, 1);
-
     return emission;
 }
 float4x4 _LastVp;

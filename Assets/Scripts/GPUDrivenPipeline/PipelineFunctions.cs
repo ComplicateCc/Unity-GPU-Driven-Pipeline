@@ -147,20 +147,20 @@ public unsafe static class PipelineFunctions
 
         }
         TextAsset propFile = Resources.Load<TextAsset>("MapMat/CombinedMatProps");
-        /*PropertyValue[] values = MStudio.Json.StringToJson<PropertyValue[]>(propFile.text);
-         baseBuffer.propertyBuffer = new ComputeBuffer(values.Length, sizeof(PropertyValue));
-         baseBuffer.propertyBuffer.SetData(values);
-         baseBuffer.combinedMaterial = new Material(Shader.Find("Maxwell/CombinedProcedural"));
-         baseBuffer.combinedMaterial.SetBuffer("_PropertiesBuffer", baseBuffer.propertyBuffer);*/
+        PropertyValue[] values = MStudio.Json.StringToJson<PropertyValue[]>(propFile.text);
+        baseBuffer.propertyBuffer = new ComputeBuffer(values.Length, sizeof(PropertyValue));
+        baseBuffer.propertyBuffer.SetData(values);
+        baseBuffer.combinedMaterial = new Material(Shader.Find("Maxwell/CombinedProcedural"));
+        baseBuffer.combinedMaterial.SetBuffer("_PropertiesBuffer", baseBuffer.propertyBuffer);
         //Set Tex2DArray
         Texture2DArray mainTex = Resources.Load<Texture2DArray>("MapMat/_MainTex");
         Texture2DArray bumpTex = Resources.Load<Texture2DArray>("MapMat/_BumpMap");
         Texture2DArray specularMap = Resources.Load<Texture2DArray>("MapMat/_SpecularMap");
         Texture2DArray occlusionMap = Resources.Load<Texture2DArray>("MapMat/_OcclusionMap");
-        /* baseBuffer.combinedMaterial.SetTexture(ShaderIDs._MainTex, mainTex);
-         baseBuffer.combinedMaterial.SetTexture("_BumpMap", bumpTex);
-         baseBuffer.combinedMaterial.SetTexture("_SpecularMap", specularMap);
-         baseBuffer.combinedMaterial.SetTexture("_OcclusionMap", occlusionMap);*/
+        baseBuffer.combinedMaterial.SetTexture(ShaderIDs._MainTex, mainTex);
+        baseBuffer.combinedMaterial.SetTexture("_BumpMap", bumpTex);
+        baseBuffer.combinedMaterial.SetTexture("_SpecularMap", specularMap);
+        baseBuffer.combinedMaterial.SetTexture("_OcclusionMap", occlusionMap);
         //Over
         Resources.UnloadAsset(propFile);
         baseBuffer.clusterBuffer = new ComputeBuffer(allInfos.Length, sizeof(ClusterMeshData));
@@ -440,7 +440,7 @@ public unsafe static class PipelineFunctions
     {
         tar.gbufferTextures[0] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
         tar.gbufferTextures[1] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
-        tar.gbufferTextures[2] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, FilterMode.Point, collectRT);
+        tar.gbufferTextures[2] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB2101010, FilterMode.Point, collectRT);
         tar.gbufferTextures[3] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 24, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear, collectRT);
         tar.gbufferTextures[4] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RGHalf, FilterMode.Point, collectRT);
         tar.gbufferTextures[5] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RFloat, FilterMode.Point, collectRT);
@@ -486,6 +486,20 @@ public unsafe static class PipelineFunctions
             RenderTexture.ReleaseTemporary(i);
         }
         tar.Clear();
+    }
+    //TODO
+    //Prepare for SRP
+    public static void ExecuteCommandBuffer(ref this PipelineCommandData data)
+    {
+        Graphics.ExecuteCommandBuffer(data.buffer);
+        data.buffer.Clear();
+    }
+    //TODO
+    //Prepare for SRP
+    public static void ExecuteCommandBufferAsync(ref this PipelineCommandData data, CommandBuffer asyncBuffer, ComputeQueueType queueType)
+    {
+        Graphics.ExecuteCommandBufferAsync(asyncBuffer, queueType);
+        asyncBuffer.Clear();
     }
 
     public static void InsertTo<T>(this List<T> targetArray, T value, Func<T, T, int> compareResult)

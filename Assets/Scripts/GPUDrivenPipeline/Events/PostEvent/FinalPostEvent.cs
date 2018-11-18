@@ -67,6 +67,7 @@ namespace MPipeline
             }
             PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, uberAction);
             PipelineFunctions.ReleaseRenderTarget(sharedData.temporalRT);
+            data.ExecuteCommandBuffer();
         }
     }
 }

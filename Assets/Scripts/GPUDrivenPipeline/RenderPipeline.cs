@@ -79,11 +79,9 @@ namespace MPipeline
             PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);
             ref RenderArray arr = ref data.arrayCollection;
             PipelineFunctions.GetCullingPlanes(ref data.inverseVP, arr.frustumPlanes, arr.farFrustumCorner, arr.nearFrustumCorner);
-            //Start Calling Events
             DrawEvent evt;           
             if (allDrawEvents.TryGetValue(path, out evt))
             {
-                data.buffer.Clear();
                 //Pre Calculate Events
                 foreach (var i in evt.preRenderEvents)
                 {
@@ -97,11 +95,8 @@ namespace MPipeline
                 {
                     i.FrameUpdate(pipelineCam, ref data);
                 }
-                Graphics.ExecuteCommandBuffer(data.buffer);
             }
-            //Finalize Frame
             Graphics.Blit(pipelineCam.targets.renderTarget, dest);
-
         }
     }
     public struct DrawEvent

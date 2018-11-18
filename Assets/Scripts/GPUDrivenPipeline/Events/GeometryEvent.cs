@@ -30,10 +30,10 @@ namespace MPipeline
             hizDepth.DisposeHiZ();
         }
         public System.Func<IPerCameraData> getOcclusionData = () => new HizOcclusionData();
-        public Material proceduralMaterial;
         private MaterialPropertyBlock proceduralBlock;
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            Material proceduralMaterial = data.baseBuffer.combinedMaterial;
             CommandBuffer buffer = data.buffer;
             HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, getOcclusionData);
             ref var baseBuffer = ref data.baseBuffer;
@@ -91,7 +91,7 @@ namespace MPipeline
                     break;
 
             }
-
+            data.ExecuteCommandBuffer();
         }
     }
     public class HizOcclusionData : IPerCameraData
