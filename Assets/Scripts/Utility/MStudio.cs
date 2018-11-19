@@ -300,6 +300,7 @@ namespace MStudio
 	{
 		public static string JsonToString<T> (T value)
 		{  
+            
 			using (var vStream = new MemoryStream ()) {  
 				DataContractJsonSerializer serializer = new DataContractJsonSerializer (typeof(T));  
 				serializer.WriteObject (vStream, value);  

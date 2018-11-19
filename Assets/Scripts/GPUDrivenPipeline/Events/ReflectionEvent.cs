@@ -50,7 +50,7 @@ namespace MPipeline
             }
             //TODO
             cullJob.resultIndices.Dispose();
-            data.ExecuteCommandBuffer();
+            PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
     }
 

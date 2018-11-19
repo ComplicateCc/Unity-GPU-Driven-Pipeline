@@ -13,6 +13,18 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+  - first: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: DIRECTIONAL LIGHTPROBE_SH SHADOWS_SCREEN
+        passType: 4
+      - keywords: SHADOWS_DEPTH
+        passType: 8
+  - first: {fileID: 64, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: SHADOWS_SPLIT_SPHERES
+        passType: 0
   - first: {fileID: 106, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
@@ -28,12 +40,22 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+  - first: {fileID: 9002, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
   - first: {fileID: 9003, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
       - keywords: 
         passType: 0
   - first: {fileID: 9004, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 4800000, guid: 26c0c9d0c19bd4f4d958db01aa775f53, type: 3}
     second:
       variants:
       - keywords: 
@@ -53,12 +75,22 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+  - first: {fileID: 4800000, guid: 538f1aea21e411247a28ba6f5befa4c1, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
   - first: {fileID: 4800000, guid: 59587a2c9dce614429a67657b3058d89, type: 3}
     second:
       variants:
       - keywords: 
         passType: 0
   - first: {fileID: 4800000, guid: 63808577f167c0f48965284bec7283ab, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 4800000, guid: 77485821d74bdd841b30cd6723eff35e, type: 3}
     second:
       variants:
       - keywords: 

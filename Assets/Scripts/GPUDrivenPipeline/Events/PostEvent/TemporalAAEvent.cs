@@ -69,7 +69,7 @@ namespace MPipeline
             block.SetVector(ShaderIDs._FinalBlendParameters, new Vector4(stationaryBlending, motionBlending, kMotionAmplification_Blending, 0f));
             block.SetTexture(ShaderIDs._HistoryTex, historyTex);
             PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, taaFunction);
-            data.ExecuteCommandBuffer();
+            PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)

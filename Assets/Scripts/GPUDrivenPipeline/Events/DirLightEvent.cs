@@ -53,7 +53,7 @@ namespace MPipeline
             buffer.SetRenderTarget(cam.targets.renderTargetIdentifier, cam.targets.depthIdentifier);
             lightBlock.SetVector(ShaderIDs._LightPos, -SunLight.shadMap.shadCam.forward);
             buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, shadMaskMaterial, 0, pass, lightBlock);
-            data.ExecuteCommandBuffer();
+            PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
     }
 }

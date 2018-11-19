@@ -6,8 +6,6 @@ using Unity.Collections.LowLevel.Unsafe;
 using System;
 using System.Text;
 using MPipeline;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 public unsafe static class PipelineFunctions
 {
@@ -105,7 +103,7 @@ public unsafe static class PipelineFunctions
     /// Initialize pipeline buffers
     /// </summary>
     /// <param name="baseBuffer"></param> pipeline base buffer
-    public static void InitBaseBuffer(ref PipelineBaseBuffer baseBuffer)
+    public static void InitBaseBuffer(ref PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources)
     {
         TextAsset[] allFileFlags = Resources.LoadAll<TextAsset>("MapSigns");
         int clusterCount = 0;
@@ -146,23 +144,15 @@ public unsafe static class PipelineFunctions
             Resources.UnloadAsset(pointFile);
 
         }
-        TextAsset propFile = Resources.Load<TextAsset>("MapMat/CombinedMatProps");
-        PropertyValue[] values = MStudio.Json.StringToJson<PropertyValue[]>(propFile.text);
-        baseBuffer.propertyBuffer = new ComputeBuffer(values.Length, sizeof(PropertyValue));
-        baseBuffer.propertyBuffer.SetData(values);
+        
+        baseBuffer.propertyBuffer = new ComputeBuffer(materialResources.values.Length, sizeof(PropertyValue));
+        baseBuffer.propertyBuffer.SetData(materialResources.values);
         baseBuffer.combinedMaterial = new Material(Shader.Find("Maxwell/CombinedProcedural"));
         baseBuffer.combinedMaterial.SetBuffer("_PropertiesBuffer", baseBuffer.propertyBuffer);
-        //Set Tex2DArray
-        Texture2DArray mainTex = Resources.Load<Texture2DArray>("MapMat/_MainTex");
-        Texture2DArray bumpTex = Resources.Load<Texture2DArray>("MapMat/_BumpMap");
-        Texture2DArray specularMap = Resources.Load<Texture2DArray>("MapMat/_SpecularMap");
-        Texture2DArray occlusionMap = Resources.Load<Texture2DArray>("MapMat/_OcclusionMap");
-        baseBuffer.combinedMaterial.SetTexture(ShaderIDs._MainTex, mainTex);
-        baseBuffer.combinedMaterial.SetTexture("_BumpMap", bumpTex);
-        baseBuffer.combinedMaterial.SetTexture("_SpecularMap", specularMap);
-        baseBuffer.combinedMaterial.SetTexture("_OcclusionMap", occlusionMap);
-        //Over
-        Resources.UnloadAsset(propFile);
+        foreach(var i in materialResources.textures)
+        {
+            baseBuffer.combinedMaterial.SetTexture(i.key, i.value);
+        }
         baseBuffer.clusterBuffer = new ComputeBuffer(allInfos.Length, sizeof(ClusterMeshData));
         baseBuffer.clusterBuffer.SetData(allInfos);
         baseBuffer.resultBuffer = new ComputeBuffer(allInfos.Length, PipelineBaseBuffer.UINTSIZE);
@@ -487,16 +477,12 @@ public unsafe static class PipelineFunctions
         }
         tar.Clear();
     }
-    //TODO
-    //Prepare for SRP
-    public static void ExecuteCommandBuffer(ref this PipelineCommandData data)
+    public static void ExecuteCommandBuffer(ref PipelineCommandData data)
     {
         Graphics.ExecuteCommandBuffer(data.buffer);
         data.buffer.Clear();
     }
-    //TODO
-    //Prepare for SRP
-    public static void ExecuteCommandBufferAsync(ref this PipelineCommandData data, CommandBuffer asyncBuffer, ComputeQueueType queueType)
+    public static void ExecuteCommandBufferAsync(ref PipelineCommandData data, CommandBuffer asyncBuffer, ComputeQueueType queueType)
     {
         Graphics.ExecuteCommandBufferAsync(asyncBuffer, queueType);
         asyncBuffer.Clear();

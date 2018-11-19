@@ -19,7 +19,6 @@ namespace MPipeline
             cam = GetComponent<Camera>();
             cam.renderingPath = RenderingPath.Forward;
             cam.cullingMask = 0;
-            cam.clearFlags = CameraClearFlags.Nothing;
             targets = RenderTargets.Init();
         }
 

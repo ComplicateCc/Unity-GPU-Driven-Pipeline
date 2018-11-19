@@ -23,6 +23,18 @@ namespace MPipeline
             this.value = value;
         }
     }
+
+    [Serializable]
+    public struct Pair
+    {
+        public string key;
+        public Texture2DArray value;
+        public Pair(string key, Texture2DArray value)
+        {
+            this.key = key;
+            this.value = value;
+        }
+    }
     public unsafe class MeshCombiner : MonoBehaviour
     {
         public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int materialIndex, Transform transform)
@@ -133,9 +145,9 @@ namespace MPipeline
             md.containedMaterial = allMat;
             return md;
         }
-        public List<Pair<string, Texture2DArray>> CombineTexture(List<Material> mats, Vector2Int size)
+        public List<Pair> CombineTexture(List<Material> mats, Vector2Int size)
         {
-            List<Pair<string, Texture2DArray>> tex = new List<Pair<string, Texture2DArray>>();
+            List<Pair> tex = new List<Pair>();
             string[] textureNames = new string[]
             {
                 "_MainTex",
@@ -205,7 +217,7 @@ namespace MPipeline
                     SetTexture(texArray, defaultColors[i], (Texture2D)mats[j].GetTexture(textureNames[i]), j);
                 }
                 texArray.Apply();
-                tex.Add(new Pair<string, Texture2DArray>(textureNames[i], texArray));
+                tex.Add(new Pair(textureNames[i], texArray));
             }
             return tex;
         }
@@ -295,17 +307,22 @@ namespace MPipeline
         {
             CombinedModel model = ProcessCluster(GetComponentsInChildren<MeshRenderer>());
             ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName);
-            var value = GetProperty(model.containedMaterial);
-            string propsJson = MStudio.Json.JsonToString(value);
-            File.WriteAllText("Assets/Resources/MapMat/CombinedMatProps.txt", propsJson);
+            PropertyValue[] value = GetProperty(model.containedMaterial);
             var texs = CombineTexture(model.containedMaterial, Vector2Int.one * 1024);
+            ClusterMatResources res = ScriptableObject.CreateInstance<ClusterMatResources>();
+            res.values = value;
+           // List<Pair> finalPair = new List<Pair>(texs.Count);
             foreach (var i in texs)
             {
-                AssetDatabase.CreateAsset(i.value, "Assets/Resources/MapMat/" + i.key + ".asset");
+                AssetDatabase.CreateAsset(i.value, "Assets/Resources/MapMat/" + modelName + i.key + ".asset");
+               // finalPair.Add(new Pair(i.key, Resources.Load<Texture2DArray>("MapMat/" + modelName + i.key)));
             }
+            res.textures = texs;
+            AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/" + modelName + ".asset");
         }
 #endif
     }
+    [Serializable]
     public struct PropertyValue
     {
         public float _SpecularIntensity;

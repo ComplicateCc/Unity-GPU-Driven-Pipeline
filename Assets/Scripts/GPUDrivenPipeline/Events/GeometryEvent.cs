@@ -91,7 +91,7 @@ namespace MPipeline
                     break;
 
             }
-            data.ExecuteCommandBuffer();
+            PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
     }
     public class HizOcclusionData : IPerCameraData

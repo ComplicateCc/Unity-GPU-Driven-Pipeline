@@ -53,7 +53,7 @@ namespace MPipeline
             }
             pre = false;
             post = false;
-
+            
         }
 
         public bool EnableEvent

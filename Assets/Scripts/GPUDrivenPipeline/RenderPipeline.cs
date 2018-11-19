@@ -13,20 +13,23 @@ namespace MPipeline
         }
         public static RenderPipeline singleton;
         public static PipelineCommandData data;
+        
         public static Dictionary<CameraRenderingPath, DrawEvent> allDrawEvents = new Dictionary<CameraRenderingPath, DrawEvent>();
         //Initialized In Every Scene
+
+        #endregion
+        private List<PipelineEvent> allEvents;
+        public PipelineResources resources;
+        public ClusterMatResources materialRes;
         public void InitScene()
         {
             data.arrayCollection = new RenderArray(true);
-            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer);
+            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, materialRes);
         }
         public void DisposeScene()
         {
             PipelineFunctions.Dispose(ref data.baseBuffer);
         }
-        #endregion
-        private List<PipelineEvent> allEvents;
-        public PipelineResources resources;
         private void Awake()
         {
             if (singleton)
