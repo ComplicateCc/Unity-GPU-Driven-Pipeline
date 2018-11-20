@@ -71,7 +71,7 @@ float OcclusionTest(ClusterMeshData info, float4x4 vpMat)
     return 0;
 }
 
-[numthreads(64, 1, 1)]
+[numthreads(256, 1, 1)]
 void ClusterCull (uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
@@ -98,7 +98,7 @@ void ClearCluster(uint id : SV_DISPATCHTHREADID)
 RWStructuredBuffer<uint> reCheckResult;
 RWStructuredBuffer<uint> reCheckCount;
 RWStructuredBuffer<uint> dispatchBuffer;
-[numthreads(64, 1, 1)]
+[numthreads(256, 1, 1)]
 void FrustumFilter(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
@@ -117,7 +117,7 @@ void FrustumFilter(uint id : SV_DISPATCHTHREADID)
     }
 }
 
-[numthreads(64, 1, 1)]
+[numthreads(256, 1, 1)]
 void OcclusionRecheck(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= dispatchBuffer[3]) return;
@@ -136,14 +136,14 @@ void OcclusionRecheck(uint id : SV_DISPATCHTHREADID)
 void ClearOcclusionData(uint id : SV_DISPATCHTHREADID)
 {
     uint threadCount = dispatchBuffer[4];
-    dispatchBuffer[0] = uint(ceil(threadCount / 64.0));
+    dispatchBuffer[0] = uint(ceil(threadCount / 256.0));
     dispatchBuffer[3] = threadCount;
     dispatchBuffer[4] = 0;
     instanceCountBuffer[1] = 0;
     reCheckCount[1] = 0;
 }
 
-[numthreads(64, 1, 1)]
+[numthreads(256, 1, 1)]
 void UnsafeCull(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 

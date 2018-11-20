@@ -24,26 +24,37 @@
 
             struct v2f
             {
-                float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
                 float3 worldPos : TEXCOORD1;
             };
+            #define GetScreenPos(pos) ((float2(pos.x, pos.y) * 0.5) / pos.w + 0.5)
+            float4x4 _LastVp;
+            float4x4 _NonJitterVP;
+            inline half2 CalculateMotionVector(float4x4 lastvp, half3 worldPos, half2 screenUV)
+            {
+	            half4 lastScreenPos = mul(lastvp, half4(worldPos, 1));
+	            half2 lastScreenUV = GetScreenPos(lastScreenPos);
+	            return screenUV - lastScreenUV;
+            }
 
             v2f vert (appdata v)
             {
                 v2f o;
                 o.vertex = v.vertex;
-                o.uv = v.uv;
                 o.worldPos = _FarClipCorner[v.uv.x + v.uv.y * 2].xyz;
                 return o;
-            }
-
+            } 
             samplerCUBE _MainTex;
 
-            float4 frag (v2f i) : SV_Target
+            void frag (v2f i, 
+            out half4 skyboxColor : SV_TARGET0,
+            out half2 outMotionVector : SV_TARGET1)
             {
                 float3 viewDir = normalize(i.worldPos - _WorldSpaceCameraPos);
-                return texCUBE(_MainTex, viewDir);
+                skyboxColor = texCUBE(_MainTex, viewDir);
+                half4 screenPos = mul(_NonJitterVP, float4(i.worldPos, 1));
+                half2 screenUV = GetScreenPos(screenPos);
+                outMotionVector = CalculateMotionVector(_LastVp, i.worldPos, screenUV);
             }
             ENDCG
         }

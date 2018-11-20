@@ -48,14 +48,14 @@ namespace MPipeline
         {
             int targetLength = positions.Length;
             buffer.lightPositionBuffer.SetData(positions);
-            ComputeShaderUtility.Dispatch(shader, cb, ClearCluster, targetLength, 64);
+            ComputeShaderUtility.Dispatch(shader, cb, ClearCluster, targetLength, 256);
             ComputeShaderUtility.Dispatch(shader, cb, GetFrustumPlane, targetLength, 16);
         }
 
         public static void DrawShadow(MPointLight lit, CommandBuffer cb, MaterialPropertyBlock block, ref CubeCullingBuffer buffer, ref PipelineBaseBuffer baseBuffer, ComputeShader shader, int offset, Material depthMaterial)
         {
             cb.SetComputeIntParam(shader, ShaderIDs._LightOffset, offset);
-            ComputeShaderUtility.Dispatch(shader, cb, RunFrustumCull, baseBuffer.clusterCount, 64);
+            ComputeShaderUtility.Dispatch(shader, cb, RunFrustumCull, baseBuffer.clusterCount, 256);
             PerspCam cam = new PerspCam();
             cam.aspect = 1;
             cam.farClipPlane = lit.range;

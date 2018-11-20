@@ -99,57 +99,49 @@ public unsafe static class PipelineFunctions
         cullingPlanes[5].w = plane.distance;
 
     }
+    //TODO: Streaming Loading
     /// <summary>
     /// Initialize pipeline buffers
     /// </summary>
     /// <param name="baseBuffer"></param> pipeline base buffer
-    public static void InitBaseBuffer(ref PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources)
+    public static void InitBaseBuffer(ref PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources, string name)
     {
-        TextAsset[] allFileFlags = Resources.LoadAll<TextAsset>("MapSigns");
-        int clusterCount = 0;
-        foreach (var i in allFileFlags)
-        {
-            clusterCount += int.Parse(i.text);
-        }
+        int clusterCount = materialResources.clusterCount;
         StringBuilder sb = new StringBuilder(50, 150);
         NativeArray<ClusterMeshData> allInfos = new NativeArray<ClusterMeshData>(clusterCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
         NativeArray<Point> allPoints = new NativeArray<Point>(clusterCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
         clusterCount = 0;
         int pointCount = 0;
-        foreach (var i in allFileFlags)
-        {
-            sb.Clear();
-            sb.Append("MapInfos/");
-            sb.Append(i.name);
-            TextAsset clusterFile = Resources.Load<TextAsset>(sb.ToString());
-            sb.Clear();
-            sb.Append("MapPoints/");
-            sb.Append(i.name);
-            TextAsset pointFile = Resources.Load<TextAsset>(sb.ToString());
-            byte[] clusterArray = clusterFile.bytes;
-            byte[] pointArray = pointFile.bytes;
-            fixed (void* source = &clusterArray[0])
-            {
-                byte* dest = (byte*)allInfos.GetUnsafePtr() + clusterCount;
-                UnsafeUtility.MemCpy(dest, source, clusterArray.Length);
-            }
-            clusterCount += clusterArray.Length;
-            fixed (void* source = &pointArray[0])
-            {
-                byte* dest = (byte*)allPoints.GetUnsafePtr() + pointCount;
-                UnsafeUtility.MemCpy(dest, source, pointArray.Length);
-            }
-            pointCount += pointArray.Length;
-            Resources.UnloadAsset(clusterFile);
-            Resources.UnloadAsset(pointFile);
 
+        sb.Clear();
+        sb.Append("MapInfos/");
+        sb.Append(name);
+        TextAsset clusterFile = Resources.Load<TextAsset>(sb.ToString());
+        sb.Clear();
+        sb.Append("MapPoints/");
+        sb.Append(name);
+        TextAsset pointFile = Resources.Load<TextAsset>(sb.ToString());
+        byte[] clusterArray = clusterFile.bytes;
+        byte[] pointArray = pointFile.bytes;
+        fixed (void* source = &clusterArray[0])
+        {
+            byte* dest = (byte*)allInfos.GetUnsafePtr() + clusterCount;
+            UnsafeUtility.MemCpy(dest, source, clusterArray.Length);
         }
-        
+        clusterCount += clusterArray.Length;
+        fixed (void* source = &pointArray[0])
+        {
+            byte* dest = (byte*)allPoints.GetUnsafePtr() + pointCount;
+            UnsafeUtility.MemCpy(dest, source, pointArray.Length);
+        }
+        pointCount += pointArray.Length;
+        Resources.UnloadAsset(clusterFile);
+        Resources.UnloadAsset(pointFile);
         baseBuffer.propertyBuffer = new ComputeBuffer(materialResources.values.Length, sizeof(PropertyValue));
         baseBuffer.propertyBuffer.SetData(materialResources.values);
         baseBuffer.combinedMaterial = new Material(Shader.Find("Maxwell/CombinedProcedural"));
         baseBuffer.combinedMaterial.SetBuffer("_PropertiesBuffer", baseBuffer.propertyBuffer);
-        foreach(var i in materialResources.textures)
+        foreach (var i in materialResources.textures)
         {
             baseBuffer.combinedMaterial.SetTexture(i.key, i.value);
         }
@@ -182,10 +174,6 @@ public unsafe static class PipelineFunctions
         occludedCountList[2] = 0;
         baseBuffer.reCheckCount.SetData(occludedCountList);
         occludedCountList.Dispose();
-        foreach (var i in allFileFlags)
-        {
-            Resources.UnloadAsset(i);
-        }
     }
     /// <summary>
     /// Get Frustum Corners
@@ -375,7 +363,7 @@ public unsafe static class PipelineFunctions
     public static void RunCullDispatching(ref PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho, CommandBuffer buffer)
     {
         buffer.SetComputeIntParam(computeShader, ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
-        ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 64);
+        ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 256);
     }
 
     public static void RenderProceduralCommand(ref PipelineBaseBuffer buffer, Material material, MaterialPropertyBlock block, CommandBuffer cb)
@@ -439,12 +427,12 @@ public unsafe static class PipelineFunctions
             tar.gbufferIdentifier[i] = new RenderTargetIdentifier(tar.gbufferTextures[i]);
             Shader.SetGlobalTexture(tar.gbufferIndex[i], tar.gbufferTextures[i]);
         }
-        tar.renderTarget = tar.gbufferTextures[3];
+        RenderTexture renderTarget = tar.gbufferTextures[3];
         tar.backupTarget = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear, collectRT);
         tar.backupTarget.filterMode = FilterMode.Bilinear;
-        tar.renderTargetIdentifier = new RenderTargetIdentifier(tar.renderTarget);
+        tar.renderTargetIdentifier = new RenderTargetIdentifier(renderTarget);
         tar.backupIdentifier = new RenderTargetIdentifier(tar.backupTarget);
-        tar.depthIdentifier = new RenderTargetIdentifier(tar.renderTarget);
+        tar.depthIdentifier = new RenderTargetIdentifier(renderTarget);
     }
 
     public static RenderTexture GetTemporary(RenderTextureDescriptor descriptor, List<RenderTexture> collectList)
@@ -563,7 +551,7 @@ public unsafe static class PipelineFunctions
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.resultBuffer, basebuffer.resultBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.instanceCountBuffer, basebuffer.instanceCountBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.reCheckResult, basebuffer.reCheckResult);
-        ComputeShaderUtility.Dispatch(coreShader, buffer, OcclusionBuffers.FrustumFilter, basebuffer.clusterCount, 64);
+        ComputeShaderUtility.Dispatch(coreShader, buffer, OcclusionBuffers.FrustumFilter, basebuffer.clusterCount, 256);
     }
     public static void ClearOcclusionData(
         ref PipelineBaseBuffer baseBuffer, CommandBuffer buffer

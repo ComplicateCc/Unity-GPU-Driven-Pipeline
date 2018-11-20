@@ -11,6 +11,7 @@ namespace MPipeline
     {
         HizDepth hizDepth;
         Material linearMat;
+        public Material proceduralMaterial;
         public enum OcclusionCullingMode
         {
             None, SingleCheck, DoubleCheck
@@ -33,7 +34,7 @@ namespace MPipeline
         private MaterialPropertyBlock proceduralBlock;
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            Material proceduralMaterial = data.baseBuffer.combinedMaterial;
+         //   Material proceduralMaterial = data.baseBuffer.combinedMaterial;
             CommandBuffer buffer = data.buffer;
             HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, getOcclusionData);
             ref var baseBuffer = ref data.baseBuffer;
@@ -58,7 +59,7 @@ namespace MPipeline
                     buffer.SetComputeBufferParam(gpuFrustumShader, 5, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
                     buffer.SetComputeBufferParam(gpuFrustumShader, 5, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
                     buffer.SetComputeBufferParam(gpuFrustumShader, PipelineBaseBuffer.ComputeShaderKernels.ClearClusterKernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-                    ComputeShaderUtility.Dispatch(gpuFrustumShader, buffer, 5, baseBuffer.clusterCount, 64);
+                    ComputeShaderUtility.Dispatch(gpuFrustumShader, buffer, 5, baseBuffer.clusterCount, 256);
                     hizData.lastFrameCameraUp = cam.transform.up;
                     proceduralBlock.SetBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
                     proceduralBlock.SetBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);

@@ -20,11 +20,14 @@ namespace MPipeline
         #endregion
         private List<PipelineEvent> allEvents;
         public PipelineResources resources;
-        public ClusterMatResources materialRes;
+        public string mapResources = "TestFile";
         public void InitScene()
         {
             data.arrayCollection = new RenderArray(true);
-            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, materialRes);
+            ClusterMatResources res = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
+            Debug.Log(res);
+            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, res, mapResources);
+            Resources.UnloadAsset(res);
         }
         public void DisposeScene()
         {
@@ -99,7 +102,8 @@ namespace MPipeline
                     i.FrameUpdate(pipelineCam, ref data);
                 }
             }
-            Graphics.Blit(pipelineCam.targets.renderTarget, dest);
+            data.buffer.Blit(pipelineCam.targets.renderTargetIdentifier, dest);
+            PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
     }
     public struct DrawEvent

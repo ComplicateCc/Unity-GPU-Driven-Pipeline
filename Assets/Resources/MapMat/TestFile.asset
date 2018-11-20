@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd1947e7bf2da6540a0943c5ce6ab3d9, type: 3}
   m_Name: TestFile
   m_EditorClassIdentifier: 
+  clusterCount: 2337
   values:
   - _SpecularIntensity: 0.3
     _MetallicIntensity: 0.1
@@ -20,27 +21,6 @@ MonoBehaviour:
     _Occlusion: 1
     _Glossiness: 0.795
     _Color: {x: 1, y: 1, z: 1, w: 1}
-  - _SpecularIntensity: 0.3
-    _MetallicIntensity: 0.1
-    _EmissionColor: {x: 0.34905657, y: 0.34905657, z: 0.34905657, w: 1}
-    _EmissionMultiplier: 1
-    _Occlusion: 1
-    _Glossiness: 0.795
-    _Color: {x: 1, y: 0.52358484, z: 0.52358484, w: 1}
-  - _SpecularIntensity: 0.3
-    _MetallicIntensity: 0.1
-    _EmissionColor: {x: 0.41037735, y: 0.45496386, z: 1, w: 1}
-    _EmissionMultiplier: 1
-    _Occlusion: 1
-    _Glossiness: 0.795
-    _Color: {x: 0.25943395, y: 1, z: 0.29647106, w: 1}
-  - _SpecularIntensity: 0.3
-    _MetallicIntensity: 1
-    _EmissionColor: {x: 1, y: 1, z: 1, w: 1}
-    _EmissionMultiplier: 1
-    _Occlusion: 1
-    _Glossiness: 0.795
-    _Color: {x: 0, y: 0.6006248, z: 1, w: 1}
   textures:
   - key: _MainTex
     value: {fileID: 18700000, guid: e3cf76fc6ebe6b94a853f889ef665a87, type: 2}
@@ -49,4 +29,4 @@ MonoBehaviour:
   - key: _SpecularMap
     value: {fileID: 18700000, guid: 2134a7015dfb37b4b99e6d3c9b3d9ebd, type: 2}
   - key: _OcclusionMap
-    value: {fileID: 18700000, guid: 4647e31c898db994ca0d65bdc96b2566, type: 2}
+    value: {fileID: 18700000, guid: 0779c9f6831442f4cafdbe91e0d6c14d, type: 2}

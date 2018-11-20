@@ -86,7 +86,6 @@ half4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, floa
     // RT2: normal (rgb), --unused, very low precision-- (a)
     outGBuffer2 = half4(s.Normal * 0.5f + 0.5f, 1);
     half4 emission = half4(s.Emission, 1);
-
     return emission;
 }
 float4x4 _LastVp;

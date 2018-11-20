@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.PostProcessing;
 namespace MPipeline
 {
-    public delegate void PostProcessAction(ref PipelineCommandData data, CommandBuffer buffer, RenderTexture source, RenderTexture dest);
+    public delegate void PostProcessAction(ref PipelineCommandData data, CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier dest);
     public struct PostSharedData
     {
         public Material uberMaterial;
@@ -30,11 +30,7 @@ namespace MPipeline
 
         public static void RunPostProcess(ref RenderTargets targets, CommandBuffer buffer, ref PipelineCommandData data, PostProcessAction renderFunc)
         {
-            RenderTexture source = targets.renderTarget;
-            RenderTexture dest = targets.backupTarget;
-            renderFunc(ref data, buffer, source, dest);
-            targets.renderTarget = dest;
-            targets.backupTarget = source;
+            renderFunc(ref data, buffer, targets.renderTargetIdentifier, targets.backupIdentifier);
             RenderTargetIdentifier back = targets.backupIdentifier;
             targets.backupIdentifier = targets.renderTargetIdentifier;
             targets.renderTargetIdentifier = back;

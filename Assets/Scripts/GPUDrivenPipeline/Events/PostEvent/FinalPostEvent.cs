@@ -27,7 +27,7 @@ namespace MPipeline
             finalizerAction = null;
             renderAction = null;
             PostFunctions.InitSharedData(ref sharedData, resources);
-            uberAction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTexture source, RenderTexture dest) =>
+            uberAction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier dest) =>
             {
                 buffer.SetRenderTarget(dest);
                 buffer.BlitSRT(uberBlock, source, dest, sharedData.uberMaterial, 0);

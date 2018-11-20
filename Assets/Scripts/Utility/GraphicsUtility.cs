@@ -91,7 +91,8 @@ new Vector3(-1f, 0f, 0f),
 new Vector3(1f, 0f, 0f),
 new Vector3(1f, 0f, 0f),
 new Vector3(1f, 0f, 0f),
-new Vector3(1f, 0f, 0f)
+new Vector3(1f, 0f, 0f)
+
             };
             m_cubeMesh.triangles = new int[]
             {
@@ -134,9 +135,9 @@ new Vector3(1f, 0f, 0f)
         buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass);
     }//Use This
 
-    public static void BlitSRT(this CommandBuffer buffer, MaterialPropertyBlock block, RenderTexture source, RenderTexture destination, Material mat, int pass)
+    public static void BlitSRT(this CommandBuffer buffer, MaterialPropertyBlock block, RenderTargetIdentifier source, RenderTargetIdentifier destination, Material mat, int pass)
     {
-        block.SetTexture(ShaderIDs._MainTex, source);
+        buffer.SetGlobalTexture(ShaderIDs._MainTex, source);
         buffer.SetRenderTarget(destination);
         buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass, block);
     }//Use This

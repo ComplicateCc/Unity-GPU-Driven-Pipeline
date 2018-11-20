@@ -14,7 +14,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             skyboxIdentifier[0] = camera.targets.renderTargetIdentifier;
             skyboxIdentifier[1] = camera.targets.motionVectorTexture;
-            buffer.SetRenderTarget(camera.targets.renderTargetIdentifier, camera.targets.depthIdentifier);
+            buffer.SetRenderTarget(skyboxIdentifier, camera.targets.depthIdentifier);
             buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, skyboxMaterial, 0, 0);
             PipelineFunctions.ExecuteCommandBuffer(ref data);
         }

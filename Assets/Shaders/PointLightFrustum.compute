@@ -50,7 +50,7 @@ half PlaneTest(ClusterMeshData info){
     }
     return result;
 }
-[numthreads(64, 1, 1)]
+[numthreads(256, 1, 1)]
 void RunFrustumCull(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return;
@@ -63,7 +63,7 @@ void RunFrustumCull(uint id : SV_DISPATCHTHREADID)
     }
 }
 
-[numthreads(64,1,1)]
+[numthreads(256,1,1)]
 void ClearCluster(uint id : SV_DISPATCHTHREADID)
 {
     if(id >=_Count) return;

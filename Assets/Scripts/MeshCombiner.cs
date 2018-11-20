@@ -171,7 +171,7 @@ namespace MPipeline
                 specularFormat,
                 occlusionFormat
             };
-            
+
             Color* defaultColors = stackalloc Color[]
             {
                 Color.white,
@@ -306,16 +306,17 @@ namespace MPipeline
         public void TryThis()
         {
             CombinedModel model = ProcessCluster(GetComponentsInChildren<MeshRenderer>());
-            ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName);
+            ClusterMatResources res = ScriptableObject.CreateInstance<ClusterMatResources>();
+            ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName, res);
             PropertyValue[] value = GetProperty(model.containedMaterial);
             var texs = CombineTexture(model.containedMaterial, Vector2Int.one * 1024);
-            ClusterMatResources res = ScriptableObject.CreateInstance<ClusterMatResources>();
+
             res.values = value;
-           // List<Pair> finalPair = new List<Pair>(texs.Count);
+            // List<Pair> finalPair = new List<Pair>(texs.Count);
             foreach (var i in texs)
             {
                 AssetDatabase.CreateAsset(i.value, "Assets/Resources/MapMat/" + modelName + i.key + ".asset");
-               // finalPair.Add(new Pair(i.key, Resources.Load<Texture2DArray>("MapMat/" + modelName + i.key)));
+                // finalPair.Add(new Pair(i.key, Resources.Load<Texture2DArray>("MapMat/" + modelName + i.key)));
             }
             res.textures = texs;
             AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/" + modelName + ".asset");

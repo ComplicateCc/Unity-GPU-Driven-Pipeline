@@ -246,7 +246,6 @@ namespace MPipeline
 
     public struct RenderTargets
     {
-        public RenderTexture renderTarget;
         public RenderTexture backupTarget;
         public RenderTexture[] gbufferTextures;
         public RenderTargetIdentifier[] gbufferIdentifier;
@@ -268,7 +267,6 @@ namespace MPipeline
             };
             rt.gbufferIdentifier = new RenderTargetIdentifier[6];
             rt.gbufferTextures = new RenderTexture[6];
-            rt.renderTarget = null;
             rt.backupTarget = null;
             rt.backupIdentifier = default;
             rt.depthIdentifier = default;

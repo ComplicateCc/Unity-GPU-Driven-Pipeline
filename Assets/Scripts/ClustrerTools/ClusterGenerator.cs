@@ -90,7 +90,7 @@ namespace MPipeline
 
     public unsafe class ClusterGenerator : MonoBehaviour
     {
-        public static void GenerateCluster(NativeList<Point> pointsFromMesh, NativeList<int> triangles, Bounds bd, string fileName)
+        public static void GenerateCluster(NativeList<Point> pointsFromMesh, NativeList<int> triangles, Bounds bd, string fileName, ClusterMatResources res)
         {
             List<Vector4Int> value = ClusterFunctions.AddTrianglesToDictionary(triangles);
             GetFragmentJob gt = new GetFragmentJob(bd.center, bd.extents, pointsFromMesh, value);
@@ -177,9 +177,8 @@ namespace MPipeline
             byte[] meshDataArray;
             byte[] pointDataArray;
             ClusterFunctions.GetByteDataFromArray(meshData, pointsList, out meshDataArray, out pointDataArray);
-            string count = meshData.Length.ToString();
             string filenameWithExtent = fileName + ".txt";
-            File.WriteAllText("Assets/Resources/MapSigns/" + filenameWithExtent, count);
+            res.clusterCount = meshData.Length;
             File.WriteAllBytes("Assets/Resources/MapInfos/" + filenameWithExtent, meshDataArray);
             File.WriteAllBytes("Assets/Resources/MapPoints/" + filenameWithExtent, pointDataArray);
             //Dispose Native Array
@@ -218,14 +217,7 @@ namespace MPipeline
             }
             return pointsFromMesh;
         }
-        [EasyButtons.Button]
-        public void Generate()
-        {
-            NativeList<int> tri;
-            Mesh m = GetComponent<MeshFilter>().sharedMesh;
-            var point = GetPoints(m, transform.localToWorldMatrix, out tri);
-            GenerateCluster(point, tri, GetComponent<MeshRenderer>().bounds, "TestFile");
-        }
+
     }
     #region STRUCT
     public struct Vector4Int

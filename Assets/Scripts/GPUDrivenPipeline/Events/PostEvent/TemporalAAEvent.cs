@@ -41,7 +41,7 @@ namespace MPipeline
         {
             block = new MaterialPropertyBlock();
             taaMat = new Material(resources.taaShader);
-            taaFunction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTexture source, RenderTexture dest) =>
+            taaFunction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier dest) =>
             {
                 buffer.BlitSRT(block, source, dest, taaMat, 0);
                 buffer.Blit(dest, historyTex);
@@ -58,7 +58,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             HistoryTexture texComponent = IPerCameraData.GetProperty<HistoryTexture>(cam, GetHistoryTex);
             texComponent.UpdateProperty(cam);
-            SetHistory(cam.cam, buffer, ref texComponent.historyTex, cam.targets.renderTarget);
+            SetHistory(cam.cam, buffer, ref texComponent.historyTex, cam.targets.renderTargetIdentifier);
             historyTex = texComponent.historyTex;
             //TAA Start
             const float kMotionAmplification_Blending = 100f * 60f;
@@ -110,7 +110,7 @@ namespace MPipeline
             camera.useJitteredProjectionMatrixForTransparentRendering = false;
         }
 
-        public void SetHistory(Camera cam, CommandBuffer buffer, ref RenderTexture history, RenderTexture renderTarget)
+        public void SetHistory(Camera cam, CommandBuffer buffer, ref RenderTexture history, RenderTargetIdentifier renderTarget)
         {
             if (history == null)
             {

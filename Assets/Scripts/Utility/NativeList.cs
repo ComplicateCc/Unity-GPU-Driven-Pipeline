@@ -63,6 +63,17 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         UnsafeUtility.Free(data->ptr, data->allocator);
         data->ptr = newPtr;
     }
+
+    private void ResizeToCount()
+    {
+        if (data->count <= data->capacity) return;
+        int lastcapacity = data->capacity;
+        data->capacity = data->count;
+        void* newPtr = UnsafeUtility.Malloc(sizeof(T) * data->capacity, 16, data->allocator);
+        UnsafeUtility.MemCpy(newPtr, data->ptr, sizeof(T) * lastcapacity);
+        UnsafeUtility.Free(data->ptr, data->allocator);
+        data->ptr = newPtr;
+    }
     public int Length
     {
         get
@@ -101,14 +112,14 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     public void AddRange(int length)
     {
         data->count += length;
-        Resize();
+        ResizeToCount();
     }
     public void AddRange(T[] array)
     {
         int last = data->count;
         data->count += array.Length;
-        Resize();
-        fixed(void* source = &array[0])
+        ResizeToCount();
+        fixed (void* source = &array[0])
         {
             void* dest = unsafePtr + last;
             UnsafeUtility.MemCpy(dest, source, array.Length * sizeof(T));
