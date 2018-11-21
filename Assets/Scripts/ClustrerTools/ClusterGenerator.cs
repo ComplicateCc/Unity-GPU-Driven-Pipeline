@@ -90,7 +90,8 @@ namespace MPipeline
 
     public unsafe class ClusterGenerator : MonoBehaviour
     {
-        public static void GenerateCluster(NativeList<Point> pointsFromMesh, NativeList<int> triangles, Bounds bd, string fileName, ClusterMatResources res)
+        /// <returns></returns> Cluster Count
+        public static int GenerateCluster(NativeList<Point> pointsFromMesh, NativeList<int> triangles, Bounds bd, string fileName)
         {
             List<Vector4Int> value = ClusterFunctions.AddTrianglesToDictionary(triangles);
             GetFragmentJob gt = new GetFragmentJob(bd.center, bd.extents, pointsFromMesh, value);
@@ -177,8 +178,8 @@ namespace MPipeline
             byte[] meshDataArray;
             byte[] pointDataArray;
             ClusterFunctions.GetByteDataFromArray(meshData, pointsList, out meshDataArray, out pointDataArray);
+            int len = meshData.Length;
             string filenameWithExtent = fileName + ".txt";
-            res.clusterCount = meshData.Length;
             File.WriteAllBytes("Assets/Resources/MapInfos/" + filenameWithExtent, meshDataArray);
             File.WriteAllBytes("Assets/Resources/MapPoints/" + filenameWithExtent, pointDataArray);
             //Dispose Native Array
@@ -190,6 +191,7 @@ namespace MPipeline
             {
                 i.Dispose();
             }
+            return len;
         }
         public static NativeList<Point> GetPoints(Mesh testMesh, Matrix4x4 localToWorld, out NativeList<int> triangles)
         {

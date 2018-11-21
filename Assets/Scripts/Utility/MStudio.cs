@@ -11,6 +11,14 @@ namespace MStudio
 
 	public static class Library
 	{
+        public static bool Contains<T>(this List<T> lst, T value, Func<T, T, bool> equalFunc)
+        {
+            foreach(var i in lst)
+            {
+                if (equalFunc(value, i)) return true;
+            }
+            return false;
+        }
 		public static double GaussianDistribution ()
 		{
 			var u1 = random.NextDouble ();

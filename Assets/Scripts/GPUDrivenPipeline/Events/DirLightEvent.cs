@@ -35,6 +35,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             if (SunLight.current == null) return;
+            if (data.baseBuffer.clusterCount <= 0) return;
             CommandBuffer buffer = data.buffer;
             int pass;
             lightBlock.Clear();

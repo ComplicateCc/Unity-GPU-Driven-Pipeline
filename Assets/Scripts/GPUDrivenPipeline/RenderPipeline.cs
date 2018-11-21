@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine.Rendering;
+using Unity.Collections;
 namespace MPipeline
 {
     public unsafe class RenderPipeline : MonoBehaviour
@@ -21,17 +22,43 @@ namespace MPipeline
         private List<PipelineEvent> allEvents;
         public PipelineResources resources;
         public string mapResources = "TestFile";
+        private List<ClusterStreaming> streaming = new List<ClusterStreaming>();
+        private ClusterMatResources clusterResources;
         public void InitScene()
         {
             data.arrayCollection = new RenderArray(true);
-            ClusterMatResources res = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
-            Debug.Log(res);
-            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, res, mapResources);
-            Resources.UnloadAsset(res);
+            clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
+            int clusterCount = 0;
+            foreach(var i in clusterResources.clusterProperties)
+            {
+                clusterCount += i.clusterCount;
+            }
+            
+            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, clusterResources, mapResources, clusterCount);
+            Resources.UnloadAsset(clusterResources);
         }
         public void DisposeScene()
         {
             PipelineFunctions.Dispose(ref data.baseBuffer);
+        }
+        bool initialized = false;
+        private void Update()
+        {
+            if(!initialized && Input.GetKeyDown(KeyCode.Space))
+            {
+                ClusterStreamingUtility.LoadAll(ref data.baseBuffer, this, clusterResources.clusterProperties, streaming);
+                initialized = true;
+            }
+            if (streaming.Count > 0)
+            {
+                ClusterStreaming stm = streaming[streaming.Count - 1];
+                streaming.RemoveAt(streaming.Count - 1);
+                NativeArray<ClusterMeshData> cluster;
+                NativeArray<Point> pt;
+                ClusterStreamingUtility.GetData(stm.clusterText.bytes, stm.pointText.bytes, stm.length, out cluster, out pt);
+                ClusterStreamingUtility.LoadData(ref data.baseBuffer, cluster, pt);
+                stm.Unload();
+            }
         }
         private void Awake()
         {

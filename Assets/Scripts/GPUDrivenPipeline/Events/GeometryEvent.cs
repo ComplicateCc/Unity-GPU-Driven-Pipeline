@@ -34,6 +34,7 @@ namespace MPipeline
         private MaterialPropertyBlock proceduralBlock;
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            if (data.baseBuffer.clusterCount <= 0) return;
          //   Material proceduralMaterial = data.baseBuffer.combinedMaterial;
             CommandBuffer buffer = data.buffer;
             HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, getOcclusionData);

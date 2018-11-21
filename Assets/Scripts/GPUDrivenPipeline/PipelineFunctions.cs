@@ -104,39 +104,10 @@ public unsafe static class PipelineFunctions
     /// Initialize pipeline buffers
     /// </summary>
     /// <param name="baseBuffer"></param> pipeline base buffer
-    public static void InitBaseBuffer(ref PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources, string name)
+    public static void InitBaseBuffer(ref PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources, string name, int maximumLength)
     {
-        int clusterCount = materialResources.clusterCount;
-        StringBuilder sb = new StringBuilder(50, 150);
-        NativeArray<ClusterMeshData> allInfos = new NativeArray<ClusterMeshData>(clusterCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-        NativeArray<Point> allPoints = new NativeArray<Point>(clusterCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-        clusterCount = 0;
-        int pointCount = 0;
-
-        sb.Clear();
-        sb.Append("MapInfos/");
-        sb.Append(name);
-        TextAsset clusterFile = Resources.Load<TextAsset>(sb.ToString());
-        sb.Clear();
-        sb.Append("MapPoints/");
-        sb.Append(name);
-        TextAsset pointFile = Resources.Load<TextAsset>(sb.ToString());
-        byte[] clusterArray = clusterFile.bytes;
-        byte[] pointArray = pointFile.bytes;
-        fixed (void* source = &clusterArray[0])
-        {
-            byte* dest = (byte*)allInfos.GetUnsafePtr() + clusterCount;
-            UnsafeUtility.MemCpy(dest, source, clusterArray.Length);
-        }
-        clusterCount += clusterArray.Length;
-        fixed (void* source = &pointArray[0])
-        {
-            byte* dest = (byte*)allPoints.GetUnsafePtr() + pointCount;
-            UnsafeUtility.MemCpy(dest, source, pointArray.Length);
-        }
-        pointCount += pointArray.Length;
-        Resources.UnloadAsset(clusterFile);
-        Resources.UnloadAsset(pointFile);
+       
+      /*
         baseBuffer.propertyBuffer = new ComputeBuffer(materialResources.values.Length, sizeof(PropertyValue));
         baseBuffer.propertyBuffer.SetData(materialResources.values);
         baseBuffer.combinedMaterial = new Material(Shader.Find("Maxwell/CombinedProcedural"));
@@ -144,21 +115,16 @@ public unsafe static class PipelineFunctions
         foreach (var i in materialResources.textures)
         {
             baseBuffer.combinedMaterial.SetTexture(i.key, i.value);
-        }
-        baseBuffer.clusterBuffer = new ComputeBuffer(allInfos.Length, sizeof(ClusterMeshData));
-        baseBuffer.clusterBuffer.SetData(allInfos);
-        baseBuffer.resultBuffer = new ComputeBuffer(allInfos.Length, PipelineBaseBuffer.UINTSIZE);
+        }*/
+        baseBuffer.clusterBuffer = new ComputeBuffer(maximumLength, sizeof(ClusterMeshData));
+        baseBuffer.resultBuffer = new ComputeBuffer(maximumLength, PipelineBaseBuffer.UINTSIZE);
         baseBuffer.instanceCountBuffer = new ComputeBuffer(5, 4, ComputeBufferType.IndirectArguments);
         NativeArray<uint> instanceCountBufferValue = new NativeArray<uint>(5, Allocator.Temp);
         instanceCountBufferValue[0] = PipelineBaseBuffer.CLUSTERVERTEXCOUNT;
         baseBuffer.instanceCountBuffer.SetData(instanceCountBufferValue);
         instanceCountBufferValue.Dispose();
-        baseBuffer.verticesBuffer = new ComputeBuffer(allPoints.Length, sizeof(Point));
-        baseBuffer.verticesBuffer.SetData(allPoints);
-        baseBuffer.clusterCount = allInfos.Length;
-        allInfos.Dispose();
-        allPoints.Dispose();
-
+        baseBuffer.verticesBuffer = new ComputeBuffer(maximumLength * PipelineBaseBuffer.CLUSTERCLIPCOUNT, sizeof(Point));
+        baseBuffer.clusterCount = 0;
         baseBuffer.dispatchBuffer = new ComputeBuffer(5, 4, ComputeBufferType.IndirectArguments);
         NativeArray<uint> occludedCountList = new NativeArray<uint>(5, Allocator.Temp, NativeArrayOptions.ClearMemory);
         occludedCountList[0] = 0;
@@ -168,7 +134,7 @@ public unsafe static class PipelineFunctions
         occludedCountList[4] = 0;
         baseBuffer.dispatchBuffer.SetData(occludedCountList);
         baseBuffer.reCheckCount = new ComputeBuffer(5, 4, ComputeBufferType.IndirectArguments);
-        baseBuffer.reCheckResult = new ComputeBuffer(baseBuffer.clusterCount, 4);
+        baseBuffer.reCheckResult = new ComputeBuffer(maximumLength, 4);
         occludedCountList[0] = PipelineBaseBuffer.CLUSTERVERTEXCOUNT;
         occludedCountList[1] = 0;
         occludedCountList[2] = 0;

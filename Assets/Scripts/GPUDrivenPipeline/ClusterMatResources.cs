@@ -5,8 +5,15 @@ namespace MPipeline
 {
     public class ClusterMatResources : ScriptableObject
     {
-        public int clusterCount;
+        [System.Serializable]
+        public struct ClusterProperty
+        {
+            public string name;
+            public int clusterCount;
+        }
+        public List<ClusterProperty> clusterProperties;
         public PropertyValue[] values;
         public List<Pair> textures;
     }
+    
 }

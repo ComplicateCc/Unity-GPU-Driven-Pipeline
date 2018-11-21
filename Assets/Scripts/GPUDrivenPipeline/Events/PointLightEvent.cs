@@ -63,6 +63,7 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            if (data.baseBuffer.clusterCount <= 0) return;
             CommandBuffer buffer = data.buffer;
             cullJobHandler.Complete();
             UnsafeUtility.ReleaseGCObject(gcHandler);
