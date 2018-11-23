@@ -6,7 +6,7 @@ namespace MPipeline
     public class PipelineResources : ScriptableObject
     {
         public ComputeShader gpuFrustumCulling;
-        public ComputeShader skinCulling;
+        public ComputeShader gpuSkin;
         public ComputeShader pointLightFrustumCulling;
         public Shader taaShader;
         public Shader indirectDepthShader;

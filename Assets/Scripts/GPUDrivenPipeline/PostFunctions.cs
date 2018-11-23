@@ -35,17 +35,5 @@ namespace MPipeline
             targets.backupIdentifier = targets.renderTargetIdentifier;
             targets.renderTargetIdentifier = back;
         }
-
-        public static void BlitFullScreen(this CommandBuffer buffer, RenderTexture source, RenderTexture dest, Material mat, MaterialPropertyBlock block, int pass)
-        {
-            block.SetTexture(ShaderIDs._MainTex, source);
-            buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, mat, 0, pass, block);
-        }
-
-
-        public static void BlitFullScreen(this CommandBuffer buffer, RenderTexture dest, Material mat, MaterialPropertyBlock block, int pass)
-        {
-            buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, mat, 0, pass, block);
-        }
     }
 }

@@ -66,8 +66,7 @@ namespace MPipeline
                 sharedData.uberMaterial.shaderKeywords = sharedData.shaderKeywords.ToArray();
             }
             PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, uberAction);
-            PipelineFunctions.ReleaseRenderTarget(sharedData.temporalRT);
-            PipelineFunctions.ExecuteCommandBuffer(ref data);
+            data.ExecuteCommandBuffer();
         }
     }
 }

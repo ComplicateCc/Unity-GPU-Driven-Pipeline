@@ -13,6 +13,7 @@ namespace MPipeline
         public IEnumerator LoadTextAssets(string clusterPath, string pointPath, int length, List<ClusterStreaming> finishedList = null)
         {
             this.length = length;
+            Application.backgroundLoadingPriority = ThreadPriority.Normal;
             var clusterRequest = Resources.LoadAsync<TextAsset>(clusterPath);
             var pointRequest = Resources.LoadAsync<TextAsset>(pointPath);
             yield return clusterRequest;
@@ -34,8 +35,8 @@ namespace MPipeline
     {
         public static void GetData(byte[] clusterBytes, byte[] pointBytes, int length, out NativeArray<ClusterMeshData> clusterDatas, out NativeArray<Point> pointDatas)
         {
-            clusterDatas = new NativeArray<ClusterMeshData>(length, Allocator.Temp);
-            pointDatas = new NativeArray<Point>(length * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Temp);
+            clusterDatas = new NativeArray<ClusterMeshData>(length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            pointDatas = new NativeArray<Point>(length * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             fixed (byte* bt = &clusterBytes[0])
             {
                 UnsafeUtility.MemCpy(clusterDatas.GetUnsafePtr(), bt, clusterBytes.Length);
@@ -64,7 +65,7 @@ namespace MPipeline
                 clusterStr.Combine("MapInfos/", i.name);
                 pointStr.Combine("MapPoints/", i.name);
                 ClusterStreaming streaming = new ClusterStreaming();
-                currentMonoBehaviour.StartCoroutine(streaming.LoadTextAssets("MapInfos/" + i.name , "MapPoints/"+ i.name, i.clusterCount, clusterStreaming));
+                currentMonoBehaviour.StartCoroutine(streaming.LoadTextAssets("MapInfos/" + i.name, "MapPoints/" + i.name, i.clusterCount, clusterStreaming));
             }
         }
     }

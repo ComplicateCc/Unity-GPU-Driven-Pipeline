@@ -5,20 +5,19 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Threading.Tasks;
 using System;
-public unsafe class Test : MonoBehaviour
+
+public class Test : MonoBehaviour
 {
-    [EasyButtons.Button]
-    void TestThis()
+    public string animationPath = "Assets/AnimationTest";
+    public string bindedMeshPath = "Assets/BindPoses";
+    public string animationName;
+    public float time;
+    public SkinnedMeshRenderer skinMeshRender;
+    public Animation animation;
+    private void Update()
     {
-        ComputeBuffer bf = new ComputeBuffer(6, 4);
-        int[] a = new int[] { 1, 2, 3 };
-        bf.SetData(a, 0, 0, 3);
-        bf.SetData(a, 0, 3, 3);
-        int[] b = new int[6];
-        bf.GetData(b);
-        foreach(var i in b)
-        {
-            Debug.Log(i);
-        }
+        AnimationState state = animation[animationName];
+        state.time = time;
+        animation.Sample();
     }
 }

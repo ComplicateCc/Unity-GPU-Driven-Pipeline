@@ -24,6 +24,7 @@ public static partial class ShaderIDs
     public static readonly int instanceCountBuffer = Shader.PropertyToID("instanceCountBuffer");
     public static readonly int resultBuffer = Shader.PropertyToID("resultBuffer");
     public static readonly int verticesBuffer = Shader.PropertyToID("verticesBuffer");
+    public static readonly int boneBuffer = Shader.PropertyToID("boneBuffer");
     public static readonly int _NormalBiases = Shader.PropertyToID("_NormalBiases");
     public static readonly int dispatchBuffer = Shader.PropertyToID("dispatchBuffer");
     public static readonly int reCheckResult = Shader.PropertyToID("reCheckResult");

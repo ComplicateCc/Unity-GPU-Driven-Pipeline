@@ -431,12 +431,12 @@ public unsafe static class PipelineFunctions
         }
         tar.Clear();
     }
-    public static void ExecuteCommandBuffer(ref PipelineCommandData data)
+    public static void ExecuteCommandBuffer(ref this PipelineCommandData data)
     {
         Graphics.ExecuteCommandBuffer(data.buffer);
         data.buffer.Clear();
     }
-    public static void ExecuteCommandBufferAsync(ref PipelineCommandData data, CommandBuffer asyncBuffer, ComputeQueueType queueType)
+    public static void ExecuteCommandBufferAsync(ref this PipelineCommandData data, CommandBuffer asyncBuffer, ComputeQueueType queueType)
     {
         Graphics.ExecuteCommandBufferAsync(asyncBuffer, queueType);
         asyncBuffer.Clear();

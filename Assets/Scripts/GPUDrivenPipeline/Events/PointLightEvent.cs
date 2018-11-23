@@ -108,7 +108,7 @@ namespace MPipeline
             }
             //Shadow Point Light
             indicesArray.Dispose();
-            PipelineFunctions.ExecuteCommandBuffer(ref data);
+            data.ExecuteCommandBuffer();
         }
 
         protected override void Dispose()

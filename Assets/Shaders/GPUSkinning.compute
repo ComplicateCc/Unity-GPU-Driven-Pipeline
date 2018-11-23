@@ -1,0 +1,35 @@
+﻿#pragma kernel Skinning
+#define COMPUTESHADER
+#include "CGINC/Procedural.cginc"
+uint _Count;
+uint _ModelBones;
+struct AnimState
+{
+    float3x4 localToWorldMatrix;
+    float frame;
+};
+Texture2D<float4> _AnimTex;
+Texture2D<float4> _BindTex;
+RWStructuredBuffer<AnimState> objBuffer;
+RWStructuredBuffer<float3x4> bonesBuffer;
+[numthreads(256,1,1)]
+void Skinning (uint id : SV_DispatchThreadID)
+{
+    if(id >= _Count) return;
+    uint currentObjectIndex = id / _ModelBones;
+    uint boneIndex = id - currentObjectIndex;
+    AnimState state = objBuffer[currentObjectIndex];
+    float4x4 localToWorld = float4x4(state.localToWorldMatrix, float4(0,0,0,1));
+   float4x4 bonesMatrix0 = float4x4(_AnimTex[uint2((uint)state.frame, boneIndex * 3)]
+                                    ,_AnimTex[uint2((uint)state.frame, boneIndex * 3 + 1)]
+                                    ,_AnimTex[uint2((uint)state.frame, boneIndex * 3 + 2)]
+                                    ,float4(0,0,0,1));
+    float4x4 bonesMatrix1 = float4x4(_AnimTex[uint2((uint)state.frame + 1, boneIndex * 3)]
+                                    ,_AnimTex[uint2((uint)state.frame + 1, boneIndex * 3 + 1)]
+                                    ,_AnimTex[uint2((uint)state.frame + 1, boneIndex * 3 + 2)]
+                                    ,float4(0,0,0,1));
+    bonesMatrix0 = lerp(bonesMatrix0, bonesMatrix1, frac(state.frame));
+    float4x4 bindMatrix = float4x4(_BindTex[uint2(boneIndex, 0)], _BindTex[uint2(boneIndex, 1)], _BindTex[uint2(boneIndex, 2)], float4(0,0,0,1));
+    float4x4 finalMatrix = mul(localToWorld, bonesMatrix0);
+    bonesBuffer[id] = (float3x4)mul(finalMatrix, bindMatrix);
+}
