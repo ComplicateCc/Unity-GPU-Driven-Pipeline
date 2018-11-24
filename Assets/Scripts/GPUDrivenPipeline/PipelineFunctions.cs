@@ -356,7 +356,7 @@ public unsafe static class PipelineFunctions
         staticFit.mainCamTrans = currentCam;
         staticFit.frustumCorners = shadMap.frustumCorners;
 
-        float* clipDistances = (float*)UnsafeUtility.Malloc(CASCADECLIPSIZE, 16, Allocator.Temp);
+        float* clipDistances = stackalloc float[CASCADECLIPSIZE];
         clipDistances[0] = shadMap.shadCam.nearClipPlane;
         clipDistances[1] = settings.firstLevelDistance;
         clipDistances[2] = settings.secondLevelDistance;
@@ -378,7 +378,6 @@ public unsafe static class PipelineFunctions
             buffer.DrawProceduralIndirect(Matrix4x4.identity, shadMap.shadowDepthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0, shadMap.block);
             buffer.DispatchCompute(gpuFrustumShader, 1, 1, 1, 1);
         }
-        UnsafeUtility.Free(clipDistances, Allocator.Temp);
     }
     public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, List<RenderTexture> collectRT)
     {

@@ -105,37 +105,6 @@ inline half2 CalculateMotionVector(float4x4 lastvp, half3 worldPos, half2 screen
 	return screenUV - lastScreenUV;
 }
 
-struct SkinPoint
-{
-    float3 position;
-    float3 normal;
-    float4 tangent;
-    float2 uv;
-    float4 boneWeight;
-    uint4 boneIndex;
-};
-
-uint _ModelBones;
-StructuredBuffer<float3x4> bonesBuffer;
-StructuredBuffer<SkinPoint> verticesBuffer;
-Point GPUSkinning(uint vertexID, uint instanceID)
-{
-	Point pt;
-	uint offset = _ModelBones * instanceID;
-	SkinPoint skinPt = verticesBuffer[vertexID];
-	float3x4 combineTex = mul(bonesBuffer[offset + skinPt.boneIndex.x], skinPt.boneWeight.x) + 
-						  mul(bonesBuffer[offset + skinPt.boneIndex.y], skinPt.boneWeight.y) + 
-						  mul(bonesBuffer[offset + skinPt.boneIndex.z], skinPt.boneWeight.z) + 
-						  mul(bonesBuffer[offset + skinPt.boneIndex.w], skinPt.boneWeight.w);
-	pt.vertex = mul(combineTex, skinPt.position);
-	pt.normal = mul(combineTex, float4(skinPt.normal, 0));
-	pt.tangent.xyz = mul(combineTex, float4(skinPt.tangent.xyz, 0));
-	pt.tangent.w = skinPt.tangent.w;
-	pt.texcoord = skinPt.uv;
-	pt.objIndex = 0;
-	return pt;
-}
-
 struct v2f_surf {
   UNITY_POSITION(pos);
   float2 pack0 : TEXCOORD0; 

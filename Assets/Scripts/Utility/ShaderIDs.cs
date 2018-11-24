@@ -62,4 +62,11 @@ public static partial class ShaderIDs
     public static readonly int _LightOffset = Shader.PropertyToID("_LightOffset");
     public static readonly int lightPositionBuffer = Shader.PropertyToID("lightPositionBuffer");
     public static readonly int _LightRadius = Shader.PropertyToID("_LightRadius");
+
+    public static readonly int _ModelBones = Shader.PropertyToID("_ModelBones");
+    public static readonly int _TimeVar = Shader.PropertyToID("_TimeVar");
+    public static readonly int _AnimTex = Shader.PropertyToID("_AnimTex");
+    public static readonly int objBuffer = Shader.PropertyToID("objBuffer");
+    public static readonly int bonesBuffer = Shader.PropertyToID("bonesBuffer");
+    public static readonly int bindBuffer = Shader.PropertyToID("bindBuffer");
 }

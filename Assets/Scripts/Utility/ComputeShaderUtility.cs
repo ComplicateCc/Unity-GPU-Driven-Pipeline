@@ -26,4 +26,20 @@ public unsafe static class NativeArrayUtility
     {
         return ref *((T*)arr.GetUnsafePtr() + index);
     }
+
+    public static void CopyFrom<T>(this T[] array, T* source, int length) where T : unmanaged
+    {
+        fixed(T* dest = array)
+        {
+            UnsafeUtility.MemCpy(dest, source, length * sizeof(T));
+        }
+    }
+
+    public static void CopyTo<T>(this T[] array, T* dest, int length) where T : unmanaged
+    {
+        fixed (T* source = array)
+        {
+            UnsafeUtility.MemCpy(dest, source, length * sizeof(T));
+        }
+    }
 }

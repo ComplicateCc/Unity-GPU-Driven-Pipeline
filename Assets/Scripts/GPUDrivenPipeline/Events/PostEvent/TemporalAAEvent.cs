@@ -44,7 +44,7 @@ namespace MPipeline
             taaFunction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier dest) =>
             {
                 buffer.BlitSRT(block, source, dest, taaMat, 0);
-                buffer.Blit(dest, historyTex);
+                buffer.CopyTexture(dest, historyTex);
             };
         }
 
@@ -116,7 +116,7 @@ namespace MPipeline
             {
                 history = new RenderTexture(cam.pixelWidth, cam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
                 history.filterMode = FilterMode.Bilinear;
-                buffer.Blit(renderTarget, history);
+                buffer.CopyTexture(renderTarget, history);
             }
             else if (history.width != cam.pixelWidth || history.height != cam.pixelHeight)
             {
@@ -124,7 +124,7 @@ namespace MPipeline
                 Destroy(history);
                 history = new RenderTexture(cam.pixelWidth, cam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
                 history.filterMode = FilterMode.Bilinear;
-                buffer.Blit(renderTarget, history);
+                buffer.CopyTexture(renderTarget, history);
             }
         }
     }

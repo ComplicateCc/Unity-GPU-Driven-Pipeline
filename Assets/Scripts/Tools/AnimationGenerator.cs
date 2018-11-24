@@ -21,25 +21,6 @@ public unsafe class AnimationGenerator : ScriptableWizard
         DisplayWizard<AnimationGenerator>("Animation Generator", "Close", "Generate");
     }
 
-    private void SaveBindPos()
-    {
-        Mesh mesh = skinMeshRender.sharedMesh;
-        Matrix4x4[] bindPoses = mesh.bindposes;
-
-        Texture2D tex = new Texture2D(bindPoses.Length, 3, TextureFormat.RGBAFloat, false, true);
-        for (int i = 0; i < bindPoses.Length; ++i)
-        {
-            Vector4 colorVec = bindPoses[i].GetRow(0);
-            tex.SetPixel(i, 0, new Color(colorVec.x, colorVec.y, colorVec.z, colorVec.w));
-            colorVec = bindPoses[i].GetRow(1);
-            tex.SetPixel(i, 1, new Color(colorVec.x, colorVec.y, colorVec.z, colorVec.w));
-            colorVec = bindPoses[i].GetRow(2);
-            tex.SetPixel(i, 2, new Color(colorVec.x, colorVec.y, colorVec.z, colorVec.w));
-        }
-        tex.Apply();
-        AssetDatabase.CreateAsset(tex, bindedMeshPath + ".asset");
-    }
-
     private void SaveAnimation()
     {
         Transform parent = animation.transform;
@@ -74,7 +55,6 @@ public unsafe class AnimationGenerator : ScriptableWizard
 
     private void OnWizardOtherButton()
     {
-        SaveBindPos();
         SaveAnimation();
     }
 }
