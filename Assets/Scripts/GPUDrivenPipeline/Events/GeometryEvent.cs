@@ -37,6 +37,16 @@ namespace MPipeline
             if (data.baseBuffer.clusterCount <= 0) return;
          //   Material proceduralMaterial = data.baseBuffer.combinedMaterial;
             CommandBuffer buffer = data.buffer;
+            if(RenderPipeline.pressedLoad)
+            {
+                ComputeList list = new ComputeList
+                {
+                    verticesBuffer = data.baseBuffer.verticesBuffer,
+                    clusterBuffer = data.baseBuffer.clusterBuffer,
+                    length = (int*)UnsafeUtility.AddressOf(ref data.baseBuffer.clusterCount)
+                };
+                ClusterStreamingUtility.RemoveElements(ref list, buffer, data.resources.streamingShader, 0, 1);
+            }
             HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, getOcclusionData);
             ref var baseBuffer = ref data.baseBuffer;
             var gpuFrustumShader = data.resources.gpuFrustumCulling;

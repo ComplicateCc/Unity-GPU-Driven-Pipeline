@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
+using UnityEngine.Rendering;
 namespace MPipeline
 {
     public unsafe struct ClusterStreaming
@@ -31,6 +32,13 @@ namespace MPipeline
         }
     }
 
+    public unsafe struct ComputeList
+    {
+        public ComputeBuffer verticesBuffer;
+        public ComputeBuffer clusterBuffer;
+        public int* length;
+    }
+
     public unsafe static class ClusterStreamingUtility
     {
         public static void GetData(byte[] clusterBytes, byte[] pointBytes, int length, out NativeArray<ClusterMeshData> clusterDatas, out NativeArray<Point> pointDatas)
@@ -46,7 +54,7 @@ namespace MPipeline
                 UnsafeUtility.MemCpy(pointDatas.GetUnsafePtr(), bt, pointBytes.Length);
             }
         }
-
+        private static readonly int[] _RemoveVar = new int[2];
         public static void LoadData(ref PipelineBaseBuffer baseBuffer, NativeArray<ClusterMeshData> clusterData, NativeArray<Point> pointData)
         {
             baseBuffer.clusterBuffer.SetData(clusterData, 0, baseBuffer.clusterCount, clusterData.Length);
@@ -58,14 +66,26 @@ namespace MPipeline
 
         public static void LoadAll(ref PipelineBaseBuffer baseBuffer, MonoBehaviour currentMonoBehaviour, List<ClusterMatResources.ClusterProperty> properties, List<ClusterStreaming> clusterStreaming)
         {
-            MStringBuilder clusterStr = new MStringBuilder(100);
-            MStringBuilder pointStr = new MStringBuilder(100);
             foreach (var i in properties)
             {
-                clusterStr.Combine("MapInfos/", i.name);
-                pointStr.Combine("MapPoints/", i.name);
                 ClusterStreaming streaming = new ClusterStreaming();
                 currentMonoBehaviour.StartCoroutine(streaming.LoadTextAssets("MapInfos/" + i.name, "MapPoints/" + i.name, i.clusterCount, clusterStreaming));
+            }
+        }
+
+        public static void RemoveElements(ref ComputeList list, CommandBuffer buffer, ComputeShader shader, int startPos, int range)
+        {
+            int dispatchLength = *list.length - (startPos + range);
+            _RemoveVar[0] = startPos;
+            _RemoveVar[1] = range + startPos;
+            shader.SetInts(ShaderIDs._RemoveVar, _RemoveVar);
+            shader.SetBuffer(0, ShaderIDs.verticesBuffer, list.verticesBuffer);
+            shader.SetBuffer(1, ShaderIDs.clusterBuffer, list.clusterBuffer);
+            *list.length -= range;
+            if (dispatchLength > 0)
+            {
+                shader.Dispatch(0, dispatchLength, 1, 1);
+                ComputeShaderUtility.Dispatch(shader, buffer, 1, dispatchLength, 256);
             }
         }
     }

@@ -21,6 +21,7 @@ public static partial class ShaderIDs
     public static readonly int _SoftParam = Shader.PropertyToID("_SoftParam");
     public static readonly int _OffsetIndex = Shader.PropertyToID("_OffsetIndex");
     public static readonly int clusterBuffer = Shader.PropertyToID("clusterBuffer");
+    public static readonly int _RemoveVar = Shader.PropertyToID("_RemoveVar");
     public static readonly int instanceCountBuffer = Shader.PropertyToID("instanceCountBuffer");
     public static readonly int resultBuffer = Shader.PropertyToID("resultBuffer");
     public static readonly int verticesBuffer = Shader.PropertyToID("verticesBuffer");

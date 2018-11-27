@@ -1,0 +1,11 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+RWStructuredBuffer<uint> _TestBuffer;
+uint2 _Variables;   //x: start pos y: offset
+[numthreads(1,1,1)]
+void CSMain (uint id : SV_DispatchThreadID)
+{
+    uint index = id + _Variables.x;
+    uint targetIndex = index + _Variables.y;
+    _TestBuffer[index] = _TestBuffer[targetIndex];
+}

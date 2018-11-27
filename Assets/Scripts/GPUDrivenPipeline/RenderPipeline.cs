@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine.Rendering;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
     public unsafe class RenderPipeline : MonoBehaviour
@@ -14,7 +15,7 @@ namespace MPipeline
         }
         public static RenderPipeline singleton;
         public static PipelineCommandData data;
-        
+        public static bool pressedLoad = false;
         public static Dictionary<CameraRenderingPath, DrawEvent> allDrawEvents = new Dictionary<CameraRenderingPath, DrawEvent>();
         //Initialized In Every Scene
 
@@ -59,6 +60,7 @@ namespace MPipeline
                 ClusterStreamingUtility.LoadData(ref data.baseBuffer, cluster, pt);
                 stm.Unload();
             }
+            pressedLoad = Input.GetKeyDown(KeyCode.Return);
         }
         private void Awake()
         {
