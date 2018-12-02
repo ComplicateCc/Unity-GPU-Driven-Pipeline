@@ -61,7 +61,8 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            if (data.baseBuffer.clusterCount <= 0) return;
+            PipelineBaseBuffer baseBuffer;
+            if (!SceneController.current.GetBaseBufferAndCheck(out baseBuffer)) return;
             CommandBuffer buffer = data.buffer;
             cullJobHandler.Complete();
             UnsafeUtility.ReleaseGCObject(gcHandler);
@@ -88,12 +89,19 @@ namespace MPipeline
                 }
                 CubeFunction.UpdateLength(ref cubeBuffer, shadowCount);
                 var cullShader = data.resources.pointLightFrustumCulling;
-                CubeFunction.SetBuffer(ref cubeBuffer, ref data.baseBuffer, cullShader, buffer);
-                CubeFunction.PrepareDispatch(ref cubeBuffer, buffer, cullShader, positions);
+                CubeFunction.UpdateData(ref cubeBuffer, baseBuffer, cullShader, buffer, positions);
+                RenderClusterOptions opts = new RenderClusterOptions
+                {
+                    cullingShader = cullShader,
+                    proceduralMaterial = cubeDepthMaterial,
+                    command = buffer,
+                    frustumPlanes = null,
+                    isOrtho = false
+                };
                 for (int i = 0; i < shadowCount; i++)
                 {
                     MPointLight light = MPointLight.allPointLights[cullJob.indices[i]];
-                    CubeFunction.DrawShadow(light, buffer, ref cubeBuffer, ref data.baseBuffer, cullShader, i, cubeDepthMaterial);
+                    SceneController.current.DrawCubeMap(light, ref opts, ref cubeBuffer, i);
                     buffer.SetRenderTarget(cam.targets.renderTargetIdentifier, cam.targets.depthIdentifier);
                     buffer.SetGlobalVector(ShaderIDs._LightColor, light.color);
                     buffer.SetGlobalVector(ShaderIDs._LightPos, positions[i]);

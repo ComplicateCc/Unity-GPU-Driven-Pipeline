@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine.Rendering;
-using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
+
 namespace MPipeline
 {
     public unsafe class RenderPipeline : MonoBehaviour
@@ -21,9 +20,6 @@ namespace MPipeline
         #endregion
         private List<PipelineEvent> allEvents;
         public PipelineResources resources;
-        public string mapResources = "SceneManager";
-        private ClusterMatResources clusterResources;
-        private List<SceneStreaming> allScenes;
         private void Awake()
         {
             if (singleton)
@@ -36,20 +32,11 @@ namespace MPipeline
             DontDestroyOnLoad(this);
             singleton = this;
             data.arrayCollection = new RenderArray(true);
-            clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
-            int clusterCount = 0;
-            allScenes = new List<SceneStreaming>(clusterResources.clusterProperties.Count);
-            foreach (var i in clusterResources.clusterProperties)
-            {
-                clusterCount += i.clusterCount;
-                allScenes.Add(new SceneStreaming(i.name, i.clusterCount));
-            }
-            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, clusterResources, mapResources, clusterCount);
+
             allEvents = new List<PipelineEvent>(GetComponentsInChildren<PipelineEvent>());
             foreach (var i in allEvents)
                 i.InitEvent(resources);
-            SceneStreaming.pointerContainer = new NativeList<ulong>(clusterCount, Allocator.Persistent);
-            SceneStreaming.commandQueue = new LoadingCommandQueue();
+
 
         }
         /// <summary>
@@ -71,35 +58,24 @@ namespace MPipeline
 
         private void Update()
         {
-            int value;
-            if (int.TryParse(Input.inputString, out value))
-            {
-                if(value < allScenes.Count)
-                {
-                    SceneStreaming str = allScenes[value];
-                    if (str.state == SceneStreaming.State.Loaded)
-                        StartCoroutine(str.Delete());
-                    else if (str.state == SceneStreaming.State.Unloaded)
-                        StartCoroutine(str.Generate());
-                }
-            }
+
             lock (SceneStreaming.commandQueue)
             {
-                SceneStreaming.commandQueue.Run(ref data.baseBuffer, data.resources);
+                PipelineBaseBuffer baseBuffer;
+                if (SceneControllerProxy.current.GetBaseBuffer(out baseBuffer))
+                    SceneStreaming.commandQueue.Run(ref baseBuffer, data.resources);
             }
+
         }
 
         private void OnDestroy()
         {
             if (singleton != this) return;
             singleton = null;
-            PipelineFunctions.Dispose(ref data.baseBuffer);
             foreach (var i in allEvents)
                 i.DisposeEvent();
             allEvents = null;
             data.buffer.Dispose();
-            SceneStreaming.pointerContainer.Dispose();
-            SceneStreaming.commandQueue = null;
         }
 
         public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTexture dest)

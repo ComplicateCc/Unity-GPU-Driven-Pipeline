@@ -9,9 +9,8 @@ using MPipeline;
 
 public unsafe static class PipelineFunctions
 {
-    const int CASCADELEVELCOUNT = 4;
+
     const int Vector2IntSize = 8;
-    const int CASCADECLIPSIZE = (CASCADELEVELCOUNT + 1) * sizeof(float);
     /// <summary>
     /// Get Frustum Planes
     /// </summary>
@@ -104,7 +103,7 @@ public unsafe static class PipelineFunctions
     /// Initialize pipeline buffers
     /// </summary>
     /// <param name="baseBuffer"></param> pipeline base buffer
-    public static void InitBaseBuffer(ref PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources, string name, int maximumLength)
+    public static void InitBaseBuffer(PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources, string name, int maximumLength)
     {
 
         /*
@@ -273,7 +272,7 @@ public unsafe static class PipelineFunctions
         buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
         buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, shadMap.shadowmapTexture);
     }
-    public static void Dispose(ref PipelineBaseBuffer baseBuffer)
+    public static void Dispose(PipelineBaseBuffer baseBuffer)
     {
         baseBuffer.verticesBuffer.Dispose();
         baseBuffer.clusterBuffer.Dispose();
@@ -294,7 +293,7 @@ public unsafe static class PipelineFunctions
     /// <summary>
     /// Set Basement buffers
     /// </summary>
-    public static void SetBaseBuffer(ref PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, Vector4[] frustumCullingPlanes, CommandBuffer buffer)
+    public static void SetBaseBuffer(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, Vector4[] frustumCullingPlanes, CommandBuffer buffer)
     {
         var compute = gpuFrustumShader;
         buffer.SetComputeVectorArrayParam(compute, ShaderIDs.planes, frustumCullingPlanes);
@@ -304,14 +303,8 @@ public unsafe static class PipelineFunctions
         buffer.SetComputeBufferParam(compute, 0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
     }
 
-    public static void SetShaderBuffer(ref PipelineBaseBuffer basebuffer, CommandBuffer buffer)
-    {
-        buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, basebuffer.verticesBuffer);
-        buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, basebuffer.resultBuffer);
-    }
-
     public static void DrawLastFrameCullResult(
-        ref PipelineBaseBuffer baseBuffer,
+        PipelineBaseBuffer baseBuffer,
         CommandBuffer buffer, Material mat)
     {
         buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
@@ -320,20 +313,22 @@ public unsafe static class PipelineFunctions
     }
 
     public static void DrawRecheckCullResult(
-        ref PipelineBaseBuffer occBuffer,
+        PipelineBaseBuffer occBuffer,
         Material indirectMaterial, CommandBuffer buffer)
     {
         buffer.DrawProceduralIndirect(Matrix4x4.identity, indirectMaterial, 0, MeshTopology.Triangles, occBuffer.reCheckCount, 0);
     }
 
-    public static void RunCullDispatching(ref PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho, CommandBuffer buffer)
+    public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho, CommandBuffer buffer)
     {
         buffer.SetComputeIntParam(computeShader, ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
         ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 256);
     }
 
-    public static void RenderProceduralCommand(ref PipelineBaseBuffer buffer, Material material,CommandBuffer cb)
+    public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material,CommandBuffer cb)
     {
+        cb.SetGlobalBuffer(ShaderIDs.resultBuffer, buffer.resultBuffer);
+        cb.SetGlobalBuffer(ShaderIDs.verticesBuffer, buffer.verticesBuffer);
         cb.DrawProceduralIndirect(Matrix4x4.identity, material, 0, MeshTopology.Triangles, buffer.instanceCountBuffer, 0);
     }
 
@@ -342,43 +337,7 @@ public unsafe static class PipelineFunctions
         vp = GL.GetGPUProjectionMatrix(currentCam.projectionMatrix, false) * currentCam.worldToCameraMatrix;
         invVP = vp.inverse;
     }
-    public static void DrawShadow(Camera currentCam,
-        ComputeShader gpuFrustumShader,
-        CommandBuffer buffer,
-        ref PipelineBaseBuffer baseBuffer,
-        ref ShadowmapSettings settings,
-        ref ShadowMapComponent shadMap,
-        Matrix4x4[] cascadeShadowMapVP,
-        Vector4[] shadowFrustumPlanes)
-    {
-        StaticFit staticFit;
-        staticFit.resolution = settings.resolution;
-        staticFit.mainCamTrans = currentCam;
-        staticFit.frustumCorners = shadMap.frustumCorners;
 
-        float* clipDistances = stackalloc float[CASCADECLIPSIZE];
-        clipDistances[0] = shadMap.shadCam.nearClipPlane;
-        clipDistances[1] = settings.firstLevelDistance;
-        clipDistances[2] = settings.secondLevelDistance;
-        clipDistances[3] = settings.thirdLevelDistance;
-        clipDistances[4] = settings.farestDistance;
-        SetShaderBuffer(ref baseBuffer, buffer);
-        for (int pass = 0; pass < CASCADELEVELCOUNT; ++pass)
-        {
-            Vector2 farClipDistance = new Vector2(clipDistances[pass], clipDistances[pass + 1]);
-            GetfrustumCorners(farClipDistance, ref shadMap, currentCam);
-            // PipelineFunctions.SetShadowCameraPositionCloseFit(ref shadMap, ref settings);
-            Matrix4x4 invpVPMatrix;
-            SetShadowCameraPositionStaticFit(ref staticFit, ref shadMap.shadCam, pass, cascadeShadowMapVP, out invpVPMatrix);
-            GetCullingPlanes(ref invpVPMatrix, shadowFrustumPlanes);
-            SetBaseBuffer(ref baseBuffer, gpuFrustumShader, shadowFrustumPlanes, buffer);
-            RunCullDispatching(ref baseBuffer, gpuFrustumShader, true, buffer);
-            float* biasList = (float*)UnsafeUtility.AddressOf(ref settings.bias);
-            UpdateCascadeState(ref shadMap, buffer, biasList[pass] / currentCam.farClipPlane, pass);
-            buffer.DrawProceduralIndirect(Matrix4x4.identity, shadMap.shadowDepthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
-            buffer.DispatchCompute(gpuFrustumShader, 1, 1, 1, 1);
-        }
-    }
     public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, List<RenderTexture> collectRT)
     {
         tar.gbufferTextures[0] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
@@ -499,7 +458,7 @@ public unsafe static class PipelineFunctions
         }
     }
     public static void UpdateOcclusionBuffer(
-        ref PipelineBaseBuffer basebuffer
+        PipelineBaseBuffer basebuffer
         , ComputeShader coreShader
         , CommandBuffer buffer
         , HizOcclusionData occlusionData
@@ -519,7 +478,7 @@ public unsafe static class PipelineFunctions
         ComputeShaderUtility.Dispatch(coreShader, buffer, OcclusionBuffers.FrustumFilter, basebuffer.clusterCount, 256);
     }
     public static void ClearOcclusionData(
-        ref PipelineBaseBuffer baseBuffer, CommandBuffer buffer
+        PipelineBaseBuffer baseBuffer, CommandBuffer buffer
         , ComputeShader coreShader)
     {
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.dispatchBuffer, baseBuffer.dispatchBuffer);
@@ -528,7 +487,7 @@ public unsafe static class PipelineFunctions
         buffer.DispatchCompute(coreShader, OcclusionBuffers.ClearOcclusionData, 1, 1, 1);
     }
     public static void OcclusionRecheck(
-        ref PipelineBaseBuffer baseBuffer
+        PipelineBaseBuffer baseBuffer
         , ComputeShader coreShader, CommandBuffer buffer
         , HizOcclusionData hizData)
     {

@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 using Unity.Collections;
 namespace MPipeline
 {
-    public struct PipelineBaseBuffer
+    public class PipelineBaseBuffer
     {
         public ComputeBuffer reCheckCount;
         public ComputeBuffer reCheckResult;
@@ -290,7 +290,6 @@ namespace MPipeline
     {
         public Matrix4x4 vp;
         public Matrix4x4 inverseVP;
-        public PipelineBaseBuffer baseBuffer;
         public RenderArray arrayCollection;
         public CommandBuffer buffer;
         public MPipeline.PipelineResources resources;

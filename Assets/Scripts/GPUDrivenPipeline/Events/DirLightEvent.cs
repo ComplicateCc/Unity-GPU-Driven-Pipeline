@@ -33,13 +33,22 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             if (SunLight.current == null) return;
-            if (data.baseBuffer.clusterCount <= 0) return;
+            PipelineBaseBuffer baseBuffer;
+            if (!SceneController.current.GetBaseBufferAndCheck(out baseBuffer)) return;
             CommandBuffer buffer = data.buffer;
             int pass;
             if (SunLight.current.enableShadow)
             {
+                RenderClusterOptions opts = new RenderClusterOptions
+                {
+                    frustumPlanes = shadowFrustumVP,
+                    command = buffer,
+                    cullingShader = data.resources.gpuFrustumCulling,
+                    isOrtho = true,
+                    proceduralMaterial = null
+                };
                 PipelineFunctions.UpdateShadowMapState(ref SunLight.shadMap, ref SunLight.current.settings, buffer);
-                PipelineFunctions.DrawShadow(cam.cam, data.resources.gpuFrustumCulling, buffer, ref data.baseBuffer, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP, shadowFrustumVP);
+                SceneController.current.DrawDirectionalShadow(cam.cam, ref opts, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP);
                 PipelineFunctions.UpdateShadowMaskState(buffer, ref SunLight.shadMap, cascadeShadowMapVP);
                 pass = 0;
             }

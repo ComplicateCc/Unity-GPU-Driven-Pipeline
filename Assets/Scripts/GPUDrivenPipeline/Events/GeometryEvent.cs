@@ -37,65 +37,42 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthIdentifier);
             buffer.ClearRenderTarget(true, true, Color.black);
-            if (data.baseBuffer.clusterCount <= 0) return;
+            PipelineBaseBuffer baseBuffer;
+            if (!SceneController.current.GetBaseBufferAndCheck(out baseBuffer)) return;
             HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, getOcclusionData);
-            ref var baseBuffer = ref data.baseBuffer;
-            var gpuFrustumShader = data.resources.gpuFrustumCulling;
+            RenderClusterOptions options = new RenderClusterOptions
+            {
+                command = buffer,
+                frustumPlanes = data.arrayCollection.frustumPlanes,
+                proceduralMaterial = proceduralMaterial,
+                isOrtho = cam.cam.orthographic,
+                cullingShader = data.resources.gpuFrustumCulling
+            };
+            HizOptions hizOptions;
             switch (occCullingMod)
             {
                 case OcclusionCullingMode.None:
-                    PipelineFunctions.SetBaseBuffer(ref baseBuffer, gpuFrustumShader, data.arrayCollection.frustumPlanes, buffer);
-                    PipelineFunctions.RunCullDispatching(ref baseBuffer, gpuFrustumShader, cam.cam.orthographic, buffer);
-                    PipelineFunctions.RenderProceduralCommand(ref baseBuffer, proceduralMaterial, buffer);
-                    //TODO 绘制其他物体
-
-                    //TODO
-                    buffer.DispatchCompute(gpuFrustumShader, 1, 1, 1, 1);
+                    SceneController.current.DrawCluster(ref options);
                     break;
                 case OcclusionCullingMode.SingleCheck:
-                    buffer.SetComputeVectorParam(gpuFrustumShader, ShaderIDs._CameraUpVector, hizData.lastFrameCameraUp);
-                    buffer.SetComputeBufferParam(gpuFrustumShader, 5, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-                    buffer.SetComputeTextureParam(gpuFrustumShader, 5, ShaderIDs._HizDepthTex, hizData.historyDepth);
-                    buffer.SetComputeVectorArrayParam(gpuFrustumShader, ShaderIDs.planes, data.arrayCollection.frustumPlanes);
-                    buffer.SetComputeBufferParam(gpuFrustumShader, 5, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-                    buffer.SetComputeBufferParam(gpuFrustumShader, 5, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-                    buffer.SetComputeBufferParam(gpuFrustumShader, PipelineBaseBuffer.ComputeShaderKernels.ClearClusterKernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-                    ComputeShaderUtility.Dispatch(gpuFrustumShader, buffer, 5, baseBuffer.clusterCount, 256);
-                    hizData.lastFrameCameraUp = cam.transform.up;
-                    buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-                    buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-                    PipelineFunctions.RenderProceduralCommand(ref baseBuffer, proceduralMaterial, buffer);
-                    buffer.DispatchCompute(gpuFrustumShader, PipelineBaseBuffer.ComputeShaderKernels.ClearClusterKernel, 1, 1, 1);
-                    //TODO 绘制其他物体
-
-                    //TODO
-                    buffer.Blit(cam.targets.depthTexture, hizData.historyDepth, linearMat, 0);
-                    hizDepth.GetMipMap(hizData.historyDepth, buffer);
+                    hizOptions = new HizOptions
+                    {
+                        currentCameraUpVec = cam.cam.transform.up,
+                        hizData = hizData,
+                        hizDepth = hizDepth,
+                        linearLODMaterial = linearMat
+                    };
+                    SceneController.current.DrawClusterOccSingleCheck(ref options, ref hizOptions);
                     break;
                 case OcclusionCullingMode.DoubleCheck:
-                    PipelineFunctions.UpdateOcclusionBuffer(
-                    ref baseBuffer, gpuFrustumShader,
-                    buffer,
-                    hizData,
-                    data.arrayCollection.frustumPlanes,
-                    cam.cam.orthographic);
-                    //绘制第一次剔除结果
-                    PipelineFunctions.DrawLastFrameCullResult(ref baseBuffer, buffer, proceduralMaterial);
-                    //更新Vector，Depth Mip Map
-                    hizData.lastFrameCameraUp = cam.transform.up;
-                    PipelineFunctions.ClearOcclusionData(ref baseBuffer, buffer, gpuFrustumShader);
-                    //TODO 绘制其他物体
-
-                    //TODO
-                    buffer.Blit(cam.targets.depthTexture, hizData.historyDepth, linearMat, 0);
-                    hizDepth.GetMipMap(hizData.historyDepth, buffer);
-                    //使用新数据进行二次剔除
-                    PipelineFunctions.OcclusionRecheck(ref data.baseBuffer, gpuFrustumShader, buffer, hizData);
-                    //绘制二次剔除结果
-                    buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthIdentifier);
-                    PipelineFunctions.DrawRecheckCullResult(ref data.baseBuffer, proceduralMaterial, buffer);
-                    buffer.Blit(cam.targets.depthTexture, hizData.historyDepth, linearMat, 0);
-                    hizDepth.GetMipMap(hizData.historyDepth, buffer);
+                    hizOptions = new HizOptions
+                    {
+                        currentCameraUpVec = cam.cam.transform.up,
+                        hizData = hizData,
+                        hizDepth = hizDepth,
+                        linearLODMaterial = linearMat
+                    };
+                    SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets);
                     break;
             }
             data.ExecuteCommandBuffer();

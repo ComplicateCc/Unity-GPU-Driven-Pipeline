@@ -236,6 +236,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 629980906}
+  - component: {fileID: 629980907}
   - component: {fileID: 629980909}
   - component: {fileID: 629980908}
   - component: {fileID: 629980910}
@@ -260,6 +261,21 @@ Transform:
   m_Father: {fileID: 1657096687}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &629980907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 629980905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06ff345ce266e1e4b970e9ac61d5591d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_enabledInPipeline: 1
+  m_enableBeforePipeline: 0
+  layer: 0
 --- !u!114 &629980908
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -602,7 +618,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1657096687}
   - component: {fileID: 1657096691}
-  - component: {fileID: 1657096686}
+  - component: {fileID: 1657096689}
   - component: {fileID: 1657096688}
   m_Layer: 0
   m_Name: PipelineSettings
@@ -611,21 +627,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1657096686
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1657096685}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 06ff345ce266e1e4b970e9ac61d5591d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_enabledInPipeline: 1
-  m_enableBeforePipeline: 0
-  layer: 0
 --- !u!4 &1657096687
 Transform:
   m_ObjectHideFlags: 0
@@ -654,6 +655,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f172505f0a682e40a2b9d34853b9951, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1657096689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1657096685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79a6c0296c26e3489f127fd036ac59b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapResources: SceneManager
 --- !u!114 &1657096691
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -667,7 +681,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
-  mapResources: SceneManager
 --- !u!1 &1776992926
 GameObject:
   m_ObjectHideFlags: 0

@@ -8,10 +8,8 @@ namespace MPipeline
     {
         private RenderTexture backupMip;
         private Material getLodMat;
-        private MaterialPropertyBlock block;
         public void InitHiZ(PipelineResources resources)
         {
-            block = new MaterialPropertyBlock();
             const int depthRes = 256;
             backupMip = new RenderTexture(depthRes * 2, depthRes, 0, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
             backupMip.useMipMap = true;
@@ -25,14 +23,14 @@ namespace MPipeline
         {
             for (int i = 1; i < 8; ++i)
             {
-                block.SetTexture(ShaderIDs._MainTex, depthMipTexture);
-                block.SetInt(ShaderIDs._PreviousLevel, i - 1);
+                buffer.SetGlobalTexture(ShaderIDs._MainTex, depthMipTexture);
+                buffer.SetGlobalInt(ShaderIDs._PreviousLevel, i - 1);
                 buffer.SetRenderTarget(backupMip, i);
-                buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, getLodMat, 0, 0, block);
-                block.SetTexture(ShaderIDs._MainTex, backupMip);
-                block.SetInt(ShaderIDs._PreviousLevel, i);
+                buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, getLodMat, 0, 0);
+                buffer.SetGlobalTexture(ShaderIDs._MainTex, backupMip);
+                buffer.SetGlobalInt(ShaderIDs._PreviousLevel, i);
                 buffer.SetRenderTarget(depthMipTexture, i);
-                buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, getLodMat, 0, 0, block);
+                buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, getLodMat, 0, 0);
             }
         }
         public void DisposeHiZ()
