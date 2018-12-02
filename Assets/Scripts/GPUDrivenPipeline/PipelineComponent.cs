@@ -131,7 +131,6 @@ namespace MPipeline
     {
         public OrthoCam shadCam;
         public Material shadowDepthMaterial;
-        public MaterialPropertyBlock block;
         public RenderTexture shadowmapTexture;
         public NativeArray<Vector3> frustumCorners;
         public NativeArray<AspectInfo> shadowFrustumPlanes;

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gpuFrustumCulling: {fileID: 7200000, guid: 27a4a69f28f2cb946a2de4928422fcd8, type: 3}
   gpuSkin: {fileID: 7200000, guid: 29ddbd48a6e7b1d4c896301aca827469, type: 3}
-  streamingShader: {fileID: 7200000, guid: 05c8ed8aef84e7c44b159a856710765c, type: 3}
+  streamingShader: {fileID: 7200000, guid: c1cd0cb9f5eddbf489aa459bceba9e14, type: 3}
   pointLightFrustumCulling: {fileID: 7200000, guid: 7011edaf13151fd4d8c2d60c5d147390,
     type: 3}
   taaShader: {fileID: 4800000, guid: 51bcf79c50dc92e47ba87821b61100c3, type: 3}

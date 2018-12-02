@@ -52,7 +52,7 @@ namespace MPipeline
             ComputeShaderUtility.Dispatch(shader, cb, GetFrustumPlane, targetLength, 16);
         }
 
-        public static void DrawShadow(MPointLight lit, CommandBuffer cb, MaterialPropertyBlock block, ref CubeCullingBuffer buffer, ref PipelineBaseBuffer baseBuffer, ComputeShader shader, int offset, Material depthMaterial)
+        public static void DrawShadow(MPointLight lit, CommandBuffer cb, ref CubeCullingBuffer buffer, ref PipelineBaseBuffer baseBuffer, ComputeShader shader, int offset, Material depthMaterial)
         {
             cb.SetComputeIntParam(shader, ShaderIDs._LightOffset, offset);
             ComputeShaderUtility.Dispatch(shader, cb, RunFrustumCull, baseBuffer.clusterCount, 256);
@@ -63,8 +63,8 @@ namespace MPipeline
             cam.position = lit.position;
             cam.fov = 90f;
             Matrix4x4 vpMatrix;
-            block.SetVector(ShaderIDs._LightPos, new Vector4(lit.position.x, lit.position.y, lit.position.z, lit.range));
-            PipelineFunctions.SetShaderBuffer(ref baseBuffer, block);
+            cb.SetGlobalVector(ShaderIDs._LightPos, new Vector4(lit.position.x, lit.position.y, lit.position.z, lit.range));
+            PipelineFunctions.SetShaderBuffer(ref baseBuffer, cb);
             //Forward
             cam.forward = Vector3.forward;
             cam.up = Vector3.down;
@@ -75,9 +75,9 @@ namespace MPipeline
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
             cb.SetRenderTarget(lit.shadowmapTexture, 0, CubemapFace.NegativeZ);
             cb.ClearRenderTarget(true, true, Color.white);
-            block.SetMatrix(ShaderIDs._VP, vpMatrix);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
             offset = offset * 20;
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset, block);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
             //Back
             cam.forward = Vector3.back;
             cam.up = Vector3.down;
@@ -87,8 +87,8 @@ namespace MPipeline
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
             cb.SetRenderTarget(lit.shadowmapTexture, 0, CubemapFace.PositiveZ);
             cb.ClearRenderTarget(true, true, Color.white);
-            block.SetMatrix(ShaderIDs._VP, vpMatrix);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset, block);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
             //Up
             cam.forward = Vector3.up;
             cam.up = Vector3.back;
@@ -98,8 +98,8 @@ namespace MPipeline
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
             cb.SetRenderTarget(lit.shadowmapTexture, 0, CubemapFace.PositiveY);
             cb.ClearRenderTarget(true, true, Color.white);
-            block.SetMatrix(ShaderIDs._VP, vpMatrix);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset, block);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
             //Down
             cam.forward = Vector3.down;
             cam.up = Vector3.forward;
@@ -109,8 +109,8 @@ namespace MPipeline
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
             cb.SetRenderTarget(lit.shadowmapTexture, 0, CubemapFace.NegativeY);
             cb.ClearRenderTarget(true, true, Color.white);
-            block.SetMatrix(ShaderIDs._VP, vpMatrix);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset, block);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
             //Right
             cam.forward = Vector3.right;
             cam.up = Vector3.down;
@@ -120,8 +120,8 @@ namespace MPipeline
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
             cb.SetRenderTarget(lit.shadowmapTexture, 0, CubemapFace.PositiveX);
             cb.ClearRenderTarget(true, true, Color.white);
-            block.SetMatrix(ShaderIDs._VP, vpMatrix);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset, block);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
             //Left
             cam.forward = Vector3.left;
             cam.up = Vector3.down;
@@ -131,8 +131,8 @@ namespace MPipeline
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
             cb.SetRenderTarget(lit.shadowmapTexture, 0, CubemapFace.NegativeX);
             cb.ClearRenderTarget(true, true, Color.white);
-            block.SetMatrix(ShaderIDs._VP, vpMatrix);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset, block);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
         }
 
         public static void Dispose(ref CubeCullingBuffer buffer)

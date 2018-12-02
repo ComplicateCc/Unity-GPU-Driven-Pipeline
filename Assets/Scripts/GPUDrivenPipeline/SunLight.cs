@@ -31,7 +31,6 @@ public class SunLight : MonoBehaviour
         shadMap.frustumCorners = new NativeArray<Vector3>(8, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         shadMap.shadowDepthMaterial = new Material(Shader.Find("Hidden/ShadowDepth"));
         shadMap.shadowFrustumPlanes = new NativeArray<AspectInfo>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-        shadMap.block = new MaterialPropertyBlock();
     }
 
     private void Update()

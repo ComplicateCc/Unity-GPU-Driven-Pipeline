@@ -38,6 +38,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
             add[i] = defaultValue;
         }
     }
+
     public NativeList(int count, int capacity, Allocator alloc)
     {
         data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
@@ -74,6 +75,31 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         UnsafeUtility.Free(data->ptr, data->allocator);
         data->ptr = newPtr;
     }
+
+    public void AddCapacityTo(int capacity)
+    {
+        if (capacity <= data->capacity) return;
+        int lastcapacity = data->capacity;
+        data->capacity = capacity;
+        void* newPtr = UnsafeUtility.Malloc(sizeof(T) * data->capacity, 16, data->allocator);
+        UnsafeUtility.MemCpy(newPtr, data->ptr, sizeof(T) * lastcapacity);
+        UnsafeUtility.Free(data->ptr, data->allocator);
+        data->ptr = newPtr;
+    }
+
+    public void RemoveLast(int length)
+    {
+        data->count -= length;
+        data->count = Mathf.Max(0, data->count);
+    }
+
+    public void RemoveLast()
+    {
+        data->count -= 1;
+        data->count = Mathf.Max(0, data->count);
+    }
+
+
     public int Length
     {
         get

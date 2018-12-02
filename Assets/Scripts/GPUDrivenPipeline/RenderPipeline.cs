@@ -15,53 +15,15 @@ namespace MPipeline
         }
         public static RenderPipeline singleton;
         public static PipelineCommandData data;
-        public static bool pressedLoad = false;
         public static Dictionary<CameraRenderingPath, DrawEvent> allDrawEvents = new Dictionary<CameraRenderingPath, DrawEvent>();
         //Initialized In Every Scene
 
         #endregion
         private List<PipelineEvent> allEvents;
         public PipelineResources resources;
-        public string mapResources = "TestFile";
-        private List<ClusterStreaming> streaming = new List<ClusterStreaming>();
+        public string mapResources = "SceneManager";
         private ClusterMatResources clusterResources;
-        public void InitScene()
-        {
-            data.arrayCollection = new RenderArray(true);
-            clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
-            int clusterCount = 0;
-            foreach(var i in clusterResources.clusterProperties)
-            {
-                clusterCount += i.clusterCount;
-            }
-            
-            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, clusterResources, mapResources, clusterCount);
-            Resources.UnloadAsset(clusterResources);
-        }
-        public void DisposeScene()
-        {
-            PipelineFunctions.Dispose(ref data.baseBuffer);
-        }
-        bool initialized = false;
-        private void Update()
-        {
-            if(!initialized && Input.GetKeyDown(KeyCode.Space))
-            {
-                ClusterStreamingUtility.LoadAll(ref data.baseBuffer, this, clusterResources.clusterProperties, streaming);
-                initialized = true;
-            }
-            if (streaming.Count > 0)
-            {
-                ClusterStreaming stm = streaming[streaming.Count - 1];
-                streaming.RemoveAt(streaming.Count - 1);
-                NativeArray<ClusterMeshData> cluster;
-                NativeArray<Point> pt;
-                ClusterStreamingUtility.GetData(stm.clusterText.bytes, stm.pointText.bytes, stm.length, out cluster, out pt);
-                ClusterStreamingUtility.LoadData(ref data.baseBuffer, cluster, pt);
-                stm.Unload();
-            }
-            pressedLoad = Input.GetKeyDown(KeyCode.Return);
-        }
+        private List<SceneStreaming> allScenes;
         private void Awake()
         {
             if (singleton)
@@ -73,10 +35,22 @@ namespace MPipeline
             data.buffer = new CommandBuffer();
             DontDestroyOnLoad(this);
             singleton = this;
-            InitScene();
+            data.arrayCollection = new RenderArray(true);
+            clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
+            int clusterCount = 0;
+            allScenes = new List<SceneStreaming>(clusterResources.clusterProperties.Count);
+            foreach (var i in clusterResources.clusterProperties)
+            {
+                clusterCount += i.clusterCount;
+                allScenes.Add(new SceneStreaming(i.name, i.clusterCount));
+            }
+            PipelineFunctions.InitBaseBuffer(ref data.baseBuffer, clusterResources, mapResources, clusterCount);
             allEvents = new List<PipelineEvent>(GetComponentsInChildren<PipelineEvent>());
             foreach (var i in allEvents)
                 i.InitEvent(resources);
+            SceneStreaming.pointerContainer = new NativeList<ulong>(clusterCount, Allocator.Persistent);
+            SceneStreaming.commandQueue = new LoadingCommandQueue();
+
         }
         /// <summary>
         /// Add and remove Events Manually
@@ -95,15 +69,37 @@ namespace MPipeline
             evt.DisposeEvent();
         }
 
+        private void Update()
+        {
+            int value;
+            if (int.TryParse(Input.inputString, out value))
+            {
+                if(value < allScenes.Count)
+                {
+                    SceneStreaming str = allScenes[value];
+                    if (str.state == SceneStreaming.State.Loaded)
+                        StartCoroutine(str.Delete());
+                    else if (str.state == SceneStreaming.State.Unloaded)
+                        StartCoroutine(str.Generate());
+                }
+            }
+            lock (SceneStreaming.commandQueue)
+            {
+                SceneStreaming.commandQueue.Run(ref data.baseBuffer, data.resources);
+            }
+        }
+
         private void OnDestroy()
         {
             if (singleton != this) return;
             singleton = null;
-            DisposeScene();
+            PipelineFunctions.Dispose(ref data.baseBuffer);
             foreach (var i in allEvents)
                 i.DisposeEvent();
             allEvents = null;
             data.buffer.Dispose();
+            SceneStreaming.pointerContainer.Dispose();
+            SceneStreaming.commandQueue = null;
         }
 
         public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTexture dest)
@@ -114,7 +110,7 @@ namespace MPipeline
             PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);
             ref RenderArray arr = ref data.arrayCollection;
             PipelineFunctions.GetCullingPlanes(ref data.inverseVP, arr.frustumPlanes, arr.farFrustumCorner, arr.nearFrustumCorner);
-            DrawEvent evt;           
+            DrawEvent evt;
             if (allDrawEvents.TryGetValue(path, out evt))
             {
                 //Pre Calculate Events
