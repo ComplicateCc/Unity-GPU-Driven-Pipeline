@@ -25,46 +25,21 @@ namespace MPipeline
         public Vector3 currentCameraUpVec;
     }
 
-    public class SceneControllerProxy : MonoBehaviour
-    {
-        public static SceneControllerProxy current = new SceneControllerProxy();
-        protected static SceneControllerProxy nullValue;
-        protected bool initialized = false;
-        public virtual bool GetBaseBufferAndCheck(out PipelineBaseBuffer result)
-        {
-            result = null;
-            return false;
-        }
-
-        public virtual bool GetBaseBuffer(out PipelineBaseBuffer result)
-        {
-            result = null;
-            return false;
-        }
-
-        public virtual void DrawCluster(ref RenderClusterOptions options) { }
-        public virtual void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts) { }
-        public virtual void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets) { }
-        public virtual void DrawDirectionalShadow(Camera currentCam, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP) { }
-        public virtual void DrawCubeMap(MPointLight lit, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset) { }
-    }
-
-    public unsafe class SceneController : SceneControllerProxy
+    public unsafe class SceneController : MonoBehaviour
     {
         private PipelineBaseBuffer baseBuffer;
         public string mapResources = "SceneManager";
         private ClusterMatResources clusterResources;
         private List<SceneStreaming> allScenes;
+        public static SceneController current;
         private void Awake()
         {
-            if (initialized)
+            if (current != null)
             {
                 Debug.LogError("Should Be Singleton!");
                 Destroy(gameObject);
                 return;
             }
-            initialized = true;
-            nullValue = current;
             current = this;
             baseBuffer = new PipelineBaseBuffer();
             clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
@@ -83,8 +58,7 @@ namespace MPipeline
         private void OnDestroy()
         {
             if (current != this) return;
-            current = nullValue;
-            initialized = false;
+            current = null;
             PipelineFunctions.Dispose(baseBuffer);
             SceneStreaming.pointerContainer.Dispose();
             SceneStreaming.commandQueue = null;
@@ -105,19 +79,19 @@ namespace MPipeline
                 }
             }
         }
-        public override bool GetBaseBufferAndCheck(out PipelineBaseBuffer result)
+        public bool GetBaseBufferAndCheck(out PipelineBaseBuffer result)
         {
             result = baseBuffer;
             return result.clusterCount > 0;
         }
 
-        public override bool GetBaseBuffer(out PipelineBaseBuffer result)
+        public bool GetBaseBuffer(out PipelineBaseBuffer result)
         {
             result = baseBuffer;
             return true;
         }
 
-        public override void DrawCluster(ref RenderClusterOptions options)
+        public void DrawCluster(ref RenderClusterOptions options)
         {
             PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
             PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
@@ -128,7 +102,7 @@ namespace MPipeline
             options.command.DispatchCompute(options.cullingShader, 1, 1, 1, 1);
         }
 
-        public override void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts)
+        public void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts)
         {
             CommandBuffer buffer = options.command;
             buffer.SetComputeVectorParam(options.cullingShader, ShaderIDs._CameraUpVector, hizOpts.hizData.lastFrameCameraUp);
@@ -151,7 +125,7 @@ namespace MPipeline
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
 
-        public override void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets)
+        public void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets)
         {
             CommandBuffer buffer = options.command;
             ComputeShader gpuFrustumShader = options.cullingShader;
@@ -180,7 +154,7 @@ options.isOrtho);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
 
-        public override void DrawDirectionalShadow(Camera currentCam, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)
+        public void DrawDirectionalShadow(Camera currentCam, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)
         {
             const int CASCADELEVELCOUNT = 4;
             const int CASCADECLIPSIZE = (CASCADELEVELCOUNT + 1) * sizeof(float);
@@ -215,7 +189,7 @@ options.isOrtho);
             }
         }
 
-        public override void DrawCubeMap(MPointLight lit, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset)
+        public void DrawCubeMap(MPointLight lit, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset)
         {
             CommandBuffer cb = opts.command;
             ComputeShader shader = opts.cullingShader;

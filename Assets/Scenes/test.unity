@@ -308,7 +308,7 @@ MonoBehaviour:
   m_enableBeforePipeline: 0
   layer: 2000
   proceduralMaterial: {fileID: 2100000, guid: f8c3854a77b86184f8afd2b9b09a2eba, type: 2}
-  occCullingMod: 0
+  occCullingMod: 2
 --- !u!114 &629980910
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -618,8 +618,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1657096687}
   - component: {fileID: 1657096691}
-  - component: {fileID: 1657096689}
   - component: {fileID: 1657096688}
+  - component: {fileID: 1657096686}
   m_Layer: 0
   m_Name: PipelineSettings
   m_TagString: Untagged
@@ -627,6 +627,19 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1657096686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1657096685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79a6c0296c26e3489f127fd036ac59b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapResources: SceneManager
 --- !u!4 &1657096687
 Transform:
   m_ObjectHideFlags: 0
@@ -655,19 +668,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f172505f0a682e40a2b9d34853b9951, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &1657096689
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1657096685}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c79a6c0296c26e3489f127fd036ac59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mapResources: SceneManager
 --- !u!114 &1657096691
 MonoBehaviour:
   m_ObjectHideFlags: 0

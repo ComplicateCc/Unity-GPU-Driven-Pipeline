@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 468a46d0ae32c3544b7d98094e6448a9, type: 3}
+  m_Name: AddressableAssetSettings
+  m_EditorClassIdentifier: 
+  m_defaultGroup: 8f1f57ebc1b99ba4aa2f477c0bebec31
+  m_assetsModified: 1
+  m_groups: []
+  m_groupAssets:
+  - {fileID: 11400000, guid: b83cffcc707815a4ba354018feea3c3f, type: 2}
+  - {fileID: 11400000, guid: b59657534f8985f43b86088a9af80494, type: 2}
+  m_buildSettings:
+    m_compileScriptsInVirtualMode: 0
+    m_cleanupStreamingAssetsAfterBuilds: 1
+    m_logResourceManagerExceptions: 1
+    m_bundleBuildPath: Temp/com.unity.addressables/AssetBundles
+  m_profileSettings:
+    m_profiles:
+    - m_inheritedParent: 
+      m_id: e2c9a233231d4ae48b908ab8be604119
+      m_profileName: Default
+      m_values:
+      - m_id: 9813014b1f1f9b444b377b1b155af941
+        m_value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
+      - m_id: 8aa744be49df1b64ba81ebec06096d41
+        m_value: Assets/StreamingAssets/com.unity.addressables/[BuildTarget]
+      - m_id: 6285eb66b99d7f94f84f33cb31f833a8
+        m_value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
+      - m_id: 373ac6f6874c0514f8f5700ff982dd5b
+        m_value: ServerData/[BuildTarget]
+      - m_id: cf77083a074956c408bb2f1344170e19
+        m_value: http://localhost/[BuildTarget]
+    m_profileEntryNames:
+    - m_id: 9813014b1f1f9b444b377b1b155af941
+      m_name: BuildTarget
+      m_inlineUsage: 0
+    - m_id: 8aa744be49df1b64ba81ebec06096d41
+      m_name: LocalBuildPath
+      m_inlineUsage: 0
+    - m_id: 6285eb66b99d7f94f84f33cb31f833a8
+      m_name: LocalLoadPath
+      m_inlineUsage: 0
+    - m_id: 373ac6f6874c0514f8f5700ff982dd5b
+      m_name: RemoteBuildPath
+      m_inlineUsage: 0
+    - m_id: cf77083a074956c408bb2f1344170e19
+      m_name: RemoteLoadPath
+      m_inlineUsage: 0
+    m_profileVersion: 1
+  m_labelTable:
+    m_labelNames:
+    - default
+  m_schemaTemplates:
+  - m_displayName: Packed Assets
+    m_description: Pack asset sinto asset bundles.
+    m_schemaTypes:
+    - m_assemblyName: Unity.Addressables.Editor, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      m_className: UnityEditor.AddressableAssets.BundledAssetGroupSchema
+    - m_assemblyName: Unity.Addressables.Editor, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      m_className: UnityEditor.AddressableAssets.ContentUpdateGroupSchema
+  m_initializationObjects: []
+  m_activePlayerDataBuilderIndex: 2
+  m_activePlayModeDataBuilderIndex: 0
+  m_dataBuilders:
+  - {fileID: 11400000, guid: acdc8fc051d9c70478a1630511046bbf, type: 2}
+  - {fileID: 11400000, guid: 83e37f660f2d3d24393ca459d7270945, type: 2}
+  - {fileID: 11400000, guid: cbfc5542eb6d6014e925447b258c14d6, type: 2}
+  m_activeProfileId: e2c9a233231d4ae48b908ab8be604119
+  m_hostingServicesManager:
+    m_hostingServiceInfos: []
+    m_settings: {fileID: 11400000}
+    m_nextInstanceId: 0
+    m_registeredServiceTypeRefs: []

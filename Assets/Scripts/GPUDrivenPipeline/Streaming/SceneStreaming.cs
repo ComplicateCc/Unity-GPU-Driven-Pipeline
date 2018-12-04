@@ -5,6 +5,7 @@ using Unity.Collections;
 using System;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
+using System.IO;
 namespace MPipeline
 {
     public struct LoadCommand
@@ -25,8 +26,6 @@ namespace MPipeline
         }
         public State state;
         private NativeArray<int> indicesBuffer;
-        private byte[] pointBytesArray;
-        private byte[] clusterBytesArray;
         private NativeArray<ClusterMeshData> clusterBuffer;
         private NativeArray<Point> pointsBuffer;
         private NativeArray<Vector2Int> results;
@@ -57,22 +56,44 @@ namespace MPipeline
                 load = GenerateRun
             };
         }
+        static string[] allStrings = new string[3];
         private void GenerateAsync()
         {
             ClusterMeshData* clusterData = clusterBuffer.Ptr();
             Point* verticesData = pointsBuffer.Ptr();
-            byte* clusterBytes = (byte*)UnsafeUtility.AddressOf(ref clusterBytesArray[0]);
-            byte* pointBytes = (byte*)UnsafeUtility.AddressOf(ref pointBytesArray[0]);
-            UnsafeUtility.MemCpy(clusterData, clusterBytes, indicesBuffer.Length * sizeof(ClusterMeshData));
-            UnsafeUtility.MemCpy(verticesData, pointBytes, indicesBuffer.Length * PipelineBaseBuffer.CLUSTERCLIPCOUNT * sizeof(Point));
+            byte* clusterBytes = (byte*)clusterData;
+            byte* pointBytes = (byte*)verticesData;
+            const string infosPath = "Assets/BinaryData/MapInfos/";
+            const string pointsPath = "Assets/BinaryData/MapPoints/";
+            MStringBuilder sb = new MStringBuilder(pointsPath.Length + fileName.Length + ".txt".Length);
+            allStrings[0] = infosPath;
+            allStrings[1] = fileName;
+            allStrings[2] = ".txt";
+            sb.Combine(allStrings);
+            using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
+            {
+                long len = reader.BaseStream.Length;
+                for (long i = 0; i < len; ++i)
+                {
+                    clusterBytes[i] = reader.ReadByte();
+                }
+            }
+            allStrings[0] = pointsPath;
+            sb.Combine(allStrings);
+            using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
+            {
+                long len = reader.BaseStream.Length;
+                for (long i = 0; i < len; ++i)
+                {
+                    pointBytes[i] = reader.ReadByte();
+                }
+            }
             int* indicesPtr = indicesBuffer.Ptr();
             for (int i = 0; i < indicesBuffer.Length; ++i)
             {
                 indicesPtr[i] = pointerContainer.Length;
                 pointerContainer.Add((ulong)(indicesPtr + i));
             }
-            pointBytesArray = null;
-            clusterBytesArray = null;
             lock (commandQueue)
             {
                 commandQueue.Queue(generateCommand);
@@ -94,14 +115,6 @@ namespace MPipeline
                 clusterBuffer = new NativeArray<ClusterMeshData>(length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                 pointsBuffer = new NativeArray<Point>(length * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                 indicesBuffer = new NativeArray<int>(length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                ResourceRequest clusterRequest = Resources.LoadAsync<TextAsset>("MapInfos/" + fileName);
-                ResourceRequest pointsRequest = Resources.LoadAsync<TextAsset>("MapPoints/" + fileName);
-                yield return clusterRequest;
-                yield return pointsRequest;
-                pointBytesArray = ((TextAsset)pointsRequest.asset).bytes;
-                clusterBytesArray = ((TextAsset)clusterRequest.asset).bytes;
-                Resources.UnloadAsset(pointsRequest.asset);
-                Resources.UnloadAsset(clusterRequest.asset);
                 pointerContainer.AddCapacityTo(pointerContainer.Length + indicesBuffer.Length);
                 LoadingThread.AddCommand(generateAsyncFunc);
             }
@@ -168,7 +181,7 @@ namespace MPipeline
         private ComputeBuffer indexBuffer;
         private int currentCount;
         private const int MAXIMUMINTCOUNT = 2000;
-        private const int MAXIMUMVERTCOUNT = 30;
+        private const int MAXIMUMVERTCOUNT = 50;
         private void DeleteInit()
         {
             indexBuffer = new ComputeBuffer(results.Length, sizeof(Vector2Int));
@@ -214,25 +227,25 @@ namespace MPipeline
 
         private bool GenerateRun(ref PipelineBaseBuffer baseBuffer, PipelineResources resources)
         {
-            int targetCount = currentCount + MAXIMUMVERTCOUNT;
-            if (targetCount >= clusterBuffer.Length)
-            {
-                baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, clusterBuffer.Length - currentCount);
-                baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (clusterBuffer.Length - currentCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
-                baseBuffer.clusterCount += clusterBuffer.Length;
-                clusterBuffer.Dispose();
-                pointsBuffer.Dispose();
-                loading = false;
-                state = State.Loaded;
-                return true;
-            }
-            else
-            {
-                baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, MAXIMUMVERTCOUNT);
-                baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, MAXIMUMVERTCOUNT * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
-                currentCount = targetCount;
-                return false;
-            }
+             int targetCount = currentCount + MAXIMUMVERTCOUNT;
+             if (targetCount >= clusterBuffer.Length)
+             {
+                 baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, clusterBuffer.Length - currentCount);
+                 baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (clusterBuffer.Length - currentCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
+                 baseBuffer.clusterCount += clusterBuffer.Length;
+                 clusterBuffer.Dispose();
+                 pointsBuffer.Dispose();
+                 loading = false;
+                 state = State.Loaded;
+                 return true;
+             }
+             else
+             {
+                 baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, MAXIMUMVERTCOUNT);
+                 baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, MAXIMUMVERTCOUNT * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
+                 currentCount = targetCount;
+                 return false;
+             }
         }
         #endregion
     }

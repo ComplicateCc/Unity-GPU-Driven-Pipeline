@@ -62,7 +62,7 @@ namespace MPipeline
             lock (SceneStreaming.commandQueue)
             {
                 PipelineBaseBuffer baseBuffer;
-                if (SceneControllerProxy.current.GetBaseBuffer(out baseBuffer))
+                if (SceneController.current.GetBaseBuffer(out baseBuffer))
                     SceneStreaming.commandQueue.Run(ref baseBuffer, data.resources);
             }
 

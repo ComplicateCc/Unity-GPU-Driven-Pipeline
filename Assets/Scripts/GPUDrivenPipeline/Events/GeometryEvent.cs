@@ -60,7 +60,8 @@ namespace MPipeline
                         currentCameraUpVec = cam.cam.transform.up,
                         hizData = hizData,
                         hizDepth = hizDepth,
-                        linearLODMaterial = linearMat
+                        linearLODMaterial = linearMat,
+                        currentDepthTex = cam.targets.depthTexture
                     };
                     SceneController.current.DrawClusterOccSingleCheck(ref options, ref hizOptions);
                     break;
@@ -70,7 +71,8 @@ namespace MPipeline
                         currentCameraUpVec = cam.cam.transform.up,
                         hizData = hizData,
                         hizDepth = hizDepth,
-                        linearLODMaterial = linearMat
+                        linearLODMaterial = linearMat,
+                        currentDepthTex = cam.targets.depthTexture
                     };
                     SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets);
                     break;
