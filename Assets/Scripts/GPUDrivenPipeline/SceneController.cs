@@ -24,23 +24,113 @@ namespace MPipeline
         public RenderTargetIdentifier currentDepthTex;
         public Vector3 currentCameraUpVec;
     }
-
-    public unsafe class SceneController : MonoBehaviour
+    [Serializable]
+    public unsafe class SceneController : IDisposable
     {
-        private PipelineBaseBuffer baseBuffer;
+        public struct SceneCommonData
+        {
+            public struct TextureIdentifier
+            {
+                public int usedCount;
+                public int belonged;
+            }
+            public Dictionary<string, TextureIdentifier> texDict;
+            public NativeList<int> avaiableTexs;
+            public NativeList<int> avaiableProperties;
+            public Material copyTextureMat;
+            public ComputeBuffer texCopyBuffer;
+            public ComputeBuffer propertyBuffer;
+            public Dictionary<string, RenderTexture> allTextures;
+            public RenderTexture GetTexture(string name)
+            {
+                RenderTexture rt;
+                if (allTextures.TryGetValue(name, out rt))
+                    return rt;
+                RenderTextureDescriptor desc = new RenderTextureDescriptor
+                {
+                    autoGenerateMips = false,
+                    bindMS = false,
+                    colorFormat = RenderTextureFormat.ARGB32,
+                    depthBufferBits = 0,
+                    dimension = TextureDimension.Tex2DArray,
+                    enableRandomWrite = false,
+                    height = current.resolution,
+                    width = current.resolution,
+                    memoryless = RenderTextureMemoryless.None,
+                    msaaSamples = 1,
+                    vrUsage = VRTextureUsage.None,
+                    volumeDepth = current.texArrayCapacity,
+                    shadowSamplingMode = ShadowSamplingMode.None,
+                    sRGB = false,
+                    useMipMap = false
+                };
+                rt = new RenderTexture(desc);
+                allTextures.Add(name, rt);
+                return rt;
+            }
+            public int GetIndex(string guid)
+            {
+                if (string.IsNullOrEmpty(guid)) return -1;
+                if(texDict.ContainsKey(guid) && texDict[guid].usedCount > 0)
+                {
+                    TextureIdentifier ident = texDict[guid];
+                    ident.usedCount++;
+                    texDict[guid] = ident;
+                    return ident.belonged;
+                }else
+                {
+                    TextureIdentifier ident;
+                    ident.usedCount = 1;
+                    if(avaiableTexs.Length <= 0)
+                    {
+                        throw new Exception("No available texture lefted!");
+                    }
+                    ident.belonged = avaiableTexs[avaiableTexs.Length - 1];
+
+                    avaiableTexs.RemoveLast();
+                    texDict[guid] = ident;
+                    return ident.belonged;
+                }
+            }
+            public void RemoveTex(string guid)
+            {
+                if(texDict.ContainsKey(guid))
+                {
+                    TextureIdentifier ident = texDict[guid];
+                    ident.usedCount--;
+                    if(ident.usedCount <= 0)
+                    {
+                        texDict.Remove(guid);
+                        avaiableTexs.Add(ident.belonged);
+                    }else
+                    {
+                        texDict[guid] = ident;
+                    }
+                }
+            }
+        }
+        public static SceneCommonData commonData;
+        public static SceneController current;
+        public PipelineBaseBuffer baseBuffer { get; private set; }
         public string mapResources = "SceneManager";
         private ClusterMatResources clusterResources;
         private List<SceneStreaming> allScenes;
-        public static SceneController current;
-        private void Awake()
+        public NativeList<ulong> pointerContainer;
+        public LoadingCommandQueue commandQueue;
+        private MonoBehaviour behavior;
+        [Header("Material Settings:")]
+        public int resolution = 1024;
+        public int texArrayCapacity = 50;
+        public int propertyCapacity = 500;
+        public void Awake(MonoBehaviour behavior)
         {
             if (current != null)
             {
                 Debug.LogError("Should Be Singleton!");
-                Destroy(gameObject);
                 return;
             }
             current = this;
+            this.behavior = behavior;
             baseBuffer = new PipelineBaseBuffer();
             clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
             int clusterCount = 0;
@@ -48,23 +138,53 @@ namespace MPipeline
             foreach (var i in clusterResources.clusterProperties)
             {
                 clusterCount += i.clusterCount;
-                allScenes.Add(new SceneStreaming(i.name, i.clusterCount));
+                allScenes.Add(new SceneStreaming(i));
             }
             PipelineFunctions.InitBaseBuffer(baseBuffer, clusterResources, mapResources, clusterCount);
-            SceneStreaming.pointerContainer = new NativeList<ulong>(clusterCount, Allocator.Persistent);
-            SceneStreaming.commandQueue = new LoadingCommandQueue();
+            pointerContainer = new NativeList<ulong>(clusterCount, Allocator.Persistent);
+            commandQueue = new LoadingCommandQueue();
+            commonData = new SceneCommonData
+            {
+                texDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(),
+                avaiableProperties = new NativeList<int>(propertyCapacity, Allocator.Persistent),
+                avaiableTexs = new NativeList<int>(texArrayCapacity, Allocator.Persistent),
+                texCopyBuffer = new ComputeBuffer(resolution * resolution, sizeof(int)),
+                propertyBuffer = new ComputeBuffer(propertyCapacity, sizeof(PropertyValue)),
+                copyTextureMat = new Material(RenderPipeline.current.resources.copyShader),
+                allTextures = new Dictionary<string, RenderTexture>()
+            };
+            commonData.copyTextureMat.SetBuffer("_TextureBuffer", commonData.texCopyBuffer);
+            for (int i = 0; i < propertyCapacity; ++i)
+            {
+                commonData.avaiableProperties.Add(i);
+            }
+            for (int i = 0; i < texArrayCapacity; ++i)
+            {
+                commonData.avaiableTexs.Add(i);
+            }
         }
 
-        private void OnDestroy()
+        public void Dispose()
         {
             if (current != this) return;
             current = null;
             PipelineFunctions.Dispose(baseBuffer);
-            SceneStreaming.pointerContainer.Dispose();
-            SceneStreaming.commandQueue = null;
+            pointerContainer.Dispose();
+            commandQueue = null;
+            commonData.avaiableProperties.Dispose();
+            commonData.avaiableTexs.Dispose();
+            commonData.texCopyBuffer.Dispose();
+            commonData.propertyBuffer.Dispose();
+            foreach (var i in commonData.allTextures.Values)
+            {
+                UnityEngine.Object.Destroy(i);
+            }
+            commonData.texDict.Clear();
+            commonData.allTextures.Clear();
+            UnityEngine.Object.Destroy(commonData.copyTextureMat);
         }
         //Press number load scene
-        private void Update()
+        public void Update()
         {
             int value;
             if (int.TryParse(Input.inputString, out value))
@@ -73,24 +193,25 @@ namespace MPipeline
                 {
                     SceneStreaming str = allScenes[value];
                     if (str.state == SceneStreaming.State.Loaded)
-                        StartCoroutine(str.Delete());
+                        behavior.StartCoroutine(str.Delete());
                     else if (str.state == SceneStreaming.State.Unloaded)
-                        StartCoroutine(str.Generate());
+                        behavior.StartCoroutine(str.Generate());
                 }
             }
         }
-        public bool GetBaseBufferAndCheck(out PipelineBaseBuffer result)
+        public static bool GetBaseBuffer(out PipelineBaseBuffer result)
         {
-            result = baseBuffer;
+            if(current == null)
+            {
+                result = null;
+                return false;
+            }
+            result = current.baseBuffer;
             return result.clusterCount > 0;
         }
 
-        public bool GetBaseBuffer(out PipelineBaseBuffer result)
-        {
-            result = baseBuffer;
-            return true;
-        }
 
+        #region DrawFunctions
         public void DrawCluster(ref RenderClusterOptions options)
         {
             PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
@@ -111,13 +232,13 @@ namespace MPipeline
             buffer.SetComputeVectorArrayParam(options.cullingShader, ShaderIDs.planes, options.frustumPlanes);
             buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-            buffer.SetComputeBufferParam(options.cullingShader, PipelineBaseBuffer.ComputeShaderKernels.ClearClusterKernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-            ComputeShaderUtility.Dispatch(options.cullingShader, options.command, 5, baseBuffer.clusterCount, 256);
+            buffer.SetComputeBufferParam(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
             hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
             buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
             PipelineFunctions.RenderProceduralCommand(baseBuffer, options.proceduralMaterial, buffer);
-            buffer.DispatchCompute(options.cullingShader, PipelineBaseBuffer.ComputeShaderKernels.ClearClusterKernel, 1, 1, 1);
+            buffer.DispatchCompute(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, 1, 1, 1);
             //TODO 绘制其他物体
 
             //TODO
@@ -275,6 +396,7 @@ options.isOrtho);
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
         }
+        #endregion
 
     }
 }

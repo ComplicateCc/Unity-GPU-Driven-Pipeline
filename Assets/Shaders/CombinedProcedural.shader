@@ -30,7 +30,6 @@ struct Property{
 };
 	Texture2DArray<half4> _BumpMap; SamplerState sampler_BumpMap;
 	Texture2DArray<half3> _SpecularMap; SamplerState sampler_SpecularMap;
-	Texture2DArray<half> _OcclusionMap; SamplerState sampler_OcclusionMap;
 	Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
 	StructuredBuffer<Property> _PropertiesBuffer;
 	
@@ -38,8 +37,8 @@ struct Property{
 		Property prop = _PropertiesBuffer[index];
 		half4 c = _MainTex.Sample(sampler_MainTex, float3(uv, index)) * prop._Color;
 		o.Albedo = c.rgb;
-		o.Alpha = c.a;
-		o.Occlusion = lerp(1, _OcclusionMap.Sample(sampler_OcclusionMap, float3(uv, index)).r, prop._Occlusion);
+		o.Alpha = 1;
+		o.Occlusion = lerp(1, c.a, prop._Occlusion);
 		half3 spec = _SpecularMap.Sample(sampler_SpecularMap, float3(uv, index));
 		o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity * spec.g); 
 		o.Smoothness = prop._Glossiness * spec.b;

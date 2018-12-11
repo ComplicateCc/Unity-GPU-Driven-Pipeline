@@ -14,28 +14,25 @@ namespace MPipeline
         public ComputeBuffer instanceCountBuffer;   //uint
         public ComputeBuffer resultBuffer;          //uint
         public ComputeBuffer verticesBuffer;        //Point
-        public ComputeBuffer propertyBuffer;
-        public Material combinedMaterial;
         public int clusterCount;
         public const int INDIRECTSIZE = 20;
         public const int UINTSIZE = 4;
         public const int CLUSTERCLIPCOUNT = 256;
         public const int CLUSTERVERTEXCOUNT = CLUSTERCLIPCOUNT * 6 / 4;
-        public static class ComputeShaderKernels
-        {
-            /// <summary>
-            /// Cluster cull with only frustum culling
-            /// </summary>
-            public const int ClusterCullKernel = 0;
-            /// <summary>
-            /// Clear Cluster data's kernel count
-            /// </summary>
-            public const int ClearClusterKernel = 1;
-            /// <summary>
-            /// Cluster cull with frustum & occlusion culling
-            /// </summary>
-            public const int ClusterCullOccKernel = 2;
-        }
+
+        /// <summary>
+        /// Cluster cull with only frustum culling
+        /// </summary>
+        public const int ClusterCullKernel = 0;
+        /// <summary>
+        /// Clear Cluster data's kernel count
+        /// </summary>
+        public const int ClearClusterKernel = 1;
+        /// <summary>
+        /// Cluster cull with frustum & occlusion culling
+        /// </summary>
+        public const int ClusterCullOccKernel = 2;
+        public const int VertexIndexKernel = 6;
     }
 
     public struct OcclusionBuffers

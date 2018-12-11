@@ -33,12 +33,11 @@ namespace MPipeline
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            if (RenderPipeline.singleton)
+            if (RenderPipeline.current)
             {
                 PipelineFunctions.InitRenderTarget(ref targets, cam, temporaryTextures);
-                RenderPipeline.singleton.Render(renderingPath, this, destination);
+                RenderPipeline.current.Render(renderingPath, this, destination);
                 PipelineFunctions.ReleaseRenderTarget(temporaryTextures);
-               
             }
             else
             {

@@ -62,7 +62,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             PipelineBaseBuffer baseBuffer;
-            if (!SceneController.current.GetBaseBufferAndCheck(out baseBuffer)) return;
+            if (!SceneController.GetBaseBuffer(out baseBuffer)) return;
             CommandBuffer buffer = data.buffer;
             cullJobHandler.Complete();
             UnsafeUtility.ReleaseGCObject(gcHandler);

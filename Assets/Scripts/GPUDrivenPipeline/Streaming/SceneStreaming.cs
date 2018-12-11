@@ -4,21 +4,18 @@ using UnityEngine;
 using Unity.Collections;
 using System;
 using Unity.Collections.LowLevel.Unsafe;
-using Unity.Jobs;
 using System.IO;
 namespace MPipeline
 {
-    public struct LoadCommand
-    {
-        public bool isInitialized;
-        public Action initFunc;
-        public LoadFunction load;
-    }
-    public delegate bool LoadFunction(ref PipelineBaseBuffer baseBuffer, PipelineResources resources);
     public unsafe class SceneStreaming
     {
-        public static NativeList<ulong> pointerContainer;
-        public static LoadingCommandQueue commandQueue;
+        public struct TextureInfos
+        {
+            public int index;
+            public string texGUID;
+            public string texType;
+            public NativeArray<Color32> array;
+        }
         public static bool loading = false;
         public enum State
         {
@@ -32,74 +29,72 @@ namespace MPipeline
         private int resultLength;
         private Action generateAsyncFunc;
         private Action deleteAsyncFunc;
-        private LoadCommand deleteCommand;
-        private LoadCommand generateCommand;
-        string fileName;
-        int length;
-        public SceneStreaming(string fileName, int length)
+        ClusterProperty property;
+
+        private ComputeBuffer propertyBuffers;//disposed in after load
+        private ComputeBuffer indexBuffers;//disposed in after load
+        private NativeArray<int> propertyIndices;//disposed in after unload
+        private List<TextureInfos> allTextureDatas;
+        public SceneStreaming(ClusterProperty property)
         {
             state = State.Unloaded;
-            this.fileName = fileName;
-            this.length = length;
+            this.property = property;
             generateAsyncFunc = GenerateAsync;
             deleteAsyncFunc = DeleteAsync;
-            deleteCommand = new LoadCommand
-            {
-                isInitialized = false,
-                initFunc = DeleteInit,
-                load = DeleteRun
-            };
-            generateCommand = new LoadCommand
-            {
-                isInitialized = false,
-                initFunc = GenerateInit,
-                load = GenerateRun
-            };
+            allTextureDatas = new List<TextureInfos>();
         }
         static string[] allStrings = new string[3];
         private void GenerateAsync()
         {
+            clusterBuffer = new NativeArray<ClusterMeshData>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            pointsBuffer = new NativeArray<Point>(property.clusterCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            indicesBuffer = new NativeArray<int>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            NativeList<ulong> pointerContainer = SceneController.current.pointerContainer;
+            pointerContainer.AddCapacityTo(pointerContainer.Length + indicesBuffer.Length);
+            propertyIndices = new NativeArray<int>(property.properties.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             ClusterMeshData* clusterData = clusterBuffer.Ptr();
             Point* verticesData = pointsBuffer.Ptr();
             byte* clusterBytes = (byte*)clusterData;
             byte* pointBytes = (byte*)verticesData;
             const string infosPath = "Assets/BinaryData/MapInfos/";
             const string pointsPath = "Assets/BinaryData/MapPoints/";
-            MStringBuilder sb = new MStringBuilder(pointsPath.Length + fileName.Length + ".txt".Length);
+            MStringBuilder sb = new MStringBuilder(pointsPath.Length + property.name.Length + ".txt".Length);
             allStrings[0] = infosPath;
-            allStrings[1] = fileName;
+            allStrings[1] = property.name;
             allStrings[2] = ".txt";
             sb.Combine(allStrings);
             using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
             {
-                long len = reader.BaseStream.Length;
-                for (long i = 0; i < len; ++i)
+                byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
+                fixed (byte* b = bytes)
                 {
-                    clusterBytes[i] = reader.ReadByte();
+                    UnsafeUtility.MemCpy(clusterData, b, bytes.Length);
                 }
             }
             allStrings[0] = pointsPath;
             sb.Combine(allStrings);
             using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
             {
-                long len = reader.BaseStream.Length;
-                for (long i = 0; i < len; ++i)
+                byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
+                fixed (byte* b = bytes)
                 {
-                    pointBytes[i] = reader.ReadByte();
+                    UnsafeUtility.MemCpy(verticesData, b, bytes.Length);
                 }
             }
             int* indicesPtr = indicesBuffer.Ptr();
+            LoadingCommandQueue commandQueue = SceneController.current.commandQueue;
             for (int i = 0; i < indicesBuffer.Length; ++i)
             {
                 indicesPtr[i] = pointerContainer.Length;
                 pointerContainer.Add((ulong)(indicesPtr + i));
             }
+            LoadTextures();
             lock (commandQueue)
             {
-                commandQueue.Queue(generateCommand);
+                commandQueue.Queue(GenerateRun());
             }
         }
-
+        static readonly int PROPERTYVALUESIZE = sizeof(PropertyValue);
         //TODO
         //Use some clever resources loading system
         public IEnumerator Generate()
@@ -112,11 +107,60 @@ namespace MPipeline
                     yield return null;
                 }
                 loading = true;
-                clusterBuffer = new NativeArray<ClusterMeshData>(length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                pointsBuffer = new NativeArray<Point>(length * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                indicesBuffer = new NativeArray<int>(length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                pointerContainer.AddCapacityTo(pointerContainer.Length + indicesBuffer.Length);
+                propertyBuffers = new ComputeBuffer(property.properties.Length, PROPERTYVALUESIZE);
+                indexBuffer = new ComputeBuffer(property.properties.Length, 4);
                 LoadingThread.AddCommand(generateAsyncFunc);
+            }
+        }
+        //TODO
+        public void LoadTextures()
+        {
+            PropertyValue[] values = property.properties;
+            if (property.texPaths.Length > 3)
+            {
+                Debug.LogError("Scene: " + property.name + "'s texture type count is larger than 3! That is illegal!");
+                return;
+            }
+            for (int i = 0; i < values.Length; ++i)
+            {
+                ref PropertyValue value = ref values[i];
+                int* indexPtr = (int*)UnsafeUtility.AddressOf(ref value.textureIndex);
+                for(int a = 0; a < property.texPaths.Length; ++a)
+                {
+                    string texName = property.texPaths[a].instancingIDs[i];
+                    string texType = property.texPaths[a].texName;
+                    * indexPtr = SceneController.commonData.GetIndex(texName);
+                    if((*indexPtr) >= 0)
+                    {
+                        using (BinaryReader reader = new BinaryReader(File.Open(texName, FileMode.Open)))
+                        {
+                            byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
+                            NativeArray<Color32> allColors = new NativeArray<Color32>(SceneController.commonData.texCopyBuffer.count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                            fixed (byte* source = bytes)
+                            {
+                                UnsafeUtility.MemCpy(allColors.GetUnsafePtr(), source, Mathf.Min(allColors.Length * sizeof(Color32), bytes.Length));
+                            }
+                            allTextureDatas.Add(new TextureInfos
+                            {
+                                array = allColors,
+                                index = *indexPtr,
+                                texGUID = texName,
+                                texType = texType
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        public void UnloadTextures()
+        {
+            foreach(var i in property.texPaths)
+            {
+                foreach(var j in i.instancingIDs)
+                {
+                    SceneController.commonData.RemoveTex(j);
+                }
             }
         }
 
@@ -138,6 +182,7 @@ namespace MPipeline
 
         private void DeleteAsync()
         {
+            ref NativeList<ulong> pointerContainer = ref SceneController.current.pointerContainer;
             int targetListLength = pointerContainer.Length - indicesBuffer.Length;
             int* indicesPtr = indicesBuffer.Ptr();
             int currentIndex = pointerContainer.Length - 1;
@@ -171,81 +216,81 @@ namespace MPipeline
             }
             FINALIZE:
             pointerContainer.RemoveLast(indicesBuffer.Length);
+            LoadingCommandQueue commandQueue = SceneController.current.commandQueue;
             lock (commandQueue)
             {
-                commandQueue.Queue(deleteCommand);
+                commandQueue.Queue(DeleteRun());
             }
         }
 
         #region MainThreadCommand
         private ComputeBuffer indexBuffer;
-        private int currentCount;
-        private const int MAXIMUMINTCOUNT = 2000;
-        private const int MAXIMUMVERTCOUNT = 50;
-        private void DeleteInit()
-        {
-            indexBuffer = new ComputeBuffer(results.Length, sizeof(Vector2Int));
-            currentCount = 0;
-        }
+        private const int MAXIMUMINTCOUNT = 5000;
+        private const int MAXIMUMVERTCOUNT = 100;
 
-        private bool DeleteRun(ref PipelineBaseBuffer baseBuffer, PipelineResources resources)
+        private IEnumerator DeleteRun()
         {
-            int targetCount = currentCount + MAXIMUMINTCOUNT;
-            if (targetCount >= resultLength)
-            {
-                if (resultLength > 0)
-                {
-                    indexBuffer.SetData(results, currentCount, currentCount, resultLength - currentCount);
-                    ComputeShader shader = resources.streamingShader;
-                    shader.SetBuffer(0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-                    shader.SetBuffer(1, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-                    shader.SetBuffer(0, ShaderIDs._IndexBuffer, indexBuffer);
-                    shader.SetBuffer(1, ShaderIDs._IndexBuffer, indexBuffer);
-                    ComputeShaderUtility.Dispatch(shader, 0, resultLength, 256);
-                    shader.Dispatch(1, resultLength, 1, 1);
-                }
-                baseBuffer.clusterCount -= indicesBuffer.Length;
-                indexBuffer.Dispose();
-                results.Dispose();
-                indicesBuffer.Dispose();
-                loading = false;
-                state = State.Unloaded;
-                return true;
-            }
-            else
+            PipelineResources resources = RenderPipeline.current.resources;
+            PipelineBaseBuffer baseBuffer = SceneController.current.baseBuffer;
+            indexBuffer = new ComputeBuffer(results.Length, 8);//sizeof(Vector2Int)
+            int currentCount = 0;
+            int targetCount;
+            while ((targetCount = currentCount + MAXIMUMINTCOUNT) < resultLength)
             {
                 indexBuffer.SetData(results, currentCount, currentCount, MAXIMUMINTCOUNT);
                 currentCount = targetCount;
-                return false;
+                yield return null;
             }
+            if (resultLength > 0)
+            {
+                indexBuffer.SetData(results, currentCount, currentCount, resultLength - currentCount);
+                ComputeShader shader = resources.streamingShader;
+                shader.SetBuffer(0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+                shader.SetBuffer(1, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+                shader.SetBuffer(0, ShaderIDs._IndexBuffer, indexBuffer);
+                shader.SetBuffer(1, ShaderIDs._IndexBuffer, indexBuffer);
+                ComputeShaderUtility.Dispatch(shader, 0, resultLength, 256);
+                shader.Dispatch(1, resultLength, 1, 1);
+            }
+            baseBuffer.clusterCount -= indicesBuffer.Length;
+            indexBuffer.Dispose();
+            results.Dispose();
+            indicesBuffer.Dispose();
+            loading = false;
+            state = State.Unloaded;
+            yield return null;
         }
-
-        private void GenerateInit()
+        private IEnumerator GenerateRun()
         {
-            currentCount = 0;
-        }
-
-        private bool GenerateRun(ref PipelineBaseBuffer baseBuffer, PipelineResources resources)
-        {
-             int targetCount = currentCount + MAXIMUMVERTCOUNT;
-             if (targetCount >= clusterBuffer.Length)
-             {
-                 baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, clusterBuffer.Length - currentCount);
-                 baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (clusterBuffer.Length - currentCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
-                 baseBuffer.clusterCount += clusterBuffer.Length;
-                 clusterBuffer.Dispose();
-                 pointsBuffer.Dispose();
-                 loading = false;
-                 state = State.Loaded;
-                 return true;
-             }
-             else
-             {
-                 baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, MAXIMUMVERTCOUNT);
-                 baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, MAXIMUMVERTCOUNT * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
-                 currentCount = targetCount;
-                 return false;
-             }
+            PipelineResources resources = RenderPipeline.current.resources;
+            PipelineBaseBuffer baseBuffer = SceneController.current.baseBuffer;
+            int targetCount;
+            int currentCount = 0;
+            while ((targetCount = currentCount + MAXIMUMVERTCOUNT) < clusterBuffer.Length)
+            {
+                baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, MAXIMUMVERTCOUNT);
+                baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, MAXIMUMVERTCOUNT * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
+                currentCount = targetCount;
+                yield return null;
+            }
+            //TODO
+            baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, clusterBuffer.Length - currentCount);
+            baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (clusterBuffer.Length - currentCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
+            baseBuffer.clusterCount += clusterBuffer.Length;
+            clusterBuffer.Dispose();
+            pointsBuffer.Dispose();
+            loading = false;
+            state = State.Loaded;
+            yield return null;
+            foreach(var i in allTextureDatas)
+            {
+                SceneController.commonData.texCopyBuffer.SetData(i.array);
+                RenderTexture rt = SceneController.commonData.GetTexture(i.texType);
+                Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
+                int pass = i.texType == "_MainTex" ? 0 : 1;
+                SceneController.commonData.copyTextureMat.SetPass(1);
+                Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
+            }
         }
         #endregion
     }

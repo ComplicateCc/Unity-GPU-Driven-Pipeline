@@ -34,7 +34,7 @@ namespace MPipeline
         {
             if (SunLight.current == null) return;
             PipelineBaseBuffer baseBuffer;
-            if (!SceneController.current.GetBaseBufferAndCheck(out baseBuffer)) return;
+            if (!SceneController.GetBaseBuffer(out baseBuffer)) return;
             CommandBuffer buffer = data.buffer;
             int pass;
             if (SunLight.current.enableShadow)

@@ -38,6 +38,10 @@ namespace MPipeline
     }
     public unsafe class MeshCombiner : MonoBehaviour
     {
+#if UNITY_EDITOR
+        string[] textureName = new string[]{"_MainTex",
+    "_BumpMap",
+    "_SpecularMap" };
         public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int materialIndex, Transform transform)
         {
             int originLength = points.Length;
@@ -146,82 +150,6 @@ namespace MPipeline
             md.containedMaterial = allMat;
             return md;
         }
-        public List<Pair> CombineTexture(List<Material> mats, Vector2Int size)
-        {
-            List<Pair> tex = new List<Pair>();
-            string[] textureNames = new string[]
-            {
-                "_MainTex",
-                "_BumpMap",
-                "_SpecularMap",
-                "_OcclusionMap"
-            };
-
-            bool* isLinear = stackalloc bool[]
-            {
-                false,
-                true,
-                true,
-                true
-            };
-
-            TextureFormat* formats = stackalloc TextureFormat[]
-            {
-                mainTexFormat,
-                bumpMapFormat,
-                specularFormat,
-                occlusionFormat
-            };
-
-            Color* defaultColors = stackalloc Color[]
-            {
-                Color.white,
-                new Color(0.5f, 0.5f, 1),
-                Color.white,
-                Color.white
-            };
-            void SetTexture(Texture2DArray texArray, Color defaultColor, Texture2D currentTex, int index)
-            {
-                if (currentTex && !currentTex.isReadable)
-                {
-                    Debug.LogError("Texture" + currentTex.name + " is Not Readable!");
-                    currentTex = null;
-                }
-                if (currentTex == null)
-                {
-                    Color[] colors = new Color[size.x * size.y];
-                    for (int i = 0; i < colors.Length; ++i)
-                    {
-                        colors[i] = defaultColor;
-                    }
-                    texArray.SetPixels(colors, index);
-                }
-                else
-                {
-
-                    Color[] colors = new Color[size.x * size.y];
-                    for (int x = 0; x < size.x; ++x)
-                    {
-                        for (int y = 0; y < size.y; ++y)
-                        {
-                            colors[y * size.y + x] = currentTex.GetPixelBilinear((float)x / size.x, (float)y / size.y);
-                        }
-                    }
-                    texArray.SetPixels(colors, index);
-                }
-            }
-            for (int i = 0; i < textureNames.Length; ++i)
-            {
-                Texture2DArray texArray = new Texture2DArray(size.x, size.y, mats.Count, formats[i], false, isLinear[i]);
-                for (int j = 0; j < mats.Count; ++j)
-                {
-                    SetTexture(texArray, defaultColors[i], (Texture2D)mats[j].GetTexture(textureNames[i]), j);
-                }
-                texArray.Apply();
-                tex.Add(new Pair(textureNames[i], texArray));
-            }
-            return tex;
-        }
         public List<Pair<string, float[]>> CombineProperty(List<Material> mats)
         {
             List<Pair<string, float[]>> props = new List<Pair<string, float[]>>();
@@ -267,6 +195,10 @@ namespace MPipeline
         {
             PropertyValue[] values = new PropertyValue[mats.Count];
             PropertyValue* pointer = (PropertyValue*)UnsafeUtility.AddressOf(ref values[0]);
+            for(int i = 0; i < values.Length; ++i)
+            {
+                pointer[i].textureIndex = Vector3Int.one * -1;
+            }
             var properties = CombineProperty(mats);
             foreach (var kv in properties)
             {
@@ -287,8 +219,48 @@ namespace MPipeline
                     *currentPointer = kv.value[i];
                 }
             }
+
             return values;
         }
+        public TexturePaths[] GetTextures(List<Material> mats, out Texture[][] allTextures)
+        {
+            TexturePaths[] texs = new TexturePaths[textureName.Length];
+            allTextures = new Texture[textureName.Length][];
+            for (int a = 0; a < textureName.Length; ++a)
+            {
+                allTextures[a] = new Texture[mats.Count];
+                TexturePaths curt = new TexturePaths();
+                curt.texName = textureName[a];
+                curt.instancingIDs = new string[mats.Count];
+                for (int i = 0; i < mats.Count; ++i)
+                {
+                    Texture tex = mats[i].GetTexture(curt.texName);
+                    allTextures[a][i] = tex;
+                    curt.instancingIDs[i] = tex ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(tex)) : "";
+                }
+                texs[a] = curt;
+            }
+            return texs;
+        }
+
+        public void SaveTextures(TexturePaths[] pathes, Texture[][] textures)
+        {
+            Dictionary<string, bool> dict = new Dictionary<string, bool>();
+            for (int i = 0; i < pathes.Length; ++i)
+            {
+                TexturePaths pt = pathes[i];
+                for (int j = 0; j < pt.instancingIDs.Length; ++j)
+                {
+                    if (!string.IsNullOrEmpty(pt.instancingIDs[j]) && !dict.ContainsKey(pt.instancingIDs[j]))
+                    {
+                        dict.Add(pt.instancingIDs[j], true);
+                        byte[] bytes = TextureStreaming.GetBytes((Texture2D)textures[i][j]);
+                        File.WriteAllBytes("Assets/BinaryData/Textures/" + pt.instancingIDs[j] + ".txt", bytes);
+                    }
+                }
+            }
+        }
+
         public struct CombinedModel
         {
             public NativeList<Point> allPoints;
@@ -299,73 +271,45 @@ namespace MPipeline
         public TextureFormat mainTexFormat = TextureFormat.ARGB32;
         public TextureFormat bumpMapFormat = TextureFormat.ARGB32;
         public TextureFormat specularFormat = TextureFormat.RGB24;
-        public TextureFormat occlusionFormat = TextureFormat.R8;
         public string modelName = "TestFile";
-        public Func<ClusterMatResources.ClusterProperty, ClusterMatResources.ClusterProperty, bool> equalCompare = (a, b) =>
-        {
-            return a.name == b.name;
-        };
-#if UNITY_EDITOR
+
         [EasyButtons.Button]
         public void TryThis()
         {
+            bool save = false;
             ClusterMatResources res = Resources.Load<ClusterMatResources>("MapMat/SceneManager");
             if (res == null)
             {
+                save = true;
                 res = ScriptableObject.CreateInstance<ClusterMatResources>();
-                res.clusterProperties = new List<ClusterMatResources.ClusterProperty>();
+                res.name = "SceneManager";
+                res.clusterProperties = new List<ClusterProperty>();
             }
-            ClusterMatResources.ClusterProperty property = new ClusterMatResources.ClusterProperty();
-            property.name = modelName;
-            if (res.clusterProperties.Contains(property, equalCompare))
+            Func<ClusterProperty, ClusterProperty, bool> equalCompare = (a, b) =>
             {
-                Debug.LogError("Already Contained the model name");
-                return;
+                return a.name == b.name;
+            };
+            ClusterProperty property = new ClusterProperty();
+            property.name = modelName;
+            foreach (var i in res.clusterProperties)
+            {
+                if (equalCompare(property, i))
+                {
+                    Debug.LogError("Already Contained Scene " + modelName);
+                    return;
+                }
             }
             CombinedModel model = ProcessCluster(GetComponentsInChildren<MeshRenderer>());
             property.clusterCount = ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName);
-            res.clusterProperties.Add(property);
             PropertyValue[] value = GetProperty(model.containedMaterial);
-            var texs = CombineTexture(model.containedMaterial, Vector2Int.one * 1024);
-            res.values = value;
-            // List<Pair> finalPair = new List<Pair>(texs.Count);
-            foreach (var i in texs)
-            {
-                AssetDatabase.CreateAsset(i.value, "Assets/Resources/MapMat/" + modelName + i.key + ".asset");
-            }
-            res.textures = texs;
-            AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/" + modelName + ".asset");
-        }
-        [EasyButtons.Button]
-        public void SeparateModel()
-        {
-            ClusterMatResources res = Resources.Load<ClusterMatResources>("MapMat/SceneManager");
-            bool save = false;
-            if (res == null)
-            {
-                res = ScriptableObject.CreateInstance<ClusterMatResources>();
-                res.clusterProperties = new List<ClusterMatResources.ClusterProperty>();
-                save = true;
-            }
-            ClusterMatResources.ClusterProperty property = new ClusterMatResources.ClusterProperty();
-            var meshs = GetComponentsInChildren<MeshRenderer>();
-            for(int i = 0; i < meshs.Length; ++i)
-            {
-                property.name = modelName + i;
-                if (res.clusterProperties.Contains(property, equalCompare))
-                {
-                    Debug.Log(res.clusterProperties.Count);
-                    Debug.LogError("Already Contained the model name");
-                    return;
-                }
-                CombinedModel model = ProcessCluster(meshs[i]);
-                property.clusterCount = ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName + i);
-                res.clusterProperties.Add(property);
-            }
-            if(save)
-            {
+            Texture[][] textures;
+            TexturePaths[] texs = GetTextures(model.containedMaterial, out textures);
+            SaveTextures(texs, textures);
+            property.properties = value;
+            property.texPaths = texs;
+            res.clusterProperties.Add(property);
+            if (save)
                 AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/SceneManager.asset");
-            }
         }
 #endif
     }
@@ -379,5 +323,6 @@ namespace MPipeline
         public float _Occlusion;
         public float _Glossiness;
         public Vector4 _Color;
+        public Vector3Int textureIndex;
     };
 }

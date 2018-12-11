@@ -9,6 +9,7 @@ namespace MPipeline
         public ComputeShader gpuSkin;
         public ComputeShader streamingShader;
         public ComputeShader pointLightFrustumCulling;
+        public Shader copyShader;
         public Shader taaShader;
         public Shader indirectDepthShader;
         public Shader HizLodShader;

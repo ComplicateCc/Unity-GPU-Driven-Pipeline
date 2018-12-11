@@ -105,16 +105,6 @@ public unsafe static class PipelineFunctions
     /// <param name="baseBuffer"></param> pipeline base buffer
     public static void InitBaseBuffer(PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources, string name, int maximumLength)
     {
-
-        /*
-          baseBuffer.propertyBuffer = new ComputeBuffer(materialResources.values.Length, sizeof(PropertyValue));
-          baseBuffer.propertyBuffer.SetData(materialResources.values);
-          baseBuffer.combinedMaterial = new Material(Shader.Find("Maxwell/CombinedProcedural"));
-          baseBuffer.combinedMaterial.SetBuffer("_PropertiesBuffer", baseBuffer.propertyBuffer);
-          foreach (var i in materialResources.textures)
-          {
-              baseBuffer.combinedMaterial.SetTexture(i.key, i.value);
-          }*/
         baseBuffer.clusterBuffer = new ComputeBuffer(maximumLength, sizeof(ClusterMeshData));
         baseBuffer.resultBuffer = new ComputeBuffer(maximumLength, PipelineBaseBuffer.UINTSIZE);
         baseBuffer.instanceCountBuffer = new ComputeBuffer(5, 4, ComputeBufferType.IndirectArguments);
@@ -126,11 +116,8 @@ public unsafe static class PipelineFunctions
         baseBuffer.clusterCount = 0;
         baseBuffer.dispatchBuffer = new ComputeBuffer(5, 4, ComputeBufferType.IndirectArguments);
         NativeArray<uint> occludedCountList = new NativeArray<uint>(5, Allocator.Temp, NativeArrayOptions.ClearMemory);
-        occludedCountList[0] = 0;
         occludedCountList[1] = 1;
         occludedCountList[2] = 1;
-        occludedCountList[3] = 0;
-        occludedCountList[4] = 0;
         baseBuffer.dispatchBuffer.SetData(occludedCountList);
         baseBuffer.reCheckCount = new ComputeBuffer(5, 4, ComputeBufferType.IndirectArguments);
         baseBuffer.reCheckResult = new ComputeBuffer(maximumLength, 4);
@@ -280,10 +267,6 @@ public unsafe static class PipelineFunctions
         baseBuffer.resultBuffer.Dispose();
         baseBuffer.dispatchBuffer.Dispose();
         baseBuffer.reCheckCount.Dispose();
-        if (baseBuffer.propertyBuffer != null)
-            baseBuffer.propertyBuffer.Dispose();
-        if (baseBuffer.combinedMaterial != null)
-            UnityEngine.Object.Destroy(baseBuffer.combinedMaterial);
         if (baseBuffer.reCheckResult != null)
         {
             baseBuffer.reCheckResult.Dispose();
@@ -325,7 +308,7 @@ public unsafe static class PipelineFunctions
         ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 256);
     }
 
-    public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material,CommandBuffer cb)
+    public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material, CommandBuffer cb)
     {
         cb.SetGlobalBuffer(ShaderIDs.resultBuffer, buffer.resultBuffer);
         cb.SetGlobalBuffer(ShaderIDs.verticesBuffer, buffer.verticesBuffer);
@@ -465,7 +448,6 @@ public unsafe static class PipelineFunctions
         , Vector4[] frustumCullingPlanes
         , bool isOrtho)
     {
-
         buffer.SetComputeIntParam(coreShader, ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
         buffer.SetComputeVectorArrayParam(coreShader, ShaderIDs.planes, frustumCullingPlanes);
         buffer.SetComputeVectorParam(coreShader, ShaderIDs._CameraUpVector, occlusionData.lastFrameCameraUp);

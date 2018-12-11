@@ -5,6 +5,8 @@
 #pragma kernel OcclusionRecheck
 #pragma kernel ClearOcclusionData
 #pragma kernel UnsafeCull
+#pragma kernel SetVertex
+#pragma kernel SetProperty
 #define COMPUTESHADER
 #include "UnityCG.cginc"
 #include "CGINC/Procedural.cginc"
@@ -154,4 +156,32 @@ void UnsafeCull(uint id : SV_DISPATCHTHREADID)
         InterlockedAdd(instanceCountBuffer[1], 1, currentIndex);
         resultBuffer[currentIndex] = id;
     }
+}
+
+RWStructuredBuffer<Point> verticesBuffer;
+RWStructuredBuffer<uint> _IndexBuffer;
+uint _OffsetIndex;
+[numthreads(1, CLUSTERCLIPCOUNT, 1)]
+void SetVertex(uint2 id : SV_DISPATCHTHREADID)
+{
+    uint index = (_OffsetIndex + id.x) * CLUSTERCLIPCOUNT + id.y;
+    uint originIndex = verticesBuffer[index].objIndex;
+    verticesBuffer[index].objIndex = _IndexBuffer[originIndex];
+}
+struct Property{
+    float _SpecularIntensity;
+	float _MetallicIntensity;
+    float4 _EmissionColor;
+	float _EmissionMultiplier;
+	float _Occlusion;
+	float _Glossiness;
+	float4 _Color;
+};
+RWStructuredBuffer<Property> _CurrentPropertiesBuffer;
+RWStructuredBuffer<Property> _PropertiesBuffer;
+[numthreads(256, 1, 1)]
+void SetProperty(uint id : SV_DISPATCHTHREADID)
+{
+    if(id >= _Count) return;
+    _PropertiesBuffer[_IndexBuffer[id]] = _CurrentPropertiesBuffer[id];
 }

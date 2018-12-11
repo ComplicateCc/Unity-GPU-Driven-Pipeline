@@ -7,10 +7,10 @@ namespace MPipeline
     {
         public class LinkNode
         {
-            public LoadCommand command;
+            public IEnumerator command;
             public LinkNode lastLevel;
             public LinkNode nextLevel;
-            public LinkNode(LoadCommand command)
+            public LinkNode(IEnumerator command)
             {
                 this.command = command;
                 nextLevel = null;
@@ -29,15 +29,10 @@ namespace MPipeline
             }
         }
 
-        public void Run(ref PipelineBaseBuffer baseBuffer, PipelineResources resources)
+        public void Run()
         {
             if (start == null) return;
-            if (!start.command.isInitialized)
-            {
-                start.command.initFunc();
-                start.command.isInitialized = true;
-            }
-            if (start.command.load(ref baseBuffer, resources))
+            if (!start.command.MoveNext())
             {
                 LinkNode last = start;
                 last.lastLevel = null;
@@ -52,7 +47,7 @@ namespace MPipeline
             }
         }
 
-        public void Queue(LoadCommand command)
+        public void Queue(IEnumerator command)
         {
             LinkNode node;
             if (pool.Count > 0)

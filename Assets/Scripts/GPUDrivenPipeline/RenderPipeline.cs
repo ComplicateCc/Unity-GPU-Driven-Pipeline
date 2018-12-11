@@ -12,17 +12,19 @@ namespace MPipeline
         {
             Unlit, Forward, GPUDeferred
         }
-        public static RenderPipeline singleton;
+        public static RenderPipeline current;
         public static PipelineCommandData data;
         public static Dictionary<CameraRenderingPath, DrawEvent> allDrawEvents = new Dictionary<CameraRenderingPath, DrawEvent>();
         //Initialized In Every Scene
 
         #endregion
+        public GameObject pipelinePrefab;
         private List<PipelineEvent> allEvents;
         public PipelineResources resources;
+        public SceneController sceneController;
         private void Awake()
         {
-            if (singleton)
+            if (current)
             {
                 Debug.LogError("Render Pipeline should be Singleton!");
                 DestroyImmediate(gameObject);
@@ -30,13 +32,13 @@ namespace MPipeline
             }
             data.buffer = new CommandBuffer();
             DontDestroyOnLoad(this);
-            singleton = this;
+            current = this;
             data.arrayCollection = new RenderArray(true);
 
-            allEvents = new List<PipelineEvent>(GetComponentsInChildren<PipelineEvent>());
+            allEvents = new List<PipelineEvent>(pipelinePrefab.GetComponentsInChildren<PipelineEvent>());
             foreach (var i in allEvents)
                 i.InitEvent(resources);
-
+            sceneController.Awake(this);
 
         }
         /// <summary>
@@ -59,23 +61,22 @@ namespace MPipeline
         private void Update()
         {
 
-            lock (SceneStreaming.commandQueue)
+            lock (SceneController.current.commandQueue)
             {
-                PipelineBaseBuffer baseBuffer;
-                if (SceneController.current.GetBaseBuffer(out baseBuffer))
-                    SceneStreaming.commandQueue.Run(ref baseBuffer, data.resources);
+                SceneController.current.commandQueue.Run();
             }
-
+            sceneController.Update();
         }
 
         private void OnDestroy()
         {
-            if (singleton != this) return;
-            singleton = null;
+            if (current != this) return;
+            current = null;
             foreach (var i in allEvents)
                 i.DisposeEvent();
             allEvents = null;
             data.buffer.Dispose();
+            sceneController.Dispose();
         }
 
         public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTexture dest)

@@ -11,7 +11,6 @@
 		_MainTex ("Albedo (RGB)", 2D) = "white" {}
 		_BumpMap("Normal Map", 2D) = "bump" {}
 		_SpecularMap("Specular Map", 2D) = "white"{}
-		_OcclusionMap("Occlusion Map", 2D) = "white"{}
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -45,7 +44,6 @@ CGINCLUDE
 		float _VertexOffset;
 		sampler2D _BumpMap;
 		sampler2D _SpecularMap;
-		sampler2D _OcclusionMap;
 		sampler2D _MainTex;
 		
 
@@ -59,8 +57,8 @@ CGINCLUDE
 			float2 uv = IN.uv_MainTex;// - parallax_mapping(IN.uv_MainTex,IN.viewDir);
 			half4 c = tex2D (_MainTex, uv) * _Color;
 			o.Albedo = c.rgb;
-			o.Alpha = c.a;
-			o.Occlusion = lerp(1, tex2D(_OcclusionMap,uv).r, _Occlusion);
+			o.Alpha = 1;
+			o.Occlusion = lerp(1, c.a, _Occlusion);
 			float3 spec = tex2D(_SpecularMap,uv);
 			o.Specular = lerp(_SpecularIntensity * spec.r, o.Albedo * _SpecularIntensity * spec.r, _MetallicIntensity * spec.g); 
 			o.Smoothness = _Glossiness * spec.b;

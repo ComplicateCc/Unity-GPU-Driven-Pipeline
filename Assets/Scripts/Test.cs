@@ -1,17 +1,28 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using System;
+using System.Reflection;
+using UnityEditor;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
-using UnityEngine.Rendering;
-using UnityEngine.AddressableAssets;
+using System.Threading.Tasks;
 namespace MPipeline
 {
     public unsafe class Test : MonoBehaviour
     {
-        public AssetReference explosion;
-        public void Update()
+        private int value = 2;
+        public Material tex;
+        private NativeArray<int> inf;
+        [EasyButtons.Button]
+        void Try()
         {
+            Task t = Task.Run(() =>
+            {
+                Debug.Log(inf.Length);
+                inf = new NativeArray<int>(1, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                Debug.Log(inf.Length);
+                inf.Dispose();
+            });
+            
         }
     }
+
 }
