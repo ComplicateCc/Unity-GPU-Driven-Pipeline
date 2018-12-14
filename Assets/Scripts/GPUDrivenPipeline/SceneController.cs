@@ -108,6 +108,28 @@ namespace MPipeline
                     }
                 }
             }
+            public NativeArray<uint> GetPropertyIndex(int count)
+            {
+                if (count > avaiableProperties.Length) throw new Exception("Property pool is gone!");
+                NativeArray<uint> properties = new NativeArray<uint>(count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                uint* ptr = properties.Ptr();
+                int last = avaiableProperties.Length - 1;
+                for(int i = 0; i < count; ++i)
+                {
+                    ptr[i] = (uint)avaiableProperties[last - i];
+                }
+                avaiableProperties.RemoveLast(count);
+                return properties;
+            }
+            public void RemoveProperty(NativeArray<uint> pool)
+            {
+                uint* ptr = pool.Ptr();
+                for(int i = 0; i < pool.Length; ++i)
+                {
+                    avaiableProperties.Add((int)ptr[i]);
+                }
+                pool.Dispose();
+            }
         }
         public static SceneCommonData commonData;
         public static SceneController current;
@@ -316,7 +338,7 @@ options.isOrtho);
             ComputeShader shader = opts.cullingShader;
             Material depthMaterial = opts.proceduralMaterial;
             cb.SetComputeIntParam(shader, ShaderIDs._LightOffset, offset);
-            ComputeShaderUtility.Dispatch(shader, cb, CubeFunction.RunFrustumCull, baseBuffer.clusterCount, 256);
+            ComputeShaderUtility.Dispatch(shader, cb, CubeFunction.RunFrustumCull, baseBuffer.clusterCount, 64);
             PerspCam cam = new PerspCam();
             cam.aspect = 1;
             cam.farClipPlane = lit.range;

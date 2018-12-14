@@ -5,8 +5,7 @@
 #pragma kernel OcclusionRecheck
 #pragma kernel ClearOcclusionData
 #pragma kernel UnsafeCull
-#pragma kernel SetVertex
-#pragma kernel SetProperty
+#pragma kernel LoadProperty
 #define COMPUTESHADER
 #include "UnityCG.cginc"
 #include "CGINC/Procedural.cginc"
@@ -73,7 +72,7 @@ float OcclusionTest(ClusterMeshData info, float4x4 vpMat)
     return 0;
 }
 
-[numthreads(256, 1, 1)]
+[numthreads(64, 1, 1)]
 void ClusterCull (uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
@@ -100,7 +99,7 @@ void ClearCluster(uint id : SV_DISPATCHTHREADID)
 RWStructuredBuffer<uint> reCheckResult;
 RWStructuredBuffer<uint> reCheckCount;
 RWStructuredBuffer<uint> dispatchBuffer;
-[numthreads(256, 1, 1)]
+[numthreads(64, 1, 1)]
 void FrustumFilter(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
@@ -119,7 +118,7 @@ void FrustumFilter(uint id : SV_DISPATCHTHREADID)
     }
 }
 
-[numthreads(256, 1, 1)]
+[numthreads(64, 1, 1)]
 void OcclusionRecheck(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= dispatchBuffer[3]) return;
@@ -138,14 +137,14 @@ void OcclusionRecheck(uint id : SV_DISPATCHTHREADID)
 void ClearOcclusionData(uint id : SV_DISPATCHTHREADID)
 {
     uint threadCount = dispatchBuffer[4];
-    dispatchBuffer[0] = uint(ceil(threadCount / 256.0));
+    dispatchBuffer[0] = uint(ceil(threadCount / 64.0));
     dispatchBuffer[3] = threadCount;
     dispatchBuffer[4] = 0;
     instanceCountBuffer[1] = 0;
     reCheckCount[1] = 0;
 }
 
-[numthreads(256, 1, 1)]
+[numthreads(64, 1, 1)]
 void UnsafeCull(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
@@ -157,31 +156,12 @@ void UnsafeCull(uint id : SV_DISPATCHTHREADID)
         resultBuffer[currentIndex] = id;
     }
 }
-
-RWStructuredBuffer<Point> verticesBuffer;
-RWStructuredBuffer<uint> _IndexBuffer;
-uint _OffsetIndex;
-[numthreads(1, CLUSTERCLIPCOUNT, 1)]
-void SetVertex(uint2 id : SV_DISPATCHTHREADID)
+RWStructuredBuffer<PropertyValue> _PropertiesBuffer;
+StructuredBuffer<PropertyValue> _TempPropBuffer;
+StructuredBuffer<uint> _IndexBuffer;
+[numthreads(64, 1, 1)]
+void LoadProperty(uint id : SV_DISPATCHTHREADID)
 {
-    uint index = (_OffsetIndex + id.x) * CLUSTERCLIPCOUNT + id.y;
-    uint originIndex = verticesBuffer[index].objIndex;
-    verticesBuffer[index].objIndex = _IndexBuffer[originIndex];
-}
-struct Property{
-    float _SpecularIntensity;
-	float _MetallicIntensity;
-    float4 _EmissionColor;
-	float _EmissionMultiplier;
-	float _Occlusion;
-	float _Glossiness;
-	float4 _Color;
-};
-RWStructuredBuffer<Property> _CurrentPropertiesBuffer;
-RWStructuredBuffer<Property> _PropertiesBuffer;
-[numthreads(256, 1, 1)]
-void SetProperty(uint id : SV_DISPATCHTHREADID)
-{
-    if(id >= _Count) return;
-    _PropertiesBuffer[_IndexBuffer[id]] = _CurrentPropertiesBuffer[id];
+    if(id >= _Count) return; 
+    _PropertiesBuffer[_IndexBuffer[id]] = _TempPropBuffer[id];
 }

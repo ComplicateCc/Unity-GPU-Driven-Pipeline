@@ -305,7 +305,7 @@ public unsafe static class PipelineFunctions
     public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho, CommandBuffer buffer)
     {
         buffer.SetComputeIntParam(computeShader, ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
-        ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 256);
+        ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 64);
     }
 
     public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material, CommandBuffer cb)
@@ -457,7 +457,7 @@ public unsafe static class PipelineFunctions
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.resultBuffer, basebuffer.resultBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.instanceCountBuffer, basebuffer.instanceCountBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.reCheckResult, basebuffer.reCheckResult);
-        ComputeShaderUtility.Dispatch(coreShader, buffer, OcclusionBuffers.FrustumFilter, basebuffer.clusterCount, 256);
+        ComputeShaderUtility.Dispatch(coreShader, buffer, OcclusionBuffers.FrustumFilter, basebuffer.clusterCount, 64);
     }
     public static void ClearOcclusionData(
         PipelineBaseBuffer baseBuffer, CommandBuffer buffer

@@ -26,14 +26,11 @@ namespace MPipeline
         private NativeArray<ClusterMeshData> clusterBuffer;
         private NativeArray<Point> pointsBuffer;
         private NativeArray<Vector2Int> results;
+        private NativeArray<uint> propertiesPool;
         private int resultLength;
         private Action generateAsyncFunc;
         private Action deleteAsyncFunc;
         ClusterProperty property;
-
-        private ComputeBuffer propertyBuffers;//disposed in after load
-        private ComputeBuffer indexBuffers;//disposed in after load
-        private NativeArray<int> propertyIndices;//disposed in after unload
         private List<TextureInfos> allTextureDatas;
         public SceneStreaming(ClusterProperty property)
         {
@@ -51,11 +48,8 @@ namespace MPipeline
             indicesBuffer = new NativeArray<int>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             NativeList<ulong> pointerContainer = SceneController.current.pointerContainer;
             pointerContainer.AddCapacityTo(pointerContainer.Length + indicesBuffer.Length);
-            propertyIndices = new NativeArray<int>(property.properties.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             ClusterMeshData* clusterData = clusterBuffer.Ptr();
             Point* verticesData = pointsBuffer.Ptr();
-            byte* clusterBytes = (byte*)clusterData;
-            byte* pointBytes = (byte*)verticesData;
             const string infosPath = "Assets/BinaryData/MapInfos/";
             const string pointsPath = "Assets/BinaryData/MapPoints/";
             MStringBuilder sb = new MStringBuilder(pointsPath.Length + property.name.Length + ".txt".Length);
@@ -89,14 +83,18 @@ namespace MPipeline
                 pointerContainer.Add((ulong)(indicesPtr + i));
             }
             LoadTextures();
+            propertiesPool = SceneController.commonData.GetPropertyIndex(property.properties.Length);
+            uint* poolPtr = propertiesPool.Ptr();
+            for(int i = 0; i < pointsBuffer.Length; ++i)
+            {
+                verticesData[i].objIndex = poolPtr[verticesData[i].objIndex];
+            }
             lock (commandQueue)
             {
                 commandQueue.Queue(GenerateRun());
             }
         }
         static readonly int PROPERTYVALUESIZE = sizeof(PropertyValue);
-        //TODO
-        //Use some clever resources loading system
         public IEnumerator Generate()
         {
             if (state == State.Unloaded)
@@ -107,8 +105,6 @@ namespace MPipeline
                     yield return null;
                 }
                 loading = true;
-                propertyBuffers = new ComputeBuffer(property.properties.Length, PROPERTYVALUESIZE);
-                indexBuffer = new ComputeBuffer(property.properties.Length, 4);
                 LoadingThread.AddCommand(generateAsyncFunc);
             }
         }
@@ -128,14 +124,19 @@ namespace MPipeline
                 for(int a = 0; a < property.texPaths.Length; ++a)
                 {
                     string texName = property.texPaths[a].instancingIDs[i];
+                    MStringBuilder sb = new MStringBuilder(texName.Length + 50);
+                    allStrings[0] = "Assets/BinaryData/Textures/";
+                    allStrings[1] = texName;
+                    allStrings[2] = ".txt";
+                    sb.Combine(allStrings);
                     string texType = property.texPaths[a].texName;
-                    * indexPtr = SceneController.commonData.GetIndex(texName);
-                    if((*indexPtr) >= 0)
+                    indexPtr[a] = SceneController.commonData.GetIndex(texName);
+                    if(indexPtr[a] >= 0)
                     {
-                        using (BinaryReader reader = new BinaryReader(File.Open(texName, FileMode.Open)))
+                        using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
                         {
                             byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
-                            NativeArray<Color32> allColors = new NativeArray<Color32>(SceneController.commonData.texCopyBuffer.count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                            NativeArray<Color32> allColors = new NativeArray<Color32>(SceneController.current.resolution * SceneController.current.resolution, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                             fixed (byte* source = bytes)
                             {
                                 UnsafeUtility.MemCpy(allColors.GetUnsafePtr(), source, Mathf.Min(allColors.Length * sizeof(Color32), bytes.Length));
@@ -143,7 +144,7 @@ namespace MPipeline
                             allTextureDatas.Add(new TextureInfos
                             {
                                 array = allColors,
-                                index = *indexPtr,
+                                index = indexPtr[a],
                                 texGUID = texName,
                                 texType = texType
                             });
@@ -155,13 +156,11 @@ namespace MPipeline
 
         public void UnloadTextures()
         {
-            foreach(var i in property.texPaths)
+            foreach(var i in allTextureDatas)
             {
-                foreach(var j in i.instancingIDs)
-                {
-                    SceneController.commonData.RemoveTex(j);
-                }
+                SceneController.commonData.RemoveTex(i.texGUID);
             }
+            allTextureDatas.Clear();
         }
 
         public IEnumerator Delete()
@@ -217,6 +216,7 @@ namespace MPipeline
             FINALIZE:
             pointerContainer.RemoveLast(indicesBuffer.Length);
             LoadingCommandQueue commandQueue = SceneController.current.commandQueue;
+            SceneController.commonData.RemoveProperty(propertiesPool);
             lock (commandQueue)
             {
                 commandQueue.Queue(DeleteRun());
@@ -224,7 +224,6 @@ namespace MPipeline
         }
 
         #region MainThreadCommand
-        private ComputeBuffer indexBuffer;
         private const int MAXIMUMINTCOUNT = 5000;
         private const int MAXIMUMVERTCOUNT = 100;
 
@@ -232,7 +231,7 @@ namespace MPipeline
         {
             PipelineResources resources = RenderPipeline.current.resources;
             PipelineBaseBuffer baseBuffer = SceneController.current.baseBuffer;
-            indexBuffer = new ComputeBuffer(results.Length, 8);//sizeof(Vector2Int)
+            ComputeBuffer indexBuffer = new ComputeBuffer(results.Length, 8);//sizeof(Vector2Int)
             int currentCount = 0;
             int targetCount;
             while ((targetCount = currentCount + MAXIMUMINTCOUNT) < resultLength)
@@ -252,13 +251,13 @@ namespace MPipeline
                 ComputeShaderUtility.Dispatch(shader, 0, resultLength, 256);
                 shader.Dispatch(1, resultLength, 1, 1);
             }
+            UnloadTextures();
             baseBuffer.clusterCount -= indicesBuffer.Length;
             indexBuffer.Dispose();
             results.Dispose();
             indicesBuffer.Dispose();
             loading = false;
             state = State.Unloaded;
-            yield return null;
         }
         private IEnumerator GenerateRun()
         {
@@ -288,9 +287,14 @@ namespace MPipeline
                 RenderTexture rt = SceneController.commonData.GetTexture(i.texType);
                 Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
                 int pass = i.texType == "_MainTex" ? 0 : 1;
-                SceneController.commonData.copyTextureMat.SetPass(1);
+                SceneController.commonData.copyTextureMat.SetPass(pass);
                 Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
+                i.array.Dispose();
+                yield return null;
             }
+            ComputeShader copyShader = resources.gpuFrustumCulling;
+            //TODO
+            //Load Property
         }
         #endregion
     }

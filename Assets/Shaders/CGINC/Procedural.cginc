@@ -4,6 +4,17 @@
 #define CLUSTERCLIPCOUNT 256
 #define CLUSTERVERTEXCOUNT 384
 #define PLANECOUNT 6
+    struct PropertyValue
+    {
+        float _SpecularIntensity;
+        float _MetallicIntensity;
+        float4 _EmissionColor;
+        float _EmissionMultiplier;
+        float _Occlusion;
+        float _Glossiness;
+        float4 _Color;
+        uint3 textureIndex;
+    };
 struct Point{
     float3 vertex;
     float4 tangent;

@@ -324,5 +324,5 @@ namespace MPipeline
         public float _Glossiness;
         public Vector4 _Color;
         public Vector3Int textureIndex;
-    };
+    }
 }

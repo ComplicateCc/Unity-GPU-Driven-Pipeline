@@ -44,7 +44,7 @@ namespace MPipeline
             cb.SetComputeBufferParam(shader, GetFrustumPlane, ShaderIDs.lightPositionBuffer, buffer.lightPositionBuffer);
             int targetLength = positions.Length;
             buffer.lightPositionBuffer.SetData(positions);
-            ComputeShaderUtility.Dispatch(shader, cb, ClearCluster, targetLength, 256);
+            ComputeShaderUtility.Dispatch(shader, cb, ClearCluster, targetLength, 64);
             ComputeShaderUtility.Dispatch(shader, cb, GetFrustumPlane, targetLength, 16);
         }
        
