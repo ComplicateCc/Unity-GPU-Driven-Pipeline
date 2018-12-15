@@ -254,11 +254,7 @@ public unsafe static class PipelineFunctions
     /// Initialize shadowmask per frame buffers
     /// </summary>
 
-    public static void UpdateShadowMaskState(CommandBuffer buffer, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)
-    {
-        buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
-        buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, shadMap.shadowmapTexture);
-    }
+
     public static void Dispose(PipelineBaseBuffer baseBuffer)
     {
         baseBuffer.verticesBuffer.Dispose();

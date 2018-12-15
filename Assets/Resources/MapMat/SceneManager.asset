@@ -19,15 +19,14 @@ MonoBehaviour:
     - _SpecularIntensity: 0.3
       _MetallicIntensity: 0.1
       _EmissionColor: {x: 0, y: 0, z: 0, w: 1}
-      _EmissionMultiplier: 1
       _Occlusion: 1
       _Glossiness: 0.795
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: 0
+      textureIndex: {x: -1, y: -1, z: -1}
     texPaths:
     - texName: _MainTex
       instancingIDs:
-      - bc4b4c994c1dc454e9f1a7489c48f86a
+      - 
     - texName: _BumpMap
       instancingIDs:
       - 

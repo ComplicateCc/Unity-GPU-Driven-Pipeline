@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ReadLOD
-  m_Shader: {fileID: 4800000, guid: d5f2e32286d3fbb4c8ad639439921a04, type: 3}
+  m_Shader: {fileID: 4800000, guid: d3ffd86cfd293de4b8d56dc637c0ecc3, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -40,7 +40,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 8400000, guid: ade44de8d371af244a8fe2c4495b73fe, type: 2}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -67,6 +67,7 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.962
     - _GlossyReflections: 1
+    - _Index: 34.4
     - _Lod: 3.76
     - _Metallic: 0
     - _MetallicIntensity: 1

@@ -19,6 +19,7 @@ namespace MPipeline
     {
         private NativeArray<SortElement> elements;
         private NativeArray<int> results;
+        
         public int count;
         public BinarySort(int capacity, Allocator alloc)
         {

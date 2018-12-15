@@ -10,7 +10,6 @@ namespace MPipeline
     public struct RenderClusterOptions
     {
         public Vector4[] frustumPlanes;
-        public Material proceduralMaterial;
         public CommandBuffer command;
         public bool isOrtho;
         public ComputeShader cullingShader;
@@ -25,7 +24,7 @@ namespace MPipeline
         public Vector3 currentCameraUpVec;
     }
     [Serializable]
-    public unsafe class SceneController : IDisposable
+    public unsafe class SceneController
     {
         public struct SceneCommonData
         {
@@ -34,40 +33,14 @@ namespace MPipeline
                 public int usedCount;
                 public int belonged;
             }
+            public Material clusterMaterial;
             public Dictionary<string, TextureIdentifier> texDict;
             public NativeList<int> avaiableTexs;
             public NativeList<int> avaiableProperties;
             public Material copyTextureMat;
             public ComputeBuffer texCopyBuffer;
             public ComputeBuffer propertyBuffer;
-            public Dictionary<string, RenderTexture> allTextures;
-            public RenderTexture GetTexture(string name)
-            {
-                RenderTexture rt;
-                if (allTextures.TryGetValue(name, out rt))
-                    return rt;
-                RenderTextureDescriptor desc = new RenderTextureDescriptor
-                {
-                    autoGenerateMips = false,
-                    bindMS = false,
-                    colorFormat = RenderTextureFormat.ARGB32,
-                    depthBufferBits = 0,
-                    dimension = TextureDimension.Tex2DArray,
-                    enableRandomWrite = false,
-                    height = current.resolution,
-                    width = current.resolution,
-                    memoryless = RenderTextureMemoryless.None,
-                    msaaSamples = 1,
-                    vrUsage = VRTextureUsage.None,
-                    volumeDepth = current.texArrayCapacity,
-                    shadowSamplingMode = ShadowSamplingMode.None,
-                    sRGB = false,
-                    useMipMap = false
-                };
-                rt = new RenderTexture(desc);
-                allTextures.Add(name, rt);
-                return rt;
-            }
+            public RenderTexture texArray;
             public int GetIndex(string guid)
             {
                 if (string.IsNullOrEmpty(guid)) return -1;
@@ -140,6 +113,7 @@ namespace MPipeline
         public NativeList<ulong> pointerContainer;
         public LoadingCommandQueue commandQueue;
         private MonoBehaviour behavior;
+        public Material mat;
         [Header("Material Settings:")]
         public int resolution = 1024;
         public int texArrayCapacity = 50;
@@ -165,6 +139,24 @@ namespace MPipeline
             PipelineFunctions.InitBaseBuffer(baseBuffer, clusterResources, mapResources, clusterCount);
             pointerContainer = new NativeList<ulong>(clusterCount, Allocator.Persistent);
             commandQueue = new LoadingCommandQueue();
+            RenderTextureDescriptor desc = new RenderTextureDescriptor
+            {
+                autoGenerateMips = false,
+                bindMS = false,
+                colorFormat = RenderTextureFormat.ARGB32,
+                depthBufferBits = 0,
+                dimension = TextureDimension.Tex2DArray,
+                enableRandomWrite = false,
+                height = resolution,
+                width = resolution,
+                memoryless = RenderTextureMemoryless.None,
+                msaaSamples = 1,
+                vrUsage = VRTextureUsage.None,
+                volumeDepth = texArrayCapacity,
+                shadowSamplingMode = ShadowSamplingMode.None,
+                sRGB = false,
+                useMipMap = false
+            };
             commonData = new SceneCommonData
             {
                 texDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(),
@@ -173,8 +165,13 @@ namespace MPipeline
                 texCopyBuffer = new ComputeBuffer(resolution * resolution, sizeof(int)),
                 propertyBuffer = new ComputeBuffer(propertyCapacity, sizeof(PropertyValue)),
                 copyTextureMat = new Material(RenderPipeline.current.resources.copyShader),
-                allTextures = new Dictionary<string, RenderTexture>()
+                texArray = new RenderTexture(desc),
+                clusterMaterial = new Material(RenderPipeline.current.resources.clusterRenderShader)
             };
+            mat.SetTexture(ShaderIDs._MainTex, commonData.texArray);
+            commonData.clusterMaterial.SetBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
+            commonData.clusterMaterial.SetTexture(ShaderIDs._MainTex, commonData.texArray);
+            commonData.copyTextureMat.SetVector("_TextureSize", new Vector4(resolution, resolution));
             commonData.copyTextureMat.SetBuffer("_TextureBuffer", commonData.texCopyBuffer);
             for (int i = 0; i < propertyCapacity; ++i)
             {
@@ -186,7 +183,7 @@ namespace MPipeline
             }
         }
 
-        public void Dispose()
+        public void OnDestroy()
         {
             if (current != this) return;
             current = null;
@@ -197,12 +194,8 @@ namespace MPipeline
             commonData.avaiableTexs.Dispose();
             commonData.texCopyBuffer.Dispose();
             commonData.propertyBuffer.Dispose();
-            foreach (var i in commonData.allTextures.Values)
-            {
-                UnityEngine.Object.Destroy(i);
-            }
             commonData.texDict.Clear();
-            commonData.allTextures.Clear();
+            commonData.texArray.Release();
             UnityEngine.Object.Destroy(commonData.copyTextureMat);
         }
         //Press number load scene
@@ -238,7 +231,7 @@ namespace MPipeline
         {
             PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
             PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
-            PipelineFunctions.RenderProceduralCommand(baseBuffer, options.proceduralMaterial, options.command);
+            PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
             //TODO 绘制其他物体
 
             //TODO
@@ -259,7 +252,7 @@ namespace MPipeline
             hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
             buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            PipelineFunctions.RenderProceduralCommand(baseBuffer, options.proceduralMaterial, buffer);
+            PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, buffer);
             buffer.DispatchCompute(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, 1, 1, 1);
             //TODO 绘制其他物体
 
@@ -279,7 +272,7 @@ hizOpts.hizData,
 options.frustumPlanes,
 options.isOrtho);
             //绘制第一次剔除结果
-            PipelineFunctions.DrawLastFrameCullResult(baseBuffer, buffer, options.proceduralMaterial);
+            PipelineFunctions.DrawLastFrameCullResult(baseBuffer, buffer, commonData.clusterMaterial);
             //更新Vector，Depth Mip Map
             hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
             PipelineFunctions.ClearOcclusionData(baseBuffer, buffer, gpuFrustumShader);
@@ -292,7 +285,7 @@ options.isOrtho);
             PipelineFunctions.OcclusionRecheck(baseBuffer, gpuFrustumShader, buffer, hizOpts.hizData);
             //绘制二次剔除结果
             buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthIdentifier);
-            PipelineFunctions.DrawRecheckCullResult(baseBuffer, options.proceduralMaterial, buffer);
+            PipelineFunctions.DrawRecheckCullResult(baseBuffer, commonData.clusterMaterial, buffer);
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
@@ -332,11 +325,10 @@ options.isOrtho);
             }
         }
 
-        public void DrawCubeMap(MPointLight lit, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset)
+        public void DrawCubeMap(MPointLight lit, Material depthMaterial, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset)
         {
             CommandBuffer cb = opts.command;
             ComputeShader shader = opts.cullingShader;
-            Material depthMaterial = opts.proceduralMaterial;
             cb.SetComputeIntParam(shader, ShaderIDs._LightOffset, offset);
             ComputeShaderUtility.Dispatch(shader, cb, CubeFunction.RunFrustumCull, baseBuffer.clusterCount, 64);
             PerspCam cam = new PerspCam();

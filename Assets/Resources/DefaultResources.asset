@@ -28,5 +28,6 @@ MonoBehaviour:
   linearDepthShader: {fileID: 4800000, guid: 77485821d74bdd841b30cd6723eff35e, type: 3}
   pointLightShader: {fileID: 4800000, guid: 63808577f167c0f48965284bec7283ab, type: 3}
   cubeDepthShader: {fileID: 4800000, guid: b33fc3a2454d9ca46b31777fb5e46e00, type: 3}
+  clusterRenderShader: {fileID: 4800000, guid: 538f1aea21e411247a28ba6f5befa4c1, type: 3}
   occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}

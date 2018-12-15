@@ -19,31 +19,27 @@ CGINCLUDE
 #include "AutoLight.cginc"
 #include "UnityPBSLighting.cginc"
 #include "CGINC/Procedural.cginc"
-struct Property{
-    float _SpecularIntensity;
-	float _MetallicIntensity;
-    float4 _EmissionColor;
-	float _EmissionMultiplier;
-	float _Occlusion;
-	float _Glossiness;
-	float4 _Color;
-};
-	Texture2DArray<half4> _BumpMap; SamplerState sampler_BumpMap;
-	Texture2DArray<half3> _SpecularMap; SamplerState sampler_SpecularMap;
+
 	Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
-	StructuredBuffer<Property> _PropertiesBuffer;
+	StructuredBuffer<PropertyValue> _PropertiesBuffer;
 	
 	void surf (float2 uv, uint index, inout SurfaceOutputStandardSpecular o) {
-		Property prop = _PropertiesBuffer[index];
-		half4 c = _MainTex.Sample(sampler_MainTex, float3(uv, index)) * prop._Color;
+		PropertyValue prop = _PropertiesBuffer[index];
+		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1) * prop._Color;
 		o.Albedo = c.rgb;
 		o.Alpha = 1;
+
 		o.Occlusion = lerp(1, c.a, prop._Occlusion);
-		half3 spec = _SpecularMap.Sample(sampler_SpecularMap, float3(uv, index));
+		half3 spec = prop.textureIndex.y >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.y)) : 1;
 		o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity * spec.g); 
 		o.Smoothness = prop._Glossiness * spec.b;
-		o.Normal = UnpackNormal(_BumpMap.Sample(sampler_BumpMap, float3(uv, index)));
-		o.Emission = prop._EmissionColor * prop._EmissionMultiplier;
+		if(prop.textureIndex.z >= 0){
+			o.Normal =  UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)));
+		}else{
+			o.Normal =  float3(0,0,1);
+		}
+
+		o.Emission = prop._EmissionColor;
 	}
 
 

@@ -11,7 +11,6 @@ namespace MPipeline
     {
         HizDepth hizDepth;
         Material linearMat;
-        public Material proceduralMaterial;
         public enum OcclusionCullingMode
         {
             None, SingleCheck, DoubleCheck
@@ -42,7 +41,6 @@ namespace MPipeline
             {
                 command = buffer,
                 frustumPlanes = data.arrayCollection.frustumPlanes,
-                proceduralMaterial = proceduralMaterial,
                 isOrtho = cam.cam.orthographic,
                 cullingShader = data.resources.gpuFrustumCulling
             };

@@ -159,7 +159,6 @@ namespace MPipeline
                 "_Occlusion",
                 "_SpecularIntensity",
                 "_MetallicIntensity",
-                "_EmissionMultiplier"
             };
             foreach (var i in propNames)
             {
@@ -319,7 +318,6 @@ namespace MPipeline
         public float _SpecularIntensity;
         public float _MetallicIntensity;
         public Vector4 _EmissionColor;
-        public float _EmissionMultiplier;
         public float _Occlusion;
         public float _Glossiness;
         public Vector4 _Color;

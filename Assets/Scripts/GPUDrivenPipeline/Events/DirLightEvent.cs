@@ -44,12 +44,12 @@ namespace MPipeline
                     frustumPlanes = shadowFrustumVP,
                     command = buffer,
                     cullingShader = data.resources.gpuFrustumCulling,
-                    isOrtho = true,
-                    proceduralMaterial = null
+                    isOrtho = true
                 };
                 PipelineFunctions.UpdateShadowMapState(ref SunLight.shadMap, ref SunLight.current.settings, buffer);
                 SceneController.current.DrawDirectionalShadow(cam.cam, ref opts, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP);
-                PipelineFunctions.UpdateShadowMaskState(buffer, ref SunLight.shadMap, cascadeShadowMapVP);
+                buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
+                buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.shadMap.shadowmapTexture);
                 pass = 0;
             }
             else

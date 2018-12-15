@@ -93,7 +93,6 @@ namespace MPipeline
                 RenderClusterOptions opts = new RenderClusterOptions
                 {
                     cullingShader = cullShader,
-                    proceduralMaterial = cubeDepthMaterial,
                     command = buffer,
                     frustumPlanes = null,
                     isOrtho = false
@@ -101,7 +100,7 @@ namespace MPipeline
                 for (int i = 0; i < shadowCount; i++)
                 {
                     MPointLight light = MPointLight.allPointLights[cullJob.indices[i]];
-                    SceneController.current.DrawCubeMap(light, ref opts, ref cubeBuffer, i);
+                    SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i);
                     buffer.SetRenderTarget(cam.targets.renderTargetIdentifier, cam.targets.depthIdentifier);
                     buffer.SetGlobalVector(ShaderIDs._LightColor, light.color);
                     buffer.SetGlobalVector(ShaderIDs._LightPos, positions[i]);

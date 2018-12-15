@@ -85,7 +85,7 @@ namespace MPipeline
             LoadTextures();
             propertiesPool = SceneController.commonData.GetPropertyIndex(property.properties.Length);
             uint* poolPtr = propertiesPool.Ptr();
-            for(int i = 0; i < pointsBuffer.Length; ++i)
+            for (int i = 0; i < pointsBuffer.Length; ++i)
             {
                 verticesData[i].objIndex = poolPtr[verticesData[i].objIndex];
             }
@@ -121,7 +121,7 @@ namespace MPipeline
             {
                 ref PropertyValue value = ref values[i];
                 int* indexPtr = (int*)UnsafeUtility.AddressOf(ref value.textureIndex);
-                for(int a = 0; a < property.texPaths.Length; ++a)
+                for (int a = 0; a < property.texPaths.Length; ++a)
                 {
                     string texName = property.texPaths[a].instancingIDs[i];
                     MStringBuilder sb = new MStringBuilder(texName.Length + 50);
@@ -131,7 +131,7 @@ namespace MPipeline
                     sb.Combine(allStrings);
                     string texType = property.texPaths[a].texName;
                     indexPtr[a] = SceneController.commonData.GetIndex(texName);
-                    if(indexPtr[a] >= 0)
+                    if (indexPtr[a] >= 0)
                     {
                         using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
                         {
@@ -156,7 +156,7 @@ namespace MPipeline
 
         public void UnloadTextures()
         {
-            foreach(var i in allTextureDatas)
+            foreach (var i in allTextureDatas)
             {
                 SceneController.commonData.RemoveTex(i.texGUID);
             }
@@ -259,6 +259,7 @@ namespace MPipeline
             loading = false;
             state = State.Unloaded;
         }
+
         private IEnumerator GenerateRun()
         {
             PipelineResources resources = RenderPipeline.current.resources;
@@ -281,10 +282,10 @@ namespace MPipeline
             loading = false;
             state = State.Loaded;
             yield return null;
-            foreach(var i in allTextureDatas)
+            foreach (var i in allTextureDatas)
             {
                 SceneController.commonData.texCopyBuffer.SetData(i.array);
-                RenderTexture rt = SceneController.commonData.GetTexture(i.texType);
+                RenderTexture rt = SceneController.commonData.texArray;
                 Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
                 int pass = i.texType == "_MainTex" ? 0 : 1;
                 SceneController.commonData.copyTextureMat.SetPass(pass);
@@ -295,6 +296,17 @@ namespace MPipeline
             ComputeShader copyShader = resources.gpuFrustumCulling;
             //TODO
             //Load Property
+            const int loadPropertyKernel = 6;
+            ComputeBuffer currentPropertyBuffer = new ComputeBuffer(property.properties.Length, PROPERTYVALUESIZE);
+            currentPropertyBuffer.SetData(property.properties);
+            ComputeBuffer propertyIndexBuffer = new ComputeBuffer(propertiesPool.Length, 4);
+            propertyIndexBuffer.SetData(propertiesPool);
+            copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._PropertiesBuffer, SceneController.commonData.propertyBuffer);
+            copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._TempPropBuffer, currentPropertyBuffer);
+            copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._IndexBuffer, propertyIndexBuffer);
+            ComputeShaderUtility.Dispatch(copyShader, loadPropertyKernel, propertiesPool.Length, 64);
+            currentPropertyBuffer.Dispose();
+            propertyIndexBuffer.Dispose();
         }
         #endregion
     }
