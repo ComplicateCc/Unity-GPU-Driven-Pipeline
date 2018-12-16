@@ -41,14 +41,19 @@ namespace MPipeline
             public ComputeBuffer texCopyBuffer;
             public ComputeBuffer propertyBuffer;
             public RenderTexture texArray;
-            public int GetIndex(string guid)
+            public int GetIndex(string guid, out bool alreadyContained)
             {
-                if (string.IsNullOrEmpty(guid)) return -1;
+                if (string.IsNullOrEmpty(guid))
+                {
+                    alreadyContained = false;
+                    return -1;
+                }
                 if(texDict.ContainsKey(guid) && texDict[guid].usedCount > 0)
                 {
                     TextureIdentifier ident = texDict[guid];
                     ident.usedCount++;
                     texDict[guid] = ident;
+                    alreadyContained = true;
                     return ident.belonged;
                 }else
                 {
@@ -62,6 +67,7 @@ namespace MPipeline
 
                     avaiableTexs.RemoveLast();
                     texDict[guid] = ident;
+                    alreadyContained = false;
                     return ident.belonged;
                 }
             }
@@ -113,7 +119,6 @@ namespace MPipeline
         public NativeList<ulong> pointerContainer;
         public LoadingCommandQueue commandQueue;
         private MonoBehaviour behavior;
-        public Material mat;
         [Header("Material Settings:")]
         public int resolution = 1024;
         public int texArrayCapacity = 50;
@@ -168,7 +173,6 @@ namespace MPipeline
                 texArray = new RenderTexture(desc),
                 clusterMaterial = new Material(RenderPipeline.current.resources.clusterRenderShader)
             };
-            mat.SetTexture(ShaderIDs._MainTex, commonData.texArray);
             commonData.clusterMaterial.SetBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
             commonData.clusterMaterial.SetTexture(ShaderIDs._MainTex, commonData.texArray);
             commonData.copyTextureMat.SetVector("_TextureSize", new Vector4(resolution, resolution));

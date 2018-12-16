@@ -130,9 +130,20 @@ namespace MPipeline
                     allStrings[2] = ".txt";
                     sb.Combine(allStrings);
                     string texType = property.texPaths[a].texName;
-                    indexPtr[a] = SceneController.commonData.GetIndex(texName);
+                    bool alreadyContained;
+                    indexPtr[a] = SceneController.commonData.GetIndex(texName, out alreadyContained);
                     if (indexPtr[a] >= 0)
                     {
+                        if (alreadyContained)
+                        {
+                            allTextureDatas.Add(new TextureInfos
+                            {
+                                array = new NativeArray<Color32>(),
+                                index = indexPtr[a],
+                                texGUID = texName,
+                                texType = texType
+                            });
+                        }
                         using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
                         {
                             byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
@@ -284,14 +295,17 @@ namespace MPipeline
             yield return null;
             foreach (var i in allTextureDatas)
             {
-                SceneController.commonData.texCopyBuffer.SetData(i.array);
-                RenderTexture rt = SceneController.commonData.texArray;
-                Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
-                int pass = i.texType == "_MainTex" ? 0 : 1;
-                SceneController.commonData.copyTextureMat.SetPass(pass);
-                Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
-                i.array.Dispose();
-                yield return null;
+                if (i.array.IsCreated)
+                {
+                    SceneController.commonData.texCopyBuffer.SetData(i.array);
+                    RenderTexture rt = SceneController.commonData.texArray;
+                    Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
+                    int pass = i.texType == "_MainTex" ? 0 : 1;
+                    SceneController.commonData.copyTextureMat.SetPass(pass);
+                    Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
+                    i.array.Dispose();
+                    yield return null;
+                }
             }
             ComputeShader copyShader = resources.gpuFrustumCulling;
             //TODO

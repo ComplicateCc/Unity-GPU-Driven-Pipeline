@@ -38,7 +38,6 @@ CGINCLUDE
 		}else{
 			o.Normal =  float3(0,0,1);
 		}
-
 		o.Emission = prop._EmissionColor;
 	}
 

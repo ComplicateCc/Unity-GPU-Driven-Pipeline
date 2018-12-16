@@ -26,7 +26,7 @@ MonoBehaviour:
     texPaths:
     - texName: _MainTex
       instancingIDs:
-      - 
+      - d8f2b576da00b3240ab15f425a8961ef
     - texName: _BumpMap
       instancingIDs:
       - 
