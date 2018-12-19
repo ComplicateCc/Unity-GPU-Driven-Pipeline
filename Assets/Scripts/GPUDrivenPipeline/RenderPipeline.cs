@@ -15,11 +15,9 @@ namespace MPipeline
         public static RenderPipeline current;
         public static PipelineCommandData data;
         public static Dictionary<CameraRenderingPath, DrawEvent> allDrawEvents = new Dictionary<CameraRenderingPath, DrawEvent>();
-        //Initialized In Every Scene
-
         #endregion
         public GameObject pipelinePrefab;
-        private List<PipelineEvent> allEvents;
+        private PipelineEvent[] allEvents;
         public PipelineResources resources;
         public SceneController sceneController;
         private void Awake()
@@ -34,33 +32,14 @@ namespace MPipeline
             DontDestroyOnLoad(this);
             current = this;
             data.arrayCollection = new RenderArray(true);
-
-            allEvents = new List<PipelineEvent>(pipelinePrefab.GetComponentsInChildren<PipelineEvent>());
+            allEvents = pipelinePrefab.GetComponentsInChildren<PipelineEvent>();
             foreach (var i in allEvents)
                 i.InitEvent(resources);
             sceneController.Awake(this);
-
-        }
-        /// <summary>
-        /// Add and remove Events Manually
-        /// Probably cause unnecessary error, try to avoid calling this methods
-        /// </summary>
-        /// <param name="evt"></param>
-        public void AddEventManually(PipelineEvent evt)
-        {
-            allEvents.Add(evt);
-            evt.InitEvent(resources);
-        }
-
-        public void RemoveEventManually(PipelineEvent evt)
-        {
-            allEvents.Remove(evt);
-            evt.DisposeEvent();
-        }
+        } 
 
         private void Update()
         {
-
             lock (SceneController.current.commandQueue)
             {
                 SceneController.current.commandQueue.Run();

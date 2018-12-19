@@ -27,6 +27,7 @@ CGINCLUDE
 #include "UnityMetaPass.cginc"
 #include "AutoLight.cginc"
 #include "UnityPBSLighting.cginc"
+#include "CGINC/Plane.cginc"
     float _SpecularIntensity;
 	float _MetallicIntensity;
 		float _Occlusion;

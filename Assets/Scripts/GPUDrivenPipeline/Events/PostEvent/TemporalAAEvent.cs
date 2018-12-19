@@ -36,7 +36,6 @@ namespace MPipeline
         private MaterialPropertyBlock block;
         private PostProcessAction taaFunction;
         private RenderTexture historyTex;
-        private System.Func<PipelineCamera, HistoryTexture> GetHistoryTex = (cam) => new HistoryTexture(cam.cam);
         protected override void Init(PipelineResources resources)
         {
             block = new MaterialPropertyBlock();
@@ -56,7 +55,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            HistoryTexture texComponent = IPerCameraData.GetProperty<HistoryTexture>(cam, GetHistoryTex);
+            HistoryTexture texComponent = IPerCameraData.GetProperty<HistoryTexture>(cam, (c) => new HistoryTexture(c.cam));
             texComponent.UpdateProperty(cam);
             SetHistory(cam.cam, buffer, ref texComponent.historyTex, cam.targets.renderTargetIdentifier);
             historyTex = texComponent.historyTex;

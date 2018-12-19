@@ -8,19 +8,12 @@ namespace MPipeline
 {
     public unsafe class Test : MonoBehaviour
     {
-        private int value = 2;
-        public Material tex;
-        private NativeArray<int> inf;
+        public int value1;
+        public int value2;
         [EasyButtons.Button]
         void Try()
         {
-            Task t = Task.Run(() =>
-            {
-                Debug.Log(inf.Length);
-                inf = new NativeArray<int>(1, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                Debug.Log(inf.Length);
-                inf.Dispose();
-            });
+            Debug.Log(value1 ^ value2);
             
         }
     }

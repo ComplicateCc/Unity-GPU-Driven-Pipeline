@@ -53,7 +53,7 @@ namespace MPipeline
             }
             pre = false;
             post = false;
-            
+
         }
 
         public bool EnableEvent
@@ -79,7 +79,7 @@ namespace MPipeline
             {
                 if (m_enabledInPipeline == value) return;
                 m_enabledInPipeline = value;
-                SetIn(value, renderPath);
+                SetPipelineEnable(value, true, false, renderPath);
             }
         }
 
@@ -93,53 +93,30 @@ namespace MPipeline
             {
                 if (m_enableBeforePipeline == value) return;
                 m_enableBeforePipeline = value;
-                SetBefore(value, renderPath);
+                SetPipelineEnable(value, false, true, renderPath);
             }
         }
 
-        private void SetIn(bool value, RenderPipeline.CameraRenderingPath path)
+        private void SetPipelineEnable(bool value, bool after, bool before, RenderPipeline.CameraRenderingPath path)
         {
             if (value)
             {
                 DrawEvent evt;
                 if (!RenderPipeline.allDrawEvents.TryGetValue(path, out evt))
                 {
-                    evt.drawEvents = new List<PipelineEvent>(10);
-                    evt.preRenderEvents = new List<PipelineEvent>(10);
+                    evt = new DrawEvent(10);
                     RenderPipeline.allDrawEvents.Add(path, evt);
                 }
-                evt.drawEvents.InsertTo(this, compareFunc);
+                if (after) evt.drawEvents.InsertTo(this, compareFunc);
+                if (before) evt.preRenderEvents.InsertTo(this, compareFunc);
             }
             else
             {
                 DrawEvent evt;
                 if (RenderPipeline.allDrawEvents.TryGetValue(path, out evt))
                 {
-                    evt.drawEvents.Remove(this);
-                }
-
-            }
-        }
-
-        private void SetBefore(bool value, RenderPipeline.CameraRenderingPath path)
-        {
-            if (value)
-            {
-                DrawEvent evt;
-                if (!RenderPipeline.allDrawEvents.TryGetValue(path, out evt))
-                {
-                    evt.drawEvents = new List<PipelineEvent>(10);
-                    evt.preRenderEvents = new List<PipelineEvent>(10);
-                    RenderPipeline.allDrawEvents.Add(path, evt);
-                }
-                evt.preRenderEvents.InsertTo(this, compareFunc);
-            }
-            else
-            {
-                DrawEvent evt;
-                if (RenderPipeline.allDrawEvents.TryGetValue(path, out evt))
-                {
-                    evt.preRenderEvents.Remove(this);
+                    if (after) evt.drawEvents.Remove(this);
+                    if (before) evt.preRenderEvents.Remove(this);
                 }
             }
         }
@@ -147,26 +124,12 @@ namespace MPipeline
         public void InitEvent(PipelineResources resources)
         {
             SetAttribute();
-            if (m_enabledInPipeline)
-            {
-                SetIn(true, m_renderPath);
-            }
-            if (m_enableBeforePipeline)
-            {
-                SetBefore(true, m_renderPath);
-            }
+            SetPipelineEnable(true, m_enabledInPipeline, m_enableBeforePipeline, m_renderPath);
             Init(resources);
         }
         public void DisposeEvent()
         {
-            if (m_enabledInPipeline)
-            {
-                SetIn(false, m_renderPath);
-            }
-            if (m_enableBeforePipeline)
-            {
-                SetBefore(false, m_renderPath);
-            }
+            SetPipelineEnable(false, m_enabledInPipeline, m_enableBeforePipeline, m_renderPath);
             Dispose();
         }
         protected virtual void Init(PipelineResources resources) { }

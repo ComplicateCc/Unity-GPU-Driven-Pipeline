@@ -31,10 +31,8 @@ float PlaneTest(ClusterMeshData info){
     for(uint i = 0; i < _CullingPlaneCount; ++i)
     {
         float4 plane = planes[i];
-        float r = dot(position, plane.xyz); 
         float3 absNormal = abs(plane.xyz);
-        float f = dot(absNormal, extent);
-        result *= ((r - f) < -plane.w) ? 1.0 : 0.0;
+        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ? 1.0 : 0.0;
     }
     return result;
 }

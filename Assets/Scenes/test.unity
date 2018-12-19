@@ -385,7 +385,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330718099}
-  m_LocalRotation: {x: 0.12565352, y: -0.5932308, z: 0.09441035, w: 0.7895411}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 18.89926, y: -1.614197, z: -14.742116}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -623,7 +623,7 @@ MonoBehaviour:
   mainTexFormat: 5
   bumpMapFormat: 5
   specularFormat: 3
-  modelName: TestFile1
+  modelName: TestFile
 --- !u!4 &744068761
 Transform:
   m_ObjectHideFlags: 0
@@ -736,6 +736,75 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: -39.886, z: 0}
+--- !u!1001 &1252009918
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8525019081660873867, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_Name
+      value: GPURP
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 20.768574
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -22.78753
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 39.41392
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068905026864227343, guid: 8bb42215dffb9434a81e7c6d891cb956,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8bb42215dffb9434a81e7c6d891cb956, type: 3}
 --- !u!1 &1255409783
 GameObject:
   m_ObjectHideFlags: 0
@@ -765,8 +834,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bc98792b41dcad4b862fea31c3c7022, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  useShadow: 1
-  range: 50
+  useShadow: 0
+  range: 10
   color: {r: 1, g: 0.68882436, b: 0, a: 1}
   intensity: 100
   radius: 1
@@ -867,7 +936,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b404c01670a841439f40cbf2b2282c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enableShadow: 1
+  enableShadow: 0
   settings:
     resolution: 8192
     firstLevelDistance: 10
@@ -980,11 +1049,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b8eb9fca4b81414b949a9baf9820052, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pipelinePrefab: {fileID: 8525019081660873867, guid: 8bb42215dffb9434a81e7c6d891cb956,
-    type: 3}
+  pipelinePrefab: {fileID: 1930944977}
   resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
   sceneController:
     mapResources: SceneManager
     resolution: 1024
     texArrayCapacity: 21
     propertyCapacity: 500
+--- !u!1 &1930944977 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8525019081660873867, guid: 8bb42215dffb9434a81e7c6d891cb956,
+    type: 3}
+  m_PrefabInstance: {fileID: 1252009918}
+  m_PrefabAsset: {fileID: 0}

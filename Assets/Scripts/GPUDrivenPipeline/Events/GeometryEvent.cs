@@ -28,7 +28,6 @@ namespace MPipeline
         {
             hizDepth.DisposeHiZ();
         }
-        public System.Func<IPerCameraData> getOcclusionData = () => new HizOcclusionData();
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
@@ -36,7 +35,7 @@ namespace MPipeline
             buffer.ClearRenderTarget(true, true, Color.black);
             PipelineBaseBuffer baseBuffer;
             if (!SceneController.GetBaseBuffer(out baseBuffer)) return;
-            HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, getOcclusionData);
+            HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, () => new HizOcclusionData());
             RenderClusterOptions options = new RenderClusterOptions
             {
                 command = buffer,
