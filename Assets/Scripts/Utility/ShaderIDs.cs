@@ -77,6 +77,7 @@ public static partial class ShaderIDs
     public static readonly int _CameraForward = Shader.PropertyToID("_CameraForward");
     public static readonly int _CameraNearPos = Shader.PropertyToID("_CameraNearPos");
     public static readonly int _CameraFarPos = Shader.PropertyToID("_CameraFarPos");
+    public static readonly int _CameraClipDistance = Shader.PropertyToID("_CameraClipDistance");
     public static readonly int _PointLightCount = Shader.PropertyToID("_PointLightCount");
     public static readonly int _XYPlaneTexture = Shader.PropertyToID("_XYPlaneTexture");
     public static readonly int _ZPlaneTexture = Shader.PropertyToID("_ZPlaneTexture");

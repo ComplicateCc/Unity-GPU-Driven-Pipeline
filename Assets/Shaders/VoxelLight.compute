@@ -3,14 +3,7 @@
 #pragma kernel SetZPlane
 #pragma kernel CBDR
 #include "CGINC/Plane.cginc"
-
-#define RES 16
-#define ZRES 128
-#define STEP 0.0625
-#define ZSTEP 0.0078125
-#define VOXELSIZE uint3(RES, RES, ZRES)
-#define MAXLIGHTPERCLUSTER 16
-
+#include "CGINC/VoxelLight.cginc"
 struct PointLight{
     float3 lightColor;
     float lightIntensity;
@@ -18,26 +11,17 @@ struct PointLight{
 };
 
 float4x4 _InvVP;
-float3 _CameraForward;
-float3 _CameraNearPos;
-float3 _CameraFarPos;
-uint _PointLightCount;
 
 RWTexture3D<float4> _XYPlaneTexture;
 RWTexture2D<float4> _ZPlaneTexture;
-RWTexture3D<int2> _PointLightTexture;
 StructuredBuffer<PointLight> _AllPointLight;
 RWStructuredBuffer<uint> _PointLightIndexBuffer;
 
-inline uint GetIndex(uint3 id, const uint3 size){
-    return size.x * size.y * id.z + size.x * id.y + id.x;
-}
-
-[numthreads(RES, RES, 1)]
+[numthreads(XRES, YRES, 1)]
 void SetXYPlane (uint2 id : SV_DispatchThreadID)
 {
-    float2 leftBotUV = (id / (float)RES);
-    float2 rightTopUV =  leftBotUV + STEP;
+    float2 leftBotUV = id / float2(XRES, YRES);
+    float2 rightTopUV =  leftBotUV + (1.0 / float2(XRES, YRES));
     leftBotUV = leftBotUV * 2 - 1;
     rightTopUV = rightTopUV* 2 - 1;
     _XYPlaneTexture[uint3(id, 0)] = GetPlane(mul(_InvVP, float4(-1, rightTopUV.y, 0, 1)), mul(_InvVP, float4(1,rightTopUV.y, 0, 1)), mul(_InvVP, float4(0, rightTopUV.y, 0.5, 1)));                  //TOP
@@ -55,7 +39,7 @@ void SetZPlane(uint id : SV_DISPATCHTHREADID)
     _ZPlaneTexture[uint2(id, 1)] = GetPlane(_CameraForward, forwardPos);
 }
 
-[numthreads(RES,RES,1)]
+[numthreads(XRES,YRES,1)]
 void CBDR(uint3 id : SV_DISPATCHTHREADID)
 {
     float4 planes[6];
@@ -70,7 +54,7 @@ void CBDR(uint3 id : SV_DISPATCHTHREADID)
     //TODO
     //
     uint clusterCount = 0;
-    uint sBufferIndex = GetIndex(id, VOXELSIZE);
+    uint sBufferIndex = GetIndex(id, VOXELSIZE) * (MAXLIGHTPERCLUSTER + 1) + 1;
     for(i = 0; i < _PointLightCount && clusterCount < MAXLIGHTPERCLUSTER; ++i){
         PointLight lit = _AllPointLight[i];
         if(SphereIntersect(lit.sphere, planes) > 0.5){
@@ -78,5 +62,5 @@ void CBDR(uint3 id : SV_DISPATCHTHREADID)
             clusterCount++;
         }
     }
-    _PointLightTexture[id] = uint2(sBufferIndex, sBufferIndex + clusterCount);
+    _PointLightIndexBuffer[sBufferIndex - 1] = clusterCount + sBufferIndex;
 }

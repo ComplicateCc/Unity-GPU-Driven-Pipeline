@@ -6,9 +6,7 @@
 CGINCLUDE
 #pragma target 5.0
             #include "UnityCG.cginc"
-            //#include "PointLight.cginc"
-#define ZRES 128
-#define RES 16
+            #include "CGINC/VoxelLight.cginc"
             Texture2D _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
             Texture2D<half4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
             Texture2D<half4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
@@ -18,6 +16,7 @@ CGINCLUDE
             float4 _LightPos;
             float3  _LightColor;
             float _LightIntensity;
+            float2 _CameraClipDistance; //X: Near Y: Far - Near
 
             struct PointLight{
                 float3 lightColor;
@@ -59,16 +58,16 @@ ENDCG
             {
                 float2 uv = i.uv.xy / i.uv.w;
                 float sceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
-                float4 worldPostion = mul(_InvVP, float4(uv * 2 - 1, sceneDepth, 1));
-                worldPostion /= worldPostion.w;
+                float4 worldPosition = mul(_InvVP, float4(uv * 2 - 1, sceneDepth, 1));
+                worldPosition /= worldPosition.w;
                 half3 albedoColor = _CameraGBufferTexture0.Sample(sampler_CameraGBufferTexture0, uv).xyz;
                 half3 worldNormal = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, uv).xyz * 2 - 1;
                 float3 lightPosition = _LightPos.xyz;
-                float3 lightDir = normalize(lightPosition - worldPostion.xyz);
-                float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - worldPostion.xyz);
+                float3 lightDir = normalize(lightPosition - worldPosition.xyz);
+                float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - worldPosition.xyz);
                 float NoL = saturate(dot(lightDir, worldNormal));
-                half distanceRange = distance(worldPostion.xyz, lightPosition);
-                half distanceSqr = dot(lightPosition - worldPostion.xyz, lightPosition - worldPostion.xyz);
+                half distanceRange = distance(worldPosition.xyz, lightPosition);
+                half distanceSqr = dot(lightPosition - worldPosition.xyz, lightPosition - worldPosition.xyz);
                 half rangeFalloff = Square(saturate(1 - Square(distanceSqr * Square(abs(1 / _LightPos.w) / 100))));
                 half LumianceIntensity = max(0, (_LightIntensity / 4)) / ((4 * UNITY_PI) * pow(distanceRange, 2));
                 half pointLightEnergy = LumianceIntensity * NoL * rangeFalloff;
@@ -88,21 +87,21 @@ ENDCG
             {
                 float2 uv = i.uv.xy / i.uv.w;
                 float sceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
-                float4 worldPostion = mul(_InvVP, float4(uv * 2 - 1, sceneDepth, 1));
-                worldPostion /= worldPostion.w;
+                float4 worldPosition = mul(_InvVP, float4(uv * 2 - 1, sceneDepth, 1));
+                worldPosition /= worldPosition.w;
                 float3 albedoColor = _CameraGBufferTexture0.Sample(sampler_CameraGBufferTexture0, uv).xyz;
                 float3 worldNormal = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, uv).xyz * 2 - 1;
                 float3 lightPosition = _LightPos.xyz;
-                float3 lightDir = lightPosition - worldPostion.xyz;
+                float3 lightDir = lightPosition - worldPosition.xyz;
                 half lenOfLightDir = length(lightDir);
                 lightDir /= lenOfLightDir;
                 half shadowDist = _CubeShadowMap.Sample(sampler_CubeShadowMap, lightDir * float3(-1,-1,1));
                 half lightDist = (lenOfLightDir - 0.1) / _LightPos.w;
                 if(lightDist > shadowDist) return 0;
-                float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - worldPostion.xyz);
+                float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - worldPosition.xyz);
                 half NoL = saturate(dot(lightDir, worldNormal));
-                half distanceRange = distance(worldPostion.xyz, lightPosition);
-                half distanceSqr = dot(lightPosition - worldPostion.xyz, lightPosition - worldPostion.xyz);
+                half distanceRange = distance(worldPosition.xyz, lightPosition);
+                half distanceSqr = dot(lightPosition - worldPosition.xyz, lightPosition - worldPosition.xyz);
                 half rangeFalloff = Square(saturate(1 - Square(distanceSqr * Square(abs(1 / _LightPos.w) / 100))));
                 half LumianceIntensity = max(0, (_LightIntensity / 4)) / ((4 * UNITY_PI) * pow(distanceRange, 2));
                 half pointLightEnergy = LumianceIntensity * NoL * rangeFalloff;
@@ -118,10 +117,6 @@ ENDCG
             CGPROGRAM
             #pragma vertex screenVert
             #pragma fragment frag
-            float3 _CameraForward;
-            float3 _CameraNearPos;
-            float3 _CameraFarPos;
-            Texture3D<int2> _PointLightTexture;
             StructuredBuffer<PointLight> _AllPointLight;
             StructuredBuffer<uint> _PointLightIndexBuffer;
             struct v2fScreen
@@ -143,27 +138,20 @@ ENDCG
             }
             half3 frag(v2fScreen i) : SV_TARGET
             {
-                
                 float2 uv = i.uv;
-                
                 float sceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
-                float2 clip = uv * 2 - 1;
-                
-                float4 worldPostion = mul(_InvVP, float4(clip, sceneDepth, 1));
-                float4 worldFarPosition = mul(_InvVP, float4(clip, 0, 1));
-                float4 worldNearPosition = mul(_InvVP, float4(clip, 1, 1));
-                worldFarPosition /= worldFarPosition.w;
-                worldNearPosition /= worldNearPosition.w;
-                worldPostion /= worldPostion.w;
-                
-                float rate = distance(worldNearPosition.xyz, worldPostion.xyz) / distance(worldFarPosition.xyz, worldNearPosition.xyz);
-                uint3 voxelValue =uint3((uint2)(uv * RES), (uint)(rate * ZRES));
-                int2 index = _PointLightTexture[voxelValue];
+                float2 projCoord = uv * 2 - 1;
+                float4 worldPosition = mul(_InvVP, float4(projCoord, sceneDepth, 1));
+                worldPosition /= worldPosition.w;
+                float rate = saturate((LinearEyeDepth(sceneDepth) - _CameraClipDistance.x) / _CameraClipDistance.y);
+                uint3 voxelValue =uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
+                uint sBufferIndex = GetIndex(voxelValue, VOXELSIZE) * (MAXLIGHTPERCLUSTER + 1);
+                uint length = _PointLightIndexBuffer[sBufferIndex];
                 half3 color = 0;
-                for(int c = index.x; c < index.y; c++)
+                for(int c = sBufferIndex + 1; c < length; c++)
                 {
                     PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
-                    color += pt.lightColor * saturate(1 - distance(worldPostion.xyz , pt.sphere.xyz) / pt.sphere.w);
+                    color += pt.lightColor * saturate(1 - distance(worldPosition.xyz , pt.sphere.xyz) / pt.sphere.w);
                 }
                  return color;
             }

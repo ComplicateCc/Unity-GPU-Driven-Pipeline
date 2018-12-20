@@ -65,8 +65,11 @@ namespace MPipeline
             UnsafeUtility.ReleaseGCObject(gcHandler);
             pointLightMaterial.SetBuffer(ShaderIDs.verticesBuffer, sphereBuffer);
             //Un Shadow Point light
-            cbdr.SetDatas(cam.cam, indicesArray, unShadowCount, buffer);
-            buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);
+            if (unShadowCount > 0)
+            {
+                cbdr.SetDatas(cam.cam, indicesArray, unShadowCount, buffer);
+                buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);
+            }
             //Shadow Point Light
             /*
             if (shadowCount > 0)
@@ -142,8 +145,8 @@ namespace MPipeline
                       indices[length - last] = index;
                   }
                   */
-                  
-                if(!cube.useShadow)
+
+                if (!cube.useShadow)
                 {
                     int last = Interlocked.Increment(ref *unShadowCount) - 1;
                     PointLightStruct* crt = indices + last;
