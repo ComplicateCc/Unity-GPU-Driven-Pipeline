@@ -10,6 +10,7 @@ namespace MPipeline
         public Vector3 lightColor;
         public float lightIntensity;
         public Vector4 sphere;
+        public int shadowIndex;
     }
     public unsafe class CBDRSharedData : PipelineSharedData
     {

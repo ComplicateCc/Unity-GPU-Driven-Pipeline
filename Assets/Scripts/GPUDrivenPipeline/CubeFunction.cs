@@ -61,6 +61,7 @@ namespace MPipeline
         public ComputeBuffer planes;
         public ComputeBuffer lightPositionBuffer;
         public ComputeBuffer indirectDrawBuffer;
+        public RenderTexture renderTarget;
         public int currentLength;
     }
 }

@@ -13,16 +13,12 @@ CGINCLUDE
             Texture2D<half4> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;
             TextureCube<half> _CubeShadowMap; SamplerState sampler_CubeShadowMap;
             StructuredBuffer<float3> verticesBuffer;
+            StructuredBuffer<PointLight> _AllPointLight;
+            StructuredBuffer<uint> _PointLightIndexBuffer;
             float4 _LightPos;
             float3  _LightColor;
             float _LightIntensity;
             float2 _CameraClipDistance; //X: Near Y: Far - Near
-
-            struct PointLight{
-                float3 lightColor;
-                float lightIntensity;
-                float4 sphere;
-            };
 
             float4x4 _InvVP;
 
@@ -38,6 +34,24 @@ CGINCLUDE
                 o.vertex = mul(UNITY_MATRIX_VP, float4((verticesBuffer[id] * _LightPos.w * 2 + _LightPos.xyz), 1));
                 o.vertex.z = max(o.vertex.z, 0);
                 o.uv = ComputeScreenPos(o.vertex);
+                return o;
+            }
+
+            struct v2fScreen
+            {
+                float4 vertex : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+            };
+            v2fScreen screenVert (appdata v)
+            {
+                v2fScreen o;
+                o.vertex = v.vertex;
+                o.uv = v.uv;
                 return o;
             }
 
@@ -117,24 +131,13 @@ ENDCG
             CGPROGRAM
             #pragma vertex screenVert
             #pragma fragment frag
-            StructuredBuffer<PointLight> _AllPointLight;
-            StructuredBuffer<uint> _PointLightIndexBuffer;
-            struct v2fScreen
+            TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
+            inline uint2 GetVoxelIte(float eyeDepth, float2 uv)
             {
-                float4 vertex : SV_POSITION;
-                float2 uv : TEXCOORD0;
-            };
-            struct appdata
-            {
-                float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
-            };
-            v2fScreen screenVert (appdata v)
-            {
-                v2fScreen o;
-                o.vertex = v.vertex;
-                o.uv = v.uv;
-                return o;
+                float rate = saturate((eyeDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
+                uint3 voxelValue =uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
+                uint sb = GetIndex(voxelValue, VOXELSIZE);
+                return uint2(sb + 1, _PointLightIndexBuffer[sb]);
             }
             half3 frag(v2fScreen i) : SV_TARGET
             {
@@ -143,17 +146,69 @@ ENDCG
                 float2 projCoord = uv * 2 - 1;
                 float4 worldPosition = mul(_InvVP, float4(projCoord, sceneDepth, 1));
                 worldPosition /= worldPosition.w;
-                float rate = saturate((LinearEyeDepth(sceneDepth) - _CameraClipDistance.x) / _CameraClipDistance.y);
-                uint3 voxelValue =uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
-                uint sBufferIndex = GetIndex(voxelValue, VOXELSIZE) * (MAXLIGHTPERCLUSTER + 1);
-                uint length = _PointLightIndexBuffer[sBufferIndex];
+                uint2 ind = GetVoxelIte(LinearEyeDepth(sceneDepth), uv);
                 half3 color = 0;
-                for(int c = sBufferIndex + 1; c < length; c++)
+                for(uint c = ind.x; c < ind.y; c++)
                 {
                     PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
-                    color += pt.lightColor * saturate(1 - distance(worldPosition.xyz , pt.sphere.xyz) / pt.sphere.w);
+                    float3 currentCol = pt.lightColor * saturate(1 - distance(worldPosition.xyz , pt.sphere.xyz) / pt.sphere.w);
+                    if(pt.shadowIndex >= 0){
+                        float3 lightPosition = pt.sphere.xyz;
+                        float3 lightDir = lightPosition - worldPosition.xyz;
+                        half lenOfLightDir = length(lightDir);
+                        lightDir /= lenOfLightDir;
+                        half shadowDist = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex));
+                        half lightDist = (lenOfLightDir - 0.1) / _LightPos.w;
+                        currentCol *= lightDist <= shadowDist;
+                    }
+                    color += currentCol;
                 }
                  return color;
+            }
+            ENDCG
+        }
+
+        Pass
+        {
+            Cull off ZWrite off ZTest Always
+           Blend srcAlpha OneminusSrcAlpha
+            CGPROGRAM
+            #pragma vertex screenVert
+            #pragma fragment frag
+            #define MARCHSTEP 0.0078125
+
+            half4 frag(v2fScreen i) : SV_TARGET
+            {
+                float2 uv = i.uv;
+                float sceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
+                float2 projCoord = uv * 2 - 1;
+                float4 worldPosition = mul(_InvVP, float4(projCoord, sceneDepth, 1));
+                float4 worldNearPos = mul(_InvVP, float4(projCoord, 1, 1));
+                worldPosition /= worldPosition.w;
+                worldNearPos /= worldNearPos.w;
+                float linearDepth = LinearEyeDepth(sceneDepth);
+                uint2 xyVox = (uint2)(uv * float2(XRES, YRES));
+                uint curZ = -1;
+                uint2 ind;
+                float3 color = 0.2;
+                [loop]
+                for(float aa = MARCHSTEP; aa <= 1; aa += MARCHSTEP)
+                {
+                    float4 currentPos = lerp(float4(worldNearPos.xyz, _CameraClipDistance.x), float4(worldPosition.xyz, linearDepth), aa);//xyz: worldPos w: linearDepth
+                    float rate = saturate((currentPos.w - _CameraClipDistance.x) / _CameraClipDistance.y);
+                    uint newZ = (uint)(rate * ZRES);
+                    if(curZ != newZ){
+                        curZ = newZ;
+                        uint sb = GetIndex(uint3(xyVox, newZ), VOXELSIZE);
+                        ind = uint2(sb + 1, _PointLightIndexBuffer[sb]);
+                    }
+                    for(uint c = ind.x; c < ind.y; c++)
+                    {
+                        PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
+                        color += pt.lightColor * saturate(1 - distance(currentPos.xyz , pt.sphere.xyz) / pt.sphere.w);
+                    }
+                }
+                return float4(color, 1 - exp(-distance(worldPosition.xyz, worldNearPos.xyz) * 0.01));
             }
             ENDCG
         }

@@ -14,33 +14,10 @@ public unsafe class MPointLight : MonoBehaviour
     private int index;
     [System.NonSerialized]
     public Vector3 position;
-    public RenderTexture shadowmapTexture
-    {
-        get
-        {
-            if(m_shadowmapTexture == null)
-            {
-                m_shadowmapTexture = new RenderTexture(1024, 1024, 16, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
-                m_shadowmapTexture.dimension = UnityEngine.Rendering.TextureDimension.Cube;
-                m_shadowmapTexture.filterMode = FilterMode.Point;
-            }
-            return m_shadowmapTexture;
-        }
-    }
-    private RenderTexture m_shadowmapTexture;
-    /*
+    
     private void Update()
     {
         position = transform.position;
-    }*/
-
-    private void OnDestroy()
-    {
-        if(m_shadowmapTexture != null)
-        {
-            m_shadowmapTexture.Release();
-            Destroy(m_shadowmapTexture);
-        }
     }
 
     private void OnEnable()

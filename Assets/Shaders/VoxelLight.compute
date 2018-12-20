@@ -4,12 +4,6 @@
 #pragma kernel CBDR
 #include "CGINC/Plane.cginc"
 #include "CGINC/VoxelLight.cginc"
-struct PointLight{
-    float3 lightColor;
-    float lightIntensity;
-    float4 sphere;
-};
-
 float4x4 _InvVP;
 
 RWTexture3D<float4> _XYPlaneTexture;
@@ -54,7 +48,7 @@ void CBDR(uint3 id : SV_DISPATCHTHREADID)
     //TODO
     //
     uint clusterCount = 0;
-    uint sBufferIndex = GetIndex(id, VOXELSIZE) * (MAXLIGHTPERCLUSTER + 1) + 1;
+    uint sBufferIndex = GetIndex(id, VOXELSIZE) + 1;
     for(i = 0; i < _PointLightCount && clusterCount < MAXLIGHTPERCLUSTER; ++i){
         PointLight lit = _AllPointLight[i];
         if(SphereIntersect(lit.sphere, planes) > 0.5){
