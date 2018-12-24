@@ -149,6 +149,12 @@ new Vector3(1f, 0f, 0f)
         buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass);
     }//UseThis
 
+    public static void SetKeyword(this CommandBuffer buffer, string keyword, bool value)
+    {
+        if (value) buffer.EnableShaderKeyword(keyword);
+        else buffer.DisableShaderKeyword(keyword);
+    }
+
     public static void BlitStencil(this CommandBuffer buffer, RenderTargetIdentifier colorBuffer, RenderTargetIdentifier depthStencilBuffer, Material mat, int pass)
     {
         buffer.SetRenderTarget(colorBuffer, depthStencilBuffer);

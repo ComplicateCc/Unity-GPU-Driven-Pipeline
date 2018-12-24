@@ -15,7 +15,8 @@ public static partial class ShaderIDs
     public static readonly int _ShadowMapVPs = Shader.PropertyToID("_ShadowMapVPs");
     public static readonly int _ShadowCamPoses = Shader.PropertyToID("_ShadowCamPoses");
     public static readonly int _ShadowDisableDistance = Shader.PropertyToID("_ShadowDisableDistance");
-    public static readonly int _LightFinalColor = Shader.PropertyToID("_LightFinalColor");
+    public static readonly int _DirLightFinalColor = Shader.PropertyToID("_DirLightFinalColor");
+    public static readonly int _DirLightPos = Shader.PropertyToID("_DirLightPos");
     public static readonly int _LightPos = Shader.PropertyToID("_LightPos");
     public static readonly int _MainTex = Shader.PropertyToID("_MainTex");
     public static readonly int _SoftParam = Shader.PropertyToID("_SoftParam");
@@ -84,4 +85,7 @@ public static partial class ShaderIDs
     public static readonly int _PointLightTexture = Shader.PropertyToID("_PointLightTexture");
     public static readonly int _AllPointLight = Shader.PropertyToID("_AllPointLight");
     public static readonly int _PointLightIndexBuffer = Shader.PropertyToID("_PointLightIndexBuffer");
+    public static readonly int _RandomNumber = Shader.PropertyToID("_RandomNumber");
+    public static readonly int _RandomWeight = Shader.PropertyToID("_RandomWeight");
+    public static readonly int _RandomTex = Shader.PropertyToID("_RandomTex");
 }

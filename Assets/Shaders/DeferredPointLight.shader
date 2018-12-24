@@ -126,7 +126,7 @@ ENDCG
         }
         Pass
         {
-            Cull off ZWrite off ZTest Always
+            Cull off ZWrite Off ZTest Greater
            Blend one one
             CGPROGRAM
             #pragma vertex screenVert
@@ -156,9 +156,8 @@ ENDCG
                         float3 lightPosition = pt.sphere.xyz;
                         float3 lightDir = lightPosition - worldPosition.xyz;
                         half lenOfLightDir = length(lightDir);
-                        lightDir /= lenOfLightDir;
                         half shadowDist = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex));
-                        half lightDist = (lenOfLightDir - 0.1) / _LightPos.w;
+                        half lightDist = (lenOfLightDir - 0.1) / pt.sphere.w;
                         currentCol *= lightDist <= shadowDist;
                     }
                     color += currentCol;
@@ -168,49 +167,6 @@ ENDCG
             ENDCG
         }
 
-        Pass
-        {
-            Cull off ZWrite off ZTest Always
-           Blend srcAlpha OneminusSrcAlpha
-            CGPROGRAM
-            #pragma vertex screenVert
-            #pragma fragment frag
-            #define MARCHSTEP 0.0078125
-
-            half4 frag(v2fScreen i) : SV_TARGET
-            {
-                float2 uv = i.uv;
-                float sceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
-                float2 projCoord = uv * 2 - 1;
-                float4 worldPosition = mul(_InvVP, float4(projCoord, sceneDepth, 1));
-                float4 worldNearPos = mul(_InvVP, float4(projCoord, 1, 1));
-                worldPosition /= worldPosition.w;
-                worldNearPos /= worldNearPos.w;
-                float linearDepth = LinearEyeDepth(sceneDepth);
-                uint2 xyVox = (uint2)(uv * float2(XRES, YRES));
-                uint curZ = -1;
-                uint2 ind;
-                float3 color = 0.2;
-                [loop]
-                for(float aa = MARCHSTEP; aa <= 1; aa += MARCHSTEP)
-                {
-                    float4 currentPos = lerp(float4(worldNearPos.xyz, _CameraClipDistance.x), float4(worldPosition.xyz, linearDepth), aa);//xyz: worldPos w: linearDepth
-                    float rate = saturate((currentPos.w - _CameraClipDistance.x) / _CameraClipDistance.y);
-                    uint newZ = (uint)(rate * ZRES);
-                    if(curZ != newZ){
-                        curZ = newZ;
-                        uint sb = GetIndex(uint3(xyVox, newZ), VOXELSIZE);
-                        ind = uint2(sb + 1, _PointLightIndexBuffer[sb]);
-                    }
-                    for(uint c = ind.x; c < ind.y; c++)
-                    {
-                        PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
-                        color += pt.lightColor * saturate(1 - distance(currentPos.xyz , pt.sphere.xyz) / pt.sphere.w);
-                    }
-                }
-                return float4(color, 1 - exp(-distance(worldPosition.xyz, worldNearPos.xyz) * 0.01));
-            }
-            ENDCG
-        }
+       
     }
 }

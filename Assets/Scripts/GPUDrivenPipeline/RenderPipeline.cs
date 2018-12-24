@@ -56,6 +56,7 @@ namespace MPipeline
             allEvents = null;
             data.buffer.Dispose();
             sceneController.OnDestroy();
+            PipelineSharedData.DisposeAll();
         }
 
         public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTexture dest)

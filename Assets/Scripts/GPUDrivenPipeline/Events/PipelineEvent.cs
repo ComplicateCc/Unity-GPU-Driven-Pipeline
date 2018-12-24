@@ -13,6 +13,8 @@ namespace MPipeline
             if (x.layer < y.layer) return 1;
             return 0;
         };
+        [HideInInspector]
+        [SerializeField]
         private RenderPipeline.CameraRenderingPath m_renderPath = RenderPipeline.CameraRenderingPath.GPUDeferred;
         public RenderPipeline.CameraRenderingPath renderPath
         {

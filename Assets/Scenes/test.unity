@@ -359,7 +359,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 256
+  far clip plane: 512
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -968,8 +968,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useShadow: 1
-  range: 25
-  color: {r: 1, g: 0.68882436, b: 0, a: 1}
+  range: 10
+  color: {r: 0.41509432, g: 0.2864965, b: 0, a: 1}
   intensity: 100
   radius: 1
   length: 1
@@ -1015,6 +1015,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d237876de09eba543825aad2b835200b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_renderPath: 2
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2600
@@ -1032,6 +1033,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb72a6113add9284daffedf1d521dbfd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_renderPath: 2
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 1
   layer: 3000
@@ -1085,6 +1087,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06ff345ce266e1e4b970e9ac61d5591d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_renderPath: 2
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 0
@@ -1135,6 +1138,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b0cdfcc5aaaaa3459c2804970f26291, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_renderPath: 2
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2005
@@ -1151,10 +1155,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c316160fe9172fc46bb29f82936d9945, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_renderPath: 2
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 1
   layer: 2040
-  cubeArray: {fileID: 0}
 --- !u!114 &5974951340317444174
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1167,6 +1171,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e45de2939af79e64e8768f47b882be19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_renderPath: 2
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2000
@@ -1183,6 +1188,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d03bb786d57c3c4db2c26301cedb05b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_renderPath: 2
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2010

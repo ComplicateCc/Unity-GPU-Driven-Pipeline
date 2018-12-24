@@ -2,6 +2,7 @@
 #pragma kernel SetXYPlane
 #pragma kernel SetZPlane
 #pragma kernel CBDR
+#include "UnityCG.cginc"
 #include "CGINC/Plane.cginc"
 #include "CGINC/VoxelLight.cginc"
 float4x4 _InvVP;
@@ -18,10 +19,15 @@ void SetXYPlane (uint2 id : SV_DispatchThreadID)
     float2 rightTopUV =  leftBotUV + (1.0 / float2(XRES, YRES));
     leftBotUV = leftBotUV * 2 - 1;
     rightTopUV = rightTopUV* 2 - 1;
-    _XYPlaneTexture[uint3(id, 0)] = GetPlane(mul(_InvVP, float4(-1, rightTopUV.y, 0, 1)), mul(_InvVP, float4(1,rightTopUV.y, 0, 1)), mul(_InvVP, float4(0, rightTopUV.y, 0.5, 1)));                  //TOP
-    _XYPlaneTexture[uint3(id, 1)] = GetPlane(mul(_InvVP, float4(1, leftBotUV.y, 0, 1)),  mul(_InvVP, float4(-1, leftBotUV.y, 0, 1)), mul(_InvVP, float4(0, leftBotUV.y, 0.5, 1)));                  //DOWN
-    _XYPlaneTexture[uint3(id, 2)] = GetPlane(mul(_InvVP, float4(leftBotUV.x, -1, 0, 1)), mul(_InvVP, float4(leftBotUV.x, 1, 0, 1)), mul(_InvVP, float4(leftBotUV.x, 0, 0.5, 1)));        //LEFT
-    _XYPlaneTexture[uint3(id, 3)] = GetPlane(mul(_InvVP, float4(rightTopUV.x, 1, 0, 1)), mul(_InvVP, float4(rightTopUV.x, -1, 0, 1)), mul(_InvVP, float4(rightTopUV.x, 0, 0.5, 1)));            //RIGHT
+    #if UNITY_REVERSED_Z
+    const float farZ = 0;
+    #else
+    const float farZ = 1;
+    #endif
+    _XYPlaneTexture[uint3(id, 0)] = GetPlane(mul(_InvVP, float4(-1, rightTopUV.y, farZ, 1)), mul(_InvVP, float4(1,rightTopUV.y, farZ, 1)), mul(_InvVP, float4(0, rightTopUV.y, 0.5, 1)));                  //TOP
+    _XYPlaneTexture[uint3(id, 1)] = GetPlane(mul(_InvVP, float4(1, leftBotUV.y, farZ, 1)),  mul(_InvVP, float4(-1, leftBotUV.y, farZ, 1)), mul(_InvVP, float4(0, leftBotUV.y, 0.5, 1)));                  //DOWN
+    _XYPlaneTexture[uint3(id, 2)] = GetPlane(mul(_InvVP, float4(leftBotUV.x, -1, farZ, 1)), mul(_InvVP, float4(leftBotUV.x, 1, farZ, 1)), mul(_InvVP, float4(leftBotUV.x, 0, 0.5, 1)));        //LEFT
+    _XYPlaneTexture[uint3(id, 3)] = GetPlane(mul(_InvVP, float4(rightTopUV.x, 1, farZ, 1)), mul(_InvVP, float4(rightTopUV.x, -1, farZ, 1)), mul(_InvVP, float4(rightTopUV.x, 0, 0.5, 1)));            //RIGHT
 }
 
 [numthreads(ZRES, 1, 1)]

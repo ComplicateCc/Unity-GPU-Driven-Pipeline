@@ -109,12 +109,13 @@ static const half2 DirPoissonDisks[64] =
 			float4x4 _InvVP;
 			float4x4 _ShadowMapVPs[4];
 			float4 _ShadowDisableDistance;
+			float3 _DirLightPos;
 			Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
 			Texture2D<half4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
 			Texture2D<half4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
 			Texture2D<half4> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;
 			Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
-			float3 _LightFinalColor;
+			float3 _DirLightFinalColor;
 			#define RANDOM(seed) cos(sin(seed * half2(54.135764, 77.468761) + half2(631.543147, 57.4687)) * half2(657.387478, 86.1653) + half2(65.15686, 15.3574563))
 			float GetShadow(inout float4 worldPos, float depth, half2 screenUV)
 			{
@@ -147,28 +148,6 @@ static const half2 DirPoissonDisks[64] =
 				atten = lerp(1, atten, fadeDistance);
 				return atten;
 			}
-
-			float GetHardShadow(float3 worldPos, float depth)
-			{
-				float eyeDistance = LinearEyeDepth(depth);
-				float4 eyeRange = eyeDistance < _ShadowDisableDistance;
-				eyeRange.yzw -= eyeRange.xyz;
-				float zAxisUV = dot(eyeRange, float4(0, 1, 2, 3));
-				float4x4 vpMat = _ShadowMapVPs[zAxisUV];
-				float4 shadowPos = mul(vpMat, float4(worldPos, 1));
-				half2 shadowUV = shadowPos.xy / shadowPos.w;
-				shadowUV = shadowUV * 0.5 + 0.5;
-				#if UNITY_REVERSED_Z
-				float dist = 1 - shadowPos.z;
-				#else
-				float dist = shadowPos.z;
-				#endif
-				float atten = dist < _DirShadowMap.Sample(sampler_DirShadowMap, half3(shadowUV, zAxisUV));
-				float fadeDistance = saturate( (_ShadowDisableDistance.w - eyeDistance) / (_ShadowDisableDistance.w * 0.05));
-				atten = lerp(1, atten, fadeDistance);
-				return atten;
-			}
-
 ENDCG
 
 		Pass
@@ -195,8 +174,8 @@ ENDCG
     			ind.diffuse = 0;
     			ind.specular = 0;
 				UnityLight light;
-				light.dir = _LightPos.xyz;
-				light.color = _LightFinalColor * atten;
+				light.dir = _DirLightPos;
+				light.color = _DirLightFinalColor * atten;
 				return UNITY_BRDF_PBS (data.diffuseColor, data.specularColor, oneMinusReflectivity, data.smoothness, data.normalWorld, -eyeVec, light, ind);
 			}
 			ENDCG
@@ -226,37 +205,9 @@ ENDCG
     			ind.diffuse = 0;
     			ind.specular = 0;
 				UnityLight light;
-				light.dir = _LightPos.xyz;
-				light.color = _LightFinalColor;
+				light.dir = _DirLightPos;
+				light.color = _DirLightFinalColor;
 				return UNITY_BRDF_PBS (data.diffuseColor, data.specularColor, oneMinusReflectivity, data.smoothness, data.normalWorld, -eyeVec, light, ind);
-			}
-			ENDCG
-		}
-
-		Pass
-		{
-		Cull Off ZWrite Off ZTest Always
-			CGPROGRAM
-			#pragma vertex vert
-			#pragma fragment frag
-			#define UNITY_PASS_DEFERRED
-			float4 frag (v2f i) : SV_Target
-			{
-    			half4 gbuffer2 = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv);
-				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
-				float4 wpos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
-				wpos /= wpos.w;
-				const float step = 1.0 / 512.0;
-				float3 viewDir = wpos.xyz - _WorldSpaceCameraPos;
-				float len = length(viewDir);
-				float value = 0;
-				for(float i = 0; i < 1; i += step)
-				{
-					float3 samplePos = lerp(_WorldSpaceCameraPos, wpos.xyz, i);
-					value += GetHardShadow(samplePos, depth);
-				}
-				value *= step * 0.1 * len;
-				return value;
 			}
 			ENDCG
 		}

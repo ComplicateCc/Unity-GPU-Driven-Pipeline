@@ -228,16 +228,6 @@ public unsafe static class PipelineFunctions
         invShadowVP = shadowVP.inverse;
     }
     /// <summary>
-    /// Initialize Per frame shadowmap buffers for Shadowmap shader
-    /// </summary>
-
-    public static void UpdateShadowMapState(ref ShadowMapComponent comp, ref ShadowmapSettings settings, CommandBuffer buffer)
-    {
-        buffer.SetGlobalVector(ShaderIDs._NormalBiases, settings.normalBias);   //Only Depth
-        buffer.SetGlobalVector(ShaderIDs._ShadowDisableDistance, new Vector4(settings.firstLevelDistance, settings.secondLevelDistance, settings.thirdLevelDistance, settings.farestDistance));//Only Mask
-        buffer.SetGlobalVector(ShaderIDs._SoftParam, settings.cascadeSoftValue / settings.resolution);
-    }
-    /// <summary>
     /// Initialize per cascade shadowmap buffers
     /// </summary>
     public static void UpdateCascadeState(ref ShadowMapComponent comp, CommandBuffer buffer, float bias, int pass)

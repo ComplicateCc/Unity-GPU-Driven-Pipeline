@@ -14,18 +14,22 @@ namespace MPipeline
     }
     public unsafe class CBDRSharedData : PipelineSharedData
     {
-        private ComputeShader cbdrShader;
-        private RenderTexture xyPlaneTexture;
-        private RenderTexture zPlaneTexture;
-        private ComputeBuffer allPointLightBuffer;
-        private ComputeBuffer pointlightIndexBuffer;
+        public ComputeShader cbdrShader;
+        public RenderTexture xyPlaneTexture;
+        public RenderTexture zPlaneTexture;
+        public ComputeBuffer allPointLightBuffer;
+        public ComputeBuffer pointlightIndexBuffer;
+        public Texture2D randomTex { get; private set; }
+        public const int XRES = 32;
+        public const int YRES = 16;
+        public const int ZRES = 512;
+        public const int MAXLIGHTPERCLUSTER = 8;
+        public bool directLightEnabled = false;
+        public bool directLightShadowEnable = false;
+        public bool pointLightEnabled = false;
+        public const int pointLightInitCapacity = 50;
 
-        const int XRES = 32;
-        const int YRES = 16;
-        const int ZRES = 256;
-        const int MAXLIGHTPERCLUSTER = 8;
-
-        public CBDRSharedData(PipelineResources res, int pointLightInitCapacity)
+        public CBDRSharedData(PipelineResources res)
         {
             cbdrShader = res.cbdrShader;
             RenderTextureDescriptor desc = new RenderTextureDescriptor
@@ -57,46 +61,32 @@ namespace MPipeline
             zPlaneTexture.Create();
             pointlightIndexBuffer = new ComputeBuffer(XRES * YRES * ZRES * (MAXLIGHTPERCLUSTER + 1), sizeof(int));
             allPointLightBuffer = new ComputeBuffer(pointLightInitCapacity, sizeof(PointLightStruct));
+            randomTex = new Texture2D(1024, 2, TextureFormat.RGBAFloat, false, true);
+            Color[] colors = new Color[2048];
+            for(int i = 0; i < 2048; ++i)
+            {
+                colors[i] = new Color(Random.value, Random.value, Random.value, Random.value);
+            }
+            randomTex.SetPixels(colors);
+            randomTex.Apply();
         }
-
-        private void ResizeLightBuffer(int newCapacity)
+        public static void ResizeBuffer(ComputeBuffer buffer, int newCapacity)
         {
-            if (newCapacity <= allPointLightBuffer.count) return;
-            allPointLightBuffer.Dispose();
-            allPointLightBuffer = new ComputeBuffer(newCapacity, sizeof(PointLightStruct));
+            if (newCapacity <= buffer.count) return;
+            buffer.Dispose();
+            buffer = new ComputeBuffer(newCapacity, buffer.stride);
         }
-        const int SetXYPlaneKernel = 0;
-        const int SetZPlaneKernel = 1;
-        const int CBDRKernel = 2;
+        public const int SetXYPlaneKernel = 0;
+        public const int SetZPlaneKernel = 1;
+        public const int PointLightKernel = 2;
 
-        public void SetDatas(Camera cam, NativeArray<PointLightStruct> arr, int length, CommandBuffer buffer)
-        {
-            ResizeLightBuffer(length);
-            allPointLightBuffer.SetData(arr, 0, 0, length);
-            buffer.SetComputeTextureParam(cbdrShader, SetXYPlaneKernel, ShaderIDs._XYPlaneTexture, xyPlaneTexture);
-            buffer.SetComputeTextureParam(cbdrShader, SetZPlaneKernel, ShaderIDs._ZPlaneTexture, zPlaneTexture);
-            buffer.SetComputeTextureParam(cbdrShader, CBDRKernel, ShaderIDs._XYPlaneTexture, xyPlaneTexture);
-            buffer.SetComputeTextureParam(cbdrShader, CBDRKernel, ShaderIDs._ZPlaneTexture, zPlaneTexture);
-            buffer.SetComputeBufferParam(cbdrShader, CBDRKernel, ShaderIDs._AllPointLight, allPointLightBuffer);
-            buffer.SetComputeBufferParam(cbdrShader, CBDRKernel, ShaderIDs._PointLightIndexBuffer, pointlightIndexBuffer);
-            buffer.SetGlobalBuffer(ShaderIDs._AllPointLight, allPointLightBuffer);
-            buffer.SetGlobalBuffer(ShaderIDs._PointLightIndexBuffer, pointlightIndexBuffer);
-            Transform camTrans = cam.transform;
-            buffer.SetGlobalVector(ShaderIDs._CameraFarPos, camTrans.position + cam.farClipPlane * camTrans.forward);
-            buffer.SetGlobalVector(ShaderIDs._CameraNearPos, camTrans.position + cam.nearClipPlane * camTrans.forward);
-            buffer.SetGlobalVector(ShaderIDs._CameraClipDistance, new Vector4(cam.nearClipPlane, cam.farClipPlane - cam.nearClipPlane));            
-            buffer.SetGlobalVector(ShaderIDs._CameraForward, camTrans.forward);
-            buffer.SetGlobalInt(ShaderIDs._PointLightCount, length);
-            buffer.DispatchCompute(cbdrShader, SetXYPlaneKernel, 1, 1, 1);
-            buffer.DispatchCompute(cbdrShader, SetZPlaneKernel, 1, 1, 1);
-            buffer.DispatchCompute(cbdrShader, CBDRKernel, 1, 1, ZRES);
-        }
-        public void Dispose()
+        public override void Dispose()
         {
             xyPlaneTexture.Release();
             zPlaneTexture.Release();
             pointlightIndexBuffer.Dispose();
             allPointLightBuffer.Dispose();
+            Object.Destroy(randomTex);
         }
     }
 }

@@ -41,7 +41,7 @@ namespace MPipeline
             sphereBuffer = new ComputeBuffer(allVertices.Length, sizeof(Vector3));
             sphereBuffer.SetData(allVertices);
             allVertices.Dispose();
-            cbdr = PipelineSharedData.Get(renderPath, resources, (res) => new CBDRSharedData(res, 1024));
+            cbdr = PipelineSharedData.Get(renderPath, resources, (res) => new CBDRSharedData(res));
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
@@ -55,26 +55,21 @@ namespace MPipeline
             lightCount = 0;
             cullJobHandler = cullJob.Schedule(MPointLight.allPointLights.Count, 32);
         }
-        public RenderTexture cubeArray;
+        static readonly int _CubeShadowMapArray = Shader.PropertyToID("_CubeShadowMapArray");
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             PipelineBaseBuffer baseBuffer;
-            if (cubeArray != null)
-            {
-                RenderTexture.ReleaseTemporary(cubeArray);
-                cubeArray = null;
-            }
             if (!SceneController.GetBaseBuffer(out baseBuffer)) return;
             CommandBuffer buffer = data.buffer;
             cullJobHandler.Complete();
             UnsafeUtility.ReleaseGCObject(gcHandler);
             pointLightMaterial.SetBuffer(ShaderIDs.verticesBuffer, sphereBuffer);
-            //Un Shadow Point light
+            VoxelLightCommonData(buffer, cam.cam);
             if (lightCount > 0)
             {
-                if(shadowList.Length > 0)
+                if (shadowList.Length > 0)
                 {
-                   cubeArray = RenderTexture.GetTemporary(new RenderTextureDescriptor
+                    RenderTexture cubeArray = RenderTexture.GetTemporary(new RenderTextureDescriptor
                     {
                         autoGenerateMips = false,
                         bindMS = false,
@@ -92,6 +87,7 @@ namespace MPipeline
                         useMipMap = false,
                         vrUsage = VRTextureUsage.None
                     });
+                    cam.temporalRT.Add(cubeArray);  //Let Pipeline dispose this
                     NativeArray<Vector4> positions = new NativeArray<Vector4>(shadowList.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                     for (int i = 0; i < shadowList.Length; ++i)
                     {
@@ -115,34 +111,45 @@ namespace MPipeline
                         MPointLight light = MPointLight.allPointLights[shadowList[i]];
                         SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i);
                     }
-
+                    buffer.SetGlobalTexture(_CubeShadowMapArray, cubeArray);
                 }
-                buffer.SetGlobalTexture("_CubeShadowMapArray", cubeArray);
-                cbdr.SetDatas(cam.cam, indicesArray, lightCount, buffer);
+                VoxelPointLight(indicesArray, lightCount, buffer);
                 buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);
-            }
-            //Shadow Point Light
-            /*
-            if (shadowCount > 0)
-            {
-                
-                
-                
-                for (int i = 0; i < shadowCount; i++)
-                {
-                    MPointLight light = MPointLight.allPointLights[cullJob.indices[i]];
-                    
-                    buffer.SetRenderTarget(cam.targets.renderTargetIdentifier, cam.targets.depthIdentifier);
-                    buffer.SetGlobalVector(ShaderIDs._LightColor, light.color);
-                    buffer.SetGlobalVector(ShaderIDs._LightPos, positions[i]);
-                    buffer.SetGlobalFloat(ShaderIDs._LightIntensity, light.intensity);
-                    buffer.SetGlobalTexture(ShaderIDs._CubeShadowMap, light.shadowmapTexture);
-                    buffer.DrawProcedural(Matrix4x4.identity, pointLightMaterial, 1, MeshTopology.Triangles, sphereBuffer.count);
-                }
-                positions.Dispose();
-            }*/
+                cbdr.pointLightEnabled = true;
+            }else
+                cbdr.pointLightEnabled = false;
             indicesArray.Dispose();
             data.ExecuteCommandBuffer();
+        }
+
+        private void VoxelLightCommonData(CommandBuffer buffer, Camera cam)
+        {
+            ComputeShader cbdrShader = cbdr.cbdrShader;
+            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.SetXYPlaneKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
+            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.SetZPlaneKernel, ShaderIDs._ZPlaneTexture, cbdr.zPlaneTexture);
+            Transform camTrans = cam.transform;
+            buffer.SetGlobalVector(ShaderIDs._CameraFarPos, camTrans.position + cam.farClipPlane * camTrans.forward);
+            buffer.SetGlobalVector(ShaderIDs._CameraNearPos, camTrans.position + cam.nearClipPlane * camTrans.forward);
+            buffer.SetGlobalVector(ShaderIDs._CameraClipDistance, new Vector4(cam.nearClipPlane, cam.farClipPlane - cam.nearClipPlane));
+            buffer.SetGlobalVector(ShaderIDs._CameraForward, camTrans.forward);
+            buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetXYPlaneKernel, 1, 1, 1);
+            buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetZPlaneKernel, 1, 1, 1);
+        }
+
+        public void VoxelPointLight(NativeArray<PointLightStruct> arr, int length, CommandBuffer buffer)
+        {
+            CBDRSharedData.ResizeBuffer(cbdr.allPointLightBuffer, length);
+            ComputeShader cbdrShader = cbdr.cbdrShader;
+            const int PointLightKernel = CBDRSharedData.PointLightKernel;
+            cbdr.allPointLightBuffer.SetData(arr, 0, 0, length);
+            buffer.SetGlobalInt(ShaderIDs._PointLightCount, length);
+            buffer.SetComputeTextureParam(cbdrShader, PointLightKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
+            buffer.SetComputeTextureParam(cbdrShader, PointLightKernel, ShaderIDs._ZPlaneTexture, cbdr.zPlaneTexture);
+            buffer.SetComputeBufferParam(cbdrShader, PointLightKernel, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
+            buffer.SetComputeBufferParam(cbdrShader, PointLightKernel, ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
+            buffer.SetGlobalBuffer(ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
+            buffer.SetGlobalBuffer(ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
+            buffer.DispatchCompute(cbdrShader, PointLightKernel, 1, 1, CBDRSharedData.ZRES);
         }
 
         protected override void Dispose()
@@ -152,8 +159,6 @@ namespace MPipeline
             Destroy(cubeDepthMaterial);
             sphereBuffer.Dispose();
             CubeFunction.Dispose(ref cubeBuffer);
-            cbdr.Dispose();
-            PipelineSharedData.Remove<CBDRSharedData>(renderPath);
         }
     }
 
@@ -170,7 +175,7 @@ namespace MPipeline
         {
             MPointLight cube = MPointLight.allPointLights[index];
             if (PipelineFunctions.FrustumCulling(cube.position, cube.range, planes))
-            { 
+            {
                 int last = Interlocked.Increment(ref *lightCount) - 1;
                 PointLightStruct* crt = indices + last;
                 crt->lightColor = new Vector3(cube.color.r, cube.color.g, cube.color.b);

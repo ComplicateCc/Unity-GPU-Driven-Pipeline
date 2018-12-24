@@ -4,57 +4,66 @@ using UnityEngine;
 using System;
 namespace MPipeline
 {
-    public class PipelineSharedData
+    public abstract class PipelineSharedData
     {
-        private struct EventType
+        public static void DisposeAll()
         {
-            public RenderPipeline.CameraRenderingPath path;
-            public Type eventType;
-            public override int GetHashCode()
+            foreach(var i in allEvents)
             {
-                return eventType.GetHashCode() ^ path.GetHashCode();
+                i.value.Dispose();
             }
+            allEvents = null;
         }
-        private static Dictionary<EventType, PipelineSharedData> allEvents = new Dictionary<EventType, PipelineSharedData>();
 
-        public static void Add<T>(RenderPipeline.CameraRenderingPath path, T evt) where T : PipelineSharedData
+        private static List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>> allEvents = new List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>>();
+        public static bool Get<T>(RenderPipeline.CameraRenderingPath path, out T value) where T: PipelineSharedData
         {
-            allEvents.Add(new EventType { path = path, eventType = typeof(T) }, evt);
+            foreach(var i in allEvents)
+            {
+                if(i.key == path && i.value.GetType() == typeof(T))
+                {
+                    value = i.value as T;
+                    return true;
+                }
+            }
+            value = null;
+            return false;
         }
-
-        public static void Remove<T>(RenderPipeline.CameraRenderingPath path)
-        {
-            allEvents.Remove(new EventType { path = path, eventType = typeof(T) });
-        }
-
         public static T Get<T>(RenderPipeline.CameraRenderingPath path, Func<T> getFunc) where T : PipelineSharedData
         {
-            PipelineSharedData evt;
-            if(allEvents.TryGetValue(new EventType { path = path, eventType = typeof(T) }, out evt))
+            foreach (var i in allEvents)
             {
-                return (T)evt;
+                if (i.key == path && i.value.GetType() == typeof(T))
+                {
+                    return i.value as T;
+                }
             }
-            else
+            T val = getFunc();
+            allEvents.Add(new Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>
             {
-                evt = getFunc();
-                allEvents.Add(new EventType { path = path, eventType = typeof(T) }, evt);
-                return (T)evt;
-            }
+                key = path,
+                value = val
+            });
+            return val;
         }
         public static T Get<T, Arg>(RenderPipeline.CameraRenderingPath path, Arg arg, Func<Arg, T> getFunc) where T : PipelineSharedData
         {
-            PipelineSharedData evt;
-            if (allEvents.TryGetValue(new EventType { path = path, eventType = typeof(T) }, out evt))
+            foreach (var i in allEvents)
             {
-                return (T)evt;
+                if (i.key == path && i.value.GetType() == typeof(T))
+                {
+                    return i.value as T;
+                }
             }
-            else
+            T val = getFunc(arg);
+            allEvents.Add(new Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>
             {
-                evt = getFunc(arg);
-                allEvents.Add(new EventType { path = path, eventType = typeof(T) }, evt);
-                return (T)evt;
-            }
+                key = path,
+                value = val
+            });
+            return val;
         }
+        public abstract void Dispose();
     }
 }
 

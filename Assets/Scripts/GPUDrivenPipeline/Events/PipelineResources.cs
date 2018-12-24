@@ -22,6 +22,7 @@ namespace MPipeline
         public Shader pointLightShader;
         public Shader cubeDepthShader;
         public Shader clusterRenderShader;
+        public Shader volumetricShader;
         public Mesh occluderMesh;
         public Mesh sphereMesh;
     }
