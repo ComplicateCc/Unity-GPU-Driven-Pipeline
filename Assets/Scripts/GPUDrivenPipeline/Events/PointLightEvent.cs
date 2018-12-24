@@ -59,7 +59,11 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             PipelineBaseBuffer baseBuffer;
-            if (!SceneController.GetBaseBuffer(out baseBuffer)) return;
+            if (!SceneController.GetBaseBuffer(out baseBuffer))
+            {
+                cbdr.pointLightEnabled = false;
+                return;
+            }
             CommandBuffer buffer = data.buffer;
             cullJobHandler.Complete();
             UnsafeUtility.ReleaseGCObject(gcHandler);
@@ -69,7 +73,7 @@ namespace MPipeline
             {
                 if (shadowList.Length > 0)
                 {
-                    RenderTexture cubeArray = RenderTexture.GetTemporary(new RenderTextureDescriptor
+                    buffer.GetTemporaryRT(_CubeShadowMapArray, new RenderTextureDescriptor
                     {
                         autoGenerateMips = false,
                         bindMS = false,
@@ -87,7 +91,6 @@ namespace MPipeline
                         useMipMap = false,
                         vrUsage = VRTextureUsage.None
                     });
-                    cam.temporalRT.Add(cubeArray);  //Let Pipeline dispose this
                     NativeArray<Vector4> positions = new NativeArray<Vector4>(shadowList.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                     for (int i = 0; i < shadowList.Length; ++i)
                     {
@@ -105,13 +108,12 @@ namespace MPipeline
                         frustumPlanes = null,
                         isOrtho = false
                     };
-                    cubeBuffer.renderTarget = cubeArray;
+                    cubeBuffer.renderTarget = _CubeShadowMapArray;
                     for (int i = 0; i < shadowList.Length; ++i)
                     {
                         MPointLight light = MPointLight.allPointLights[shadowList[i]];
                         SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i);
                     }
-                    buffer.SetGlobalTexture(_CubeShadowMapArray, cubeArray);
                 }
                 VoxelPointLight(indicesArray, lightCount, buffer);
                 buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);

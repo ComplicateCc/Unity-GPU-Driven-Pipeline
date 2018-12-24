@@ -15,7 +15,7 @@ namespace MPipeline
             allEvents = null;
         }
 
-        private static List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>> allEvents = new List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>>();
+        private static List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>> allEvents = new List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>>(10);
         public static bool Get<T>(RenderPipeline.CameraRenderingPath path, out T value) where T: PipelineSharedData
         {
             foreach(var i in allEvents)

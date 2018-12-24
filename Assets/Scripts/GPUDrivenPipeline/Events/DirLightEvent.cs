@@ -30,14 +30,14 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            if (SunLight.current == null)
+            PipelineBaseBuffer baseBuffer;
+            if (SunLight.current == null || !SunLight.current.enabled || !SceneController.GetBaseBuffer(out baseBuffer))
             {
                 cbdr.directLightEnabled = false;
                 return;
             }
             cbdr.directLightEnabled = true;
-            PipelineBaseBuffer baseBuffer;
-            if (!SceneController.GetBaseBuffer(out baseBuffer)) return;
+            cbdr.directLightShadowEnable = SunLight.current.enableShadow;
             CommandBuffer buffer = data.buffer;
             int pass;
             if (SunLight.current.enableShadow)
@@ -56,12 +56,10 @@ namespace MPipeline
                 SceneController.current.DrawDirectionalShadow(cam.cam, ref opts, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP);
                 buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
                 buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.shadMap.shadowmapTexture);
-                pass = 0;
-                cbdr.directLightShadowEnable = true;
+                pass = 0; 
             }
             else
             {
-                cbdr.directLightShadowEnable = false;
                 pass = 1;
             }
             buffer.SetGlobalVector(ShaderIDs._DirLightFinalColor, SunLight.shadMap.light.color * SunLight.shadMap.light.intensity);

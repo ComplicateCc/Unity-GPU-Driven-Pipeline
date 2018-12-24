@@ -21,9 +21,8 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            if (!cbdr.directLightEnabled && !cbdr.pointLightEnabled) return;
             CommandBuffer buffer = data.buffer;
-
-
             buffer.SetKeyword("DIRLIGHT", cbdr.directLightEnabled);
             buffer.SetKeyword("DIRLIGHTSHADOW", cbdr.directLightShadowEnable);
             buffer.SetKeyword("POINTLIGHT", cbdr.pointLightEnabled);
@@ -32,16 +31,21 @@ namespace MPipeline
             buffer.SetGlobalVector(ShaderIDs._RandomWeight, new Vector4(Random.value, Random.value, Random.value, Random.value));
             buffer.SetGlobalTexture(ShaderIDs._RandomTex, cbdr.randomTex);
             //DownSample
-            buffer.GetTemporaryRT(_TempMap, cam.cam.pixelWidth / 2, cam.cam.pixelHeight / 2, 0, FilterMode.Point, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+            buffer.GetTemporaryRT(_TempMap, cam.cam.pixelWidth / 2, cam.cam.pixelHeight / 2, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
             buffer.SetGlobalTexture(_OriginMap, cam.targets.depthTexture);
             buffer.BlitSRT(_TempMap, volumeMat, 1);
             buffer.SetGlobalTexture(_OriginMap, _TempMap);
-            buffer.GetTemporaryRT(_DownSampledDepth, cam.cam.pixelWidth / 4, cam.cam.pixelHeight / 4, 0, FilterMode.Point, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+            buffer.GetTemporaryRT(_DownSampledDepth, cam.cam.pixelWidth / 4, cam.cam.pixelHeight / 4, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
             buffer.BlitSRT(_DownSampledDepth, volumeMat, 1);
             buffer.ReleaseTemporaryRT(_TempMap);
             //Volumetric Light
             buffer.GetTemporaryRT(_VolumeTex, cam.cam.pixelWidth / 4, cam.cam.pixelHeight / 4, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             buffer.BlitSRT(_VolumeTex, volumeMat, 0);
+            buffer.GetTemporaryRT(_TempMap, cam.cam.pixelWidth / 4, cam.cam.pixelHeight / 4, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            buffer.BlitSRT(_VolumeTex, _TempMap, volumeMat, 3);
+            buffer.BlitSRT(_TempMap, _VolumeTex, volumeMat, 4);
+            buffer.ReleaseTemporaryRT(_TempMap);
+
             buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 2);
             //Dispose
             buffer.ReleaseTemporaryRT(_DownSampledDepth);
