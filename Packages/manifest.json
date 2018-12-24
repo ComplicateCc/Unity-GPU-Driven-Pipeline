@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "com.unity.addressables": "0.4.8-preview",
     "com.unity.ads": "2.3.1",
     "com.unity.analytics": "3.2.2",
     "com.unity.burst": "0.2.4-preview.37",
