@@ -28,7 +28,7 @@ StructuredBuffer<float3> verticesBuffer;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<uint> _PointLightIndexBuffer;
 Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
-Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;
+Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;   float4 _DownSampledDepth_TexelSize;
 
             //-----------------------------------------------------------------------------------------
 		// GaussianWeight
@@ -37,6 +37,7 @@ Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;
         #define BLUR_DEPTH_FACTOR 0.5
 		#define PI 3.14159265359f
 		#define GaussianWeight(offset, deviation2) (deviation2.y * exp(-(offset * offset) / (deviation2.x)))
+        #define MINIMUMBLUR 0.5
 		//-----------------------------------------------------------------------------------------
 		// BilateralBlur
 		//-----------------------------------------------------------------------------------------
@@ -64,12 +65,12 @@ Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;
                 half sampleColor = _MainTex.Sample(sampler_MainTex, uv, offset);
                 half sampleDepth = (LinearEyeDepth(depth.Sample(depthSampler, uv, offset)));
 
-				half depthDiff = -min(centerDepth - sampleDepth, 0);
+				half depthDiff = abs(centerDepth - sampleDepth);
                 half dFactor = depthDiff * BLUR_DEPTH_FACTOR;	//Should be 0.5
 				half w = exp(-(dFactor * dFactor));
 
 				// gaussian weight is computed from constants only -> will be computed in compile time
-				weight = GaussianWeight(i, deviation) * w;
+				weight = GaussianWeight(i, deviation) * max(w, MINIMUMBLUR);
 
 				color += weight * sampleColor;
 				weightSum += weight;
@@ -81,12 +82,12 @@ Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;
                 half3 sampleColor = _MainTex.Sample(sampler_MainTex, uv, offset);
                 half sampleDepth = (LinearEyeDepth(depth.Sample(depthSampler, uv, offset)));
 
-				half depthDiff = -min(centerDepth - sampleDepth, 0);
+				half depthDiff = abs(centerDepth - sampleDepth);
                 half dFactor = depthDiff * BLUR_DEPTH_FACTOR;	//Should be 0.5
 				half w = exp(-(dFactor * dFactor));
 				
 				// gaussian weight is computed from constants only -> will be computed in compile time
-				weight = GaussianWeight(i, deviation) * w;
+				weight = GaussianWeight(i, deviation) * max(w, MINIMUMBLUR);
 
 				color += weight * sampleColor;
 				weightSum += weight;
@@ -143,7 +144,11 @@ ENDCG
             
             half4 frag(v2fScreen i) : SV_TARGET
             {
+                float2 randomSeed = getSeed(i.uv);
                 float2 uv = i.uv;
+                //TODO
+                //Transform magic number
+                uv += (float2(rand(float3(uv, -1)), rand(float3(uv, -2))) - 0.5) * _DownSampledDepth_TexelSize.xy;
                 float sceneDepth = _DownSampledDepth.Sample(sampler_DownSampledDepth, uv);
                 float2 projCoord = uv * 2 - 1;
                 float4 worldPosition = mul(_InvVP, float4(projCoord, sceneDepth, 1));
@@ -159,11 +164,10 @@ ENDCG
                 float3 targetWorldPos = worldNearPos.xyz + viewDir / viewLen * min(_MaxDistance, viewLen);
                 float4 targetProjPos = mul(UNITY_MATRIX_VP, float4(targetWorldPos, 1));
                 float linearDepth = LinearEyeDepth(targetProjPos.z / targetProjPos.w);
-                uint2 xyVox = (uint2)(uv * float2(XRES, YRES));
+                uint2 xyVox = (uint2)(i.uv * float2(XRES, YRES));
                 uint curZ = -1;
                 uint2 ind;
-                float3 color = 0;
-                float2 randomSeed = getSeed(i.uv);
+                float3 color = 0;//TODO: Ambient Light
                 [loop]
                 for(float aa = MARCHSTEP; aa < 1; aa += MARCHSTEP)
                 {
@@ -219,17 +223,18 @@ ENDCG
             float frag(v2fScreen i) : SV_TARGET
             {
                 float2 offset = _OriginMap_TexelSize.xy * 0.5;
-                float4 values = float4(Samp(i.uv + offset), Samp(i.uv + offset * float2(1, -1)), Samp(i.uv + offset * float2(-1, 1)), Samp(i.uv + offset * -1));
+                float4 depth = float4(Samp(i.uv + offset), Samp(i.uv + offset * float2(1, -1)), Samp(i.uv + offset * float2(-1, 1)), Samp(i.uv + offset * -1));
                 //return dot(values, 0.25);
-                
-                #if UNITY_REVERSED_Z
-                float nearPoint = min(values.x, values.y);
-                nearPoint = min(nearPoint, values.z);
-                return min(nearPoint, values.w);
+               float minDepth = min(min(depth.x, depth.y), min(depth.z, depth.w));
+			float maxDepth = max(max(depth.x, depth.y), max(depth.z, depth.w));
+
+			// chessboard pattern
+			int2 position = i.vertex.xy % 2;
+			int index = position.x + position.y;
+            #if UNITY_REVERSED_Z
+                return index == 1 ? maxDepth : minDepth;
                 #else
-                float nearPoint = max(values.x, values.y);
-                nearPoint = max(nearPoint, values.z);
-                return max(nearPoint, values.w);
+			    return index == 1 ? minDepth : maxDepth;
                 #endif
             }
             ENDCG
