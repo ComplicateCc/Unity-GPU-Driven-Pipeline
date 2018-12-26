@@ -33,7 +33,7 @@ namespace MPipeline
             //DownSample
             buffer.GetTemporaryRT(_TempMap, cam.cam.pixelWidth / 2, cam.cam.pixelHeight / 2, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
             buffer.SetGlobalTexture(_OriginMap, cam.targets.depthTexture);
-            buffer.BlitSRT(_TempMap, volumeMat, 1);
+            buffer.BlitSRT(_TempMap, volumeMat, 5);
             buffer.SetGlobalTexture(_OriginMap, _TempMap);
             buffer.GetTemporaryRT(_DownSampledDepth, cam.cam.pixelWidth / 4, cam.cam.pixelHeight / 4, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
             buffer.BlitSRT(_DownSampledDepth, volumeMat, 1);

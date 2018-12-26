@@ -10,7 +10,7 @@ CGINCLUDE
 #include "CGINC/VoxelLight.cginc"
 #include "UnityCG.cginc"
 
-static const float MARCHSTEP = 1 / 64.0;
+static const float MARCHSTEP = 1 / 96.0;
 #pragma multi_compile _ DIRLIGHT
 #pragma multi_compile _ DIRLIGHTSHADOW
 #pragma multi_compile _ POINTLIGHT
@@ -210,7 +210,7 @@ ENDCG
             }
             ENDCG
         }
-        //Pass 1: Down Sampler
+        //Pass 1: Down Sampler Chessboard
         Pass
         {
             Cull off ZWrite off ZTest Always
@@ -283,6 +283,24 @@ ENDCG
             half4 frag(v2fScreen i) : SV_TARGET
             {
                 return BilateralBlur(i.uv, half2(0, 1), _DownSampledDepth, sampler_DownSampledDepth, 4, 3.5);
+            }
+            ENDCG
+        }
+        //Pass 5: Down Sampler Average
+        Pass
+        {
+            Cull off ZWrite off ZTest Always
+            CGPROGRAM
+            #pragma vertex screenVert
+            #pragma fragment frag
+            Texture2D<float> _OriginMap; SamplerState sampler_OriginMap;
+            float4 _OriginMap_TexelSize;
+            #define Samp(uv) (_OriginMap.Sample(sampler_OriginMap, uv))
+            float frag(v2fScreen i) : SV_TARGET
+            {
+                float2 offset = _OriginMap_TexelSize.xy * 0.5;
+                float4 depth = float4(Samp(i.uv + offset), Samp(i.uv + offset * float2(1, -1)), Samp(i.uv + offset * float2(-1, 1)), Samp(i.uv + offset * -1));
+                return dot(depth, 0.25);
             }
             ENDCG
         }

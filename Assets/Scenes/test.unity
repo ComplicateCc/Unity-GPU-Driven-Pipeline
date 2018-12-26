@@ -936,7 +936,7 @@ MonoBehaviour:
   sceneController:
     mapResources: SceneManager
     resolution: 1024
-    texArrayCapacity: 21
+    texArrayCapacity: 60
     propertyCapacity: 500
 --- !u!1 &1767835315
 GameObject:
