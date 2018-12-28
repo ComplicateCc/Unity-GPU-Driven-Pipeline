@@ -46,14 +46,17 @@ namespace MPipeline
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
+            lightCount = 0;
             cullJob.planes = (Vector4*)UnsafeUtility.PinGCArrayAndGetDataAddress(data.arrayCollection.frustumPlanes, out gcHandler);
             indicesArray = new NativeArray<PointLightStruct>(MPointLight.allPointLights.Count, Allocator.Temp);
+            cbdr.pointLightArray = indicesArray;
             cullJob.indices = indicesArray.Ptr();
             cullJob.lightCount = (int*)UnsafeUtility.AddressOf(ref lightCount);
+            cbdr.pointLightCount = cullJob.lightCount;
             shadowList.Clear();
             cullJob.shadowList = shadowList;
-            lightCount = 0;
             cullJobHandler = cullJob.Schedule(MPointLight.allPointLights.Count, 32);
+
         }
         static readonly int _CubeShadowMapArray = Shader.PropertyToID("_CubeShadowMapArray");
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
@@ -118,9 +121,9 @@ namespace MPipeline
                 VoxelPointLight(indicesArray, lightCount, buffer);
                 buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);
                 cbdr.pointLightEnabled = true;
-            }else
+            }
+            else
                 cbdr.pointLightEnabled = false;
-            indicesArray.Dispose();
             data.ExecuteCommandBuffer();
         }
 
@@ -130,17 +133,17 @@ namespace MPipeline
             buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.SetXYPlaneKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
             buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.SetZPlaneKernel, ShaderIDs._ZPlaneTexture, cbdr.zPlaneTexture);
             Transform camTrans = cam.transform;
-            buffer.SetGlobalVector(ShaderIDs._CameraFarPos, camTrans.position + cam.farClipPlane * camTrans.forward);
-            buffer.SetGlobalVector(ShaderIDs._CameraNearPos, camTrans.position + cam.nearClipPlane * camTrans.forward);
+            buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._CameraFarPos, camTrans.position + cam.farClipPlane * camTrans.forward);
+            buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._CameraNearPos, camTrans.position + cam.nearClipPlane * camTrans.forward);
+            buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._CameraForward, camTrans.forward);
             buffer.SetGlobalVector(ShaderIDs._CameraClipDistance, new Vector4(cam.nearClipPlane, cam.farClipPlane - cam.nearClipPlane));
-            buffer.SetGlobalVector(ShaderIDs._CameraForward, camTrans.forward);
             buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetXYPlaneKernel, 1, 1, 1);
             buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetZPlaneKernel, 1, 1, 1);
         }
 
         public void VoxelPointLight(NativeArray<PointLightStruct> arr, int length, CommandBuffer buffer)
         {
-            CBDRSharedData.ResizeBuffer(cbdr.allPointLightBuffer, length);
+            CBDRSharedData.ResizeBuffer(ref cbdr.allPointLightBuffer, length);
             ComputeShader cbdrShader = cbdr.cbdrShader;
             const int PointLightKernel = CBDRSharedData.PointLightKernel;
             cbdr.allPointLightBuffer.SetData(arr, 0, 0, length);

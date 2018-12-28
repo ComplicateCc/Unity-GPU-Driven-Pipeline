@@ -5,9 +5,14 @@ using System.Threading;
 using System;
 public class LoadingThread : MonoBehaviour
 {
+    private struct Command
+    {
+        public object obj;
+        public Action<object> func;
+    }
     public static LoadingThread current { get; private set; }
-    private static List<Action> commands = new List<Action>();
-    private List<Action> localCommands = new List<Action>();
+    private static List<Command> commands = new List<Command>();
+    private List<Command> localCommands = new List<Command>();
     private AutoResetEvent resetEvent;
     private Thread thread;
     private bool isRunning;
@@ -26,19 +31,15 @@ public class LoadingThread : MonoBehaviour
         thread.Start();
     }
 
-    public static void AddCommand(Action act)
+    public static void AddCommand(Action<object> act, object obj)
     {
         lock (commands)
         {
-            commands.Add(act);
-            current.resetEvent.Set();
-        }
-    }
-    public static void AddCommands(Action[] acts)
-    {
-        lock (commands)
-        {
-            commands.AddRange(acts);
+            commands.Add(new Command
+            {
+                obj = obj,
+                func = act
+            });
             current.resetEvent.Set();
         }
     }
@@ -54,7 +55,7 @@ public class LoadingThread : MonoBehaviour
             }
             foreach(var i in localCommands)
             {
-                i();   
+                i.func(i.obj);   
             }
             localCommands.Clear();
         }

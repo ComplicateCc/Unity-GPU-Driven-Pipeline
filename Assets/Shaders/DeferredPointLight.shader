@@ -7,6 +7,10 @@ CGINCLUDE
 #pragma target 5.0
             #include "UnityCG.cginc"
             #include "CGINC/VoxelLight.cginc"
+            #include "CGINC/Shader_Include/Common.hlsl"
+            #include "CGINC/Shader_Include/BSDF_Library.hlsl"
+            #include "CGINC/Shader_Include/AreaLight.hlsl"
+            
             Texture2D _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
             Texture2D<half4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
             Texture2D<half4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
@@ -53,11 +57,6 @@ CGINCLUDE
                 o.vertex = v.vertex;
                 o.uv = v.uv;
                 return o;
-            }
-
-            inline float Square(float A)
-            {
-                return A * A;
             }
 ENDCG
         Pass
@@ -127,11 +126,15 @@ ENDCG
         Pass
         {
             Cull off ZWrite Off ZTest Greater
-           Blend one one
+            Blend one one
+            
             CGPROGRAM
+
             #pragma vertex screenVert
             #pragma fragment frag
+
             TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
+
             inline uint2 GetVoxelIte(float eyeDepth, float2 uv)
             {
                 float rate = saturate((eyeDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
@@ -139,34 +142,61 @@ ENDCG
                 uint sb = GetIndex(voxelValue, VOXELSIZE);
                 return uint2(sb + 1, _PointLightIndexBuffer[sb]);
             }
+
             half3 frag(v2fScreen i) : SV_TARGET
             {
                 float2 uv = i.uv;
-                float sceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
-                float2 projCoord = uv * 2 - 1;
-                float4 worldPosition = mul(_InvVP, float4(projCoord, sceneDepth, 1));
-                worldPosition /= worldPosition.w;
-                uint2 ind = GetVoxelIte(LinearEyeDepth(sceneDepth), uv);
-                half3 color = 0;
-                for(uint c = ind.x; c < ind.y; c++)
+                float SceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
+                float2 NDC_UV = uv * 2 - 1;
+
+                //////Screen Data
+                half3 AlbedoColor = _CameraGBufferTexture0.SampleLevel(sampler_CameraGBufferTexture0, uv, 0).rgb;
+                half3 WorldNormal = _CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1;
+                half4 SpecularColor = _CameraGBufferTexture1.SampleLevel(sampler_CameraGBufferTexture1, uv, 0); 
+                half Roughness = clamp(1 - SpecularColor.a, 0.02, 1);
+                float4 WorldPos = mul(_InvVP, float4(NDC_UV, SceneDepth, 1));
+                WorldPos /= WorldPos.w;
+
+
+                half ShadowTrem = 0;
+                half3 ShadingColor = 0;
+                uint2 LightIndex = GetVoxelIte(LinearEyeDepth(SceneDepth), uv);
+
+                for(uint c = LightIndex.x; c < LightIndex.y; c++)
                 {
-                    PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
-                    float3 currentCol = pt.lightColor * saturate(1 - distance(worldPosition.xyz , pt.sphere.xyz) / pt.sphere.w);
-                    if(pt.shadowIndex >= 0){
-                        float3 lightPosition = pt.sphere.xyz;
-                        float3 lightDir = lightPosition - worldPosition.xyz;
-                        half lenOfLightDir = length(lightDir);
-                        half shadowDist = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex));
-                        half lightDist = (lenOfLightDir - 0.1) / pt.sphere.w;
-                        currentCol *= lightDist <= shadowDist;
+                    PointLight Light = _AllPointLight[_PointLightIndexBuffer[c]];
+
+                    //////Light Data
+                    half LumianceIntensity = Light.lightIntensity;
+                    half LightRange = Light.sphere.a;
+                    half3 LightPos = Light.sphere.rgb;
+                    half3 LightColor = Light.lightColor;
+                    half3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
+                    half3 Un_LightDir = LightPos - WorldPos;
+                    half3 LightDir = normalize(Un_LightDir);
+                    half3 HalfDir = normalize(ViewDir + LightDir);
+
+
+                    //////Shadow
+                    if(Light.shadowIndex >= 0){
+                        half Length_LightDir = length(Un_LightDir);
+                        half DepthMap = (Length_LightDir - 0.025) / LightRange;
+                        half ShadowMap = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(Un_LightDir * float3(-1, -1, 1), Light.shadowIndex));
+                        ShadowTrem = DepthMap <= ShadowMap;
                     }
-                    color += currentCol;
+
+                    //////BSDF Variable
+                    BSDFContext LightData;
+                    Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
+
+                    //////Shading
+                    half3 Energy = Point_Energy(Un_LightDir, LightColor, LumianceIntensity, LightRange * 5, LightData.NoL) * ShadowTrem;
+                    ShadingColor += Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1);
                 }
-                 return color;
+
+                return ShadingColor;
             }
             ENDCG
         }
-
-       
     }
 }

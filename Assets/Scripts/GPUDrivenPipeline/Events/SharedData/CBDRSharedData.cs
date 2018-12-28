@@ -2,14 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine.Rendering;
+using Unity.Jobs;
+using Random = UnityEngine.Random;
 namespace MPipeline
 {
     public struct PointLightStruct
     {
-        public Vector3 lightColor;
+        public float3 lightColor;
         public float lightIntensity;
-        public Vector4 sphere;
+        public float4 sphere;
         public int shadowIndex;
     }
     public unsafe class CBDRSharedData : PipelineSharedData
@@ -17,17 +20,23 @@ namespace MPipeline
         public ComputeShader cbdrShader;
         public RenderTexture xyPlaneTexture;
         public RenderTexture zPlaneTexture;
+        public RenderTexture froxelZPlaneTexture;
         public ComputeBuffer allPointLightBuffer;
         public ComputeBuffer pointlightIndexBuffer;
+        public ComputeBuffer froxelPointLightBuffer;
+        public ComputeBuffer froxelPointLightIndexBuffer;
         public Texture2D randomTex { get; private set; }
         public const int XRES = 32;
         public const int YRES = 16;
-        public const int ZRES = 512;
+        public const int ZRES = 64;
         public const int MAXLIGHTPERCLUSTER = 8;
         public bool directLightEnabled = false;
         public bool directLightShadowEnable = false;
         public bool pointLightEnabled = false;
         public const int pointLightInitCapacity = 50;
+
+        public NativeArray<PointLightStruct> pointLightArray;
+        public int* pointLightCount = null;
 
         public CBDRSharedData(PipelineResources res)
         {
@@ -61,6 +70,9 @@ namespace MPipeline
             zPlaneTexture.Create();
             pointlightIndexBuffer = new ComputeBuffer(XRES * YRES * ZRES * (MAXLIGHTPERCLUSTER + 1), sizeof(int));
             allPointLightBuffer = new ComputeBuffer(pointLightInitCapacity, sizeof(PointLightStruct));
+            froxelZPlaneTexture = new RenderTexture(zPlaneTexture.descriptor);
+            froxelPointLightIndexBuffer = new ComputeBuffer(pointlightIndexBuffer.count, pointlightIndexBuffer.stride);
+            froxelPointLightBuffer = new ComputeBuffer(allPointLightBuffer.count, allPointLightBuffer.stride);
             randomTex = new Texture2D(1024, 2, TextureFormat.RGBAFloat, false, true);
             Color[] colors = new Color[2048];
             for(int i = 0; i < 2048; ++i)
@@ -70,7 +82,7 @@ namespace MPipeline
             randomTex.SetPixels(colors);
             randomTex.Apply();
         }
-        public static void ResizeBuffer(ComputeBuffer buffer, int newCapacity)
+        public static void ResizeBuffer(ref ComputeBuffer buffer, int newCapacity)
         {
             if (newCapacity <= buffer.count) return;
             buffer.Dispose();
@@ -86,6 +98,9 @@ namespace MPipeline
             zPlaneTexture.Release();
             pointlightIndexBuffer.Dispose();
             allPointLightBuffer.Dispose();
+            froxelPointLightBuffer.Dispose();
+            froxelPointLightIndexBuffer.Dispose();
+            Object.Destroy(froxelZPlaneTexture); 
             Object.Destroy(randomTex);
         }
     }

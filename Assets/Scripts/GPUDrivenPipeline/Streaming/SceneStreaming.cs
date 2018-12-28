@@ -28,20 +28,26 @@ namespace MPipeline
         private NativeArray<Vector2Int> results;
         private NativeArray<uint> propertiesPool;
         private int resultLength;
-        private Action generateAsyncFunc;
-        private Action deleteAsyncFunc;
+        private static Action<object> generateAsyncFunc = (obj) =>
+        {
+            SceneStreaming str = obj as SceneStreaming;
+            str.GenerateAsync();
+        };
+        private static Action<object> deleteAsyncFunc = (obj) =>
+        {
+            SceneStreaming str = obj as SceneStreaming;
+            str.DeleteAsync();
+        };
         ClusterProperty property;
         private List<TextureInfos> allTextureDatas;
         public SceneStreaming(ClusterProperty property)
         {
             state = State.Unloaded;
             this.property = property;
-            generateAsyncFunc = GenerateAsync;
-            deleteAsyncFunc = DeleteAsync;
             allTextureDatas = new List<TextureInfos>();
         }
         static string[] allStrings = new string[3];
-        private void GenerateAsync()
+        public void GenerateAsync()
         {
             clusterBuffer = new NativeArray<ClusterMeshData>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             pointsBuffer = new NativeArray<Point>(property.clusterCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
@@ -105,7 +111,7 @@ namespace MPipeline
                     yield return null;
                 }
                 loading = true;
-                LoadingThread.AddCommand(generateAsyncFunc);
+                LoadingThread.AddCommand(generateAsyncFunc, this);
             }
         }
         //TODO
@@ -186,11 +192,11 @@ namespace MPipeline
                 loading = true;
                 results = new NativeArray<Vector2Int>(indicesBuffer.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                 resultLength = 0;
-                LoadingThread.AddCommand(deleteAsyncFunc);
+                LoadingThread.AddCommand(deleteAsyncFunc, this);
             }
         }
 
-        private void DeleteAsync()
+        public void DeleteAsync()
         {
             ref NativeList<ulong> pointerContainer = ref SceneController.current.pointerContainer;
             int targetListLength = pointerContainer.Length - indicesBuffer.Length;

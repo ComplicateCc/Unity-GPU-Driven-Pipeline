@@ -4,6 +4,7 @@ using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 using System.Threading;
+using System.Runtime.CompilerServices;
 
 public unsafe struct NativeListData
 {
@@ -16,6 +17,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
 {
     [NativeDisableUnsafePtrRestriction]
     private NativeListData* data;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public NativeList(int capacity, Allocator alloc)
     {
         capacity = Mathf.Max(capacity, 1);
@@ -38,7 +40,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
             add[i] = defaultValue;
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public NativeList(int count, int capacity, Allocator alloc)
     {
         data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
@@ -49,6 +51,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     }
     public Allocator allocator
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             return data->allocator;
@@ -86,13 +89,13 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         UnsafeUtility.Free(data->ptr, data->allocator);
         data->ptr = newPtr;
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveLast(int length)
     {
         data->count -= length;
         data->count = Mathf.Max(0, data->count);
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveLast()
     {
         data->count -= 1;
@@ -102,6 +105,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
 
     public int Length
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             return data->count;
@@ -109,6 +113,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     }
     public int Capacity
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             return data->capacity;
@@ -116,11 +121,13 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     }
     public T* unsafePtr
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             return (T*)data->ptr;
         }
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Allocator alloc = data->allocator;
@@ -129,12 +136,24 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     }
     public ref T this[int id]
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             T* ptr = (T*)data->ptr;
             return ref *(ptr + id);
         }
     }
+
+    public ref T this[uint id]
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            T* ptr = (T*)data->ptr;
+            return ref *(ptr + id);
+        }
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddRange(int length)
     {
         data->count += length;
@@ -249,14 +268,17 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         count--;
         this[i] = this[count];
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
         data->count = 0;
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IEnumerator<T> GetEnumerator()
     {
         return new ListIenumerator<T>(data);

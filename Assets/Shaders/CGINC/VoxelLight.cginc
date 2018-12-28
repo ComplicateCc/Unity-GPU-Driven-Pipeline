@@ -3,7 +3,7 @@
 
 #define XRES 32
 #define YRES 16
-#define ZRES 512
+#define ZRES 64
 #define VOXELSIZE uint3(XRES, YRES, ZRES)
 #define MAXLIGHTPERCLUSTER 8
             struct PointLight{
