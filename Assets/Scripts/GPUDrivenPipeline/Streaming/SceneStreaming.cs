@@ -23,7 +23,7 @@ namespace MPipeline
         }
         public State state;
         private NativeArray<int> indicesBuffer;
-        private NativeArray<ClusterMeshData> clusterBuffer;
+        private NativeArray<CullBox> clusterBuffer;
         private NativeArray<Point> pointsBuffer;
         private NativeArray<Vector2Int> results;
         private NativeArray<uint> propertiesPool;
@@ -49,12 +49,12 @@ namespace MPipeline
         static string[] allStrings = new string[3];
         public void GenerateAsync()
         {
-            clusterBuffer = new NativeArray<ClusterMeshData>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            clusterBuffer = new NativeArray<CullBox>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             pointsBuffer = new NativeArray<Point>(property.clusterCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             indicesBuffer = new NativeArray<int>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             NativeList<ulong> pointerContainer = SceneController.current.pointerContainer;
             pointerContainer.AddCapacityTo(pointerContainer.Length + indicesBuffer.Length);
-            ClusterMeshData* clusterData = clusterBuffer.Ptr();
+            CullBox* clusterData = clusterBuffer.Ptr();
             Point* verticesData = pointsBuffer.Ptr();
             const string infosPath = "Assets/BinaryData/MapInfos/";
             const string pointsPath = "Assets/BinaryData/MapPoints/";
@@ -216,12 +216,13 @@ namespace MPipeline
                 int index = indicesPtr[i];
                 if (index >= 0)
                 {
-                    while (currentIndex >= 0 && pointerContainer[currentIndex] == 0)
+                    while (pointerContainer[currentIndex] == 0)
                     {
                         currentIndex--;
+                        if (currentIndex < 0)
+                            goto FINALIZE;
                     }
-                    if (currentIndex < 0)
-                        goto FINALIZE;
+                    
                     Vector2Int value = new Vector2Int(index, currentIndex);
                     currentIndex--;
                     results[resultLength] = value;

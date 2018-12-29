@@ -170,6 +170,14 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
             UnsafeUtility.MemCpy(dest, source, array.Length * sizeof(T));
         }
     }
+    public void AddRange(NativeList<T> array)
+    {
+        int last = data->count;
+        data->count += array.Length;
+        ResizeToCount();
+        void* dest = unsafePtr + last;
+        UnsafeUtility.MemCpy(dest, array.unsafePtr, array.Length * sizeof(T));
+    }
     public bool ConcurrentAdd(T value)
     {
         int last = Interlocked.Increment(ref data->count);

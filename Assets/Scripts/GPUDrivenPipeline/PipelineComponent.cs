@@ -157,7 +157,7 @@ namespace MPipeline
         public uint objIndex;
     }
     [System.Serializable]
-    public struct ClusterMeshData
+    public struct CullBox
     {
         public Vector3 extent;
         public Vector3 position;

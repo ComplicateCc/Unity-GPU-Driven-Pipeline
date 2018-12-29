@@ -148,7 +148,7 @@ namespace MPipeline
                 allFragments.Add(resultCluster);
             }
             gt.Dispose();
-            NativeArray<ClusterMeshData> meshData = new NativeArray<ClusterMeshData>(allFragments.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            NativeArray<CullBox> meshData = new NativeArray<CullBox>(allFragments.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             NativeArray<Point>[] allpoints = new NativeArray<Point>[allFragments.Count];
             int pointCount = 0;
             for (int i = 0; i < allpoints.Length; ++i)
@@ -235,9 +235,9 @@ namespace MPipeline
     {
         public const int ClusterCount = PipelineBaseBuffer.CLUSTERCLIPCOUNT / 4;
         public const int VoxelCount = 10;
-        public static void GetByteDataFromArray(NativeArray<ClusterMeshData> meshdata, NativeArray<Point> points, out byte[] meshBytes, out byte[] pointBytes)
+        public static void GetByteDataFromArray(NativeArray<CullBox> meshdata, NativeArray<Point> points, out byte[] meshBytes, out byte[] pointBytes)
         {
-            meshBytes = new byte[meshdata.Length * sizeof(ClusterMeshData)];
+            meshBytes = new byte[meshdata.Length * sizeof(CullBox)];
             pointBytes = new byte[points.Length * sizeof(Point)];
             void* meshDataPtr = meshdata.GetUnsafePtr();
             void* pointsPtr = points.GetUnsafePtr();
@@ -454,14 +454,14 @@ namespace MPipeline
     public unsafe struct CollectJob : IJobParallelFor
     {
         public static List<NativeArray<Fragment>> allFragments;
-        public static NativeArray<ClusterMeshData> meshDatas;
+        public static NativeArray<CullBox> meshDatas;
         public static NativeArray<Point>[] pointsArray;
         public static NativeList<Point> pointsFromMesh;
         public void Execute(int index)
         {
             NativeArray<Fragment> fragments = allFragments[index];
             Fragment* fragPtr = (Fragment*)fragments.GetUnsafePtr();
-            ClusterMeshData data = new ClusterMeshData();
+            CullBox data = new CullBox();
             NativeArray<Point> allPoints = pointsArray[index];
             for (int i = 0, pointCount = 0; i < fragments.Length - 1; ++i)
             {

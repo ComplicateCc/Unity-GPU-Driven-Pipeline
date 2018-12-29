@@ -105,7 +105,7 @@ public unsafe static class PipelineFunctions
     /// <param name="baseBuffer"></param> pipeline base buffer
     public static void InitBaseBuffer(PipelineBaseBuffer baseBuffer, ClusterMatResources materialResources, string name, int maximumLength)
     {
-        baseBuffer.clusterBuffer = new ComputeBuffer(maximumLength, sizeof(ClusterMeshData));
+        baseBuffer.clusterBuffer = new ComputeBuffer(maximumLength, sizeof(CullBox));
         baseBuffer.resultBuffer = new ComputeBuffer(maximumLength, PipelineBaseBuffer.UINTSIZE);
         baseBuffer.instanceCountBuffer = new ComputeBuffer(5, 4, ComputeBufferType.IndirectArguments);
         NativeArray<uint> instanceCountBufferValue = new NativeArray<uint>(5, Allocator.Temp);
