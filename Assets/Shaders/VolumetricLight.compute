@@ -1,0 +1,97 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+
+//DIRLIGHT , DIRLIGHTSHADOW, POINTLIGHT: 0b111
+#pragma kernel CSMain
+#pragma kernel CSMain CUBEMAP
+#pragma kernel CSMain DIRMAP
+#pragma kernel CSMain CUBEMAP DIRMAP
+
+#include "CGINC/VoxelLight.cginc"
+#include "UnityCG.cginc"
+
+float4x4 _InvNonJitterVP;
+float4x4 _ShadowMapVPs[4];
+float4 _ShadowDisableDistance;
+float3 _DirLightPos;
+float2 _CameraClipDistance; //X: Near Y: Far - Near
+float3 _DirLightFinalColor;
+uint _LightFlag;
+uint _MarchStep;
+
+TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
+StructuredBuffer<PointLight> _AllPointLight;
+StructuredBuffer<uint> _PointLightIndexBuffer;
+Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
+Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;
+RWTexture3D<half3> _VolumeTex;
+float2 _ScreenSize;
+
+            inline float EyeDepthToProj(float lin)
+            {
+                return (1/lin - _ZBufferParams.w) / _ZBufferParams.z;
+            }
+			float GetHardShadow(float3 worldPos, float eyeDistance)
+			{
+				float4 eyeRange = eyeDistance < _ShadowDisableDistance;
+				eyeRange.yzw -= eyeRange.xyz;
+				float zAxisUV = dot(eyeRange, float4(0, 1, 2, 3));
+				float4x4 vpMat = _ShadowMapVPs[zAxisUV];
+				float4 shadowPos = mul(vpMat, float4(worldPos, 1));
+				half2 shadowUV = shadowPos.xy / shadowPos.w;
+				shadowUV = shadowUV * 0.5 + 0.5;
+				#if UNITY_REVERSED_Z
+				float dist = 1 - shadowPos.z;
+				#else
+				float dist = shadowPos.z;
+				#endif
+				float atten = dist < _DirShadowMap.SampleLevel(sampler_DirShadowMap, half3(shadowUV, zAxisUV), 0);
+				return atten;
+			}
+
+[numthreads(4, 4, VOXELZ)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    const float2 testScreenSize = _ScreenSize - 0.1;
+    bool2 cull = id.xy > testScreenSize;
+    if(cull.x || cull.y) return;
+    float2 uv = id.xy / _ScreenSize;
+    float randomSeed = rand(float3(getSeed(uv), id.z));
+    const float step = 1.0 / _MarchStep;
+    float lerpPos = id.z / (float)_MarchStep;
+    half linearDepth = lerp(_CameraClipDistance.x, _DownSampledDepth[id.xy], lerpPos + step * randomSeed);
+    float2 projCoord = uv * 2 - 1;
+    float4 targetWorldPos = mul(_InvNonJitterVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
+    targetWorldPos /= targetWorldPos.w;
+    float rate = saturate((linearDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
+    uint3 clusterCoord = uint3(uv * float2(XRES, YRES), rate * ZRES);
+    uint sb = GetIndex(clusterCoord, VOXELSIZE);
+    uint2 ind = uint2(sb + 1, _PointLightIndexBuffer[sb]);
+    float3 color = 0;
+    if(_LightFlag & 4)
+    {
+        #ifdef DIRMAP
+            color += _DirLightFinalColor * GetHardShadow(targetWorldPos, linearDepth);
+        #else
+            color += _DirLightFinalColor;
+        #endif
+    }
+    if(_LightFlag & 1){
+    for(uint c = ind.x; c < ind.y; c++)
+    {
+        PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
+        float3 currentCol = pt.lightColor * saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w);
+        #ifdef CUBEMAP
+        if(pt.shadowIndex >= 0){
+            float3 lightDir = pt.sphere.xyz - targetWorldPos;
+            half lenOfLightDir = length(lightDir);
+            half shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex), 0);
+            half lightDist = lenOfLightDir / pt.sphere.w;
+            currentCol *= lightDist <= shadowDist;
+        }
+        #endif
+        color += currentCol;
+    }
+    }
+    _VolumeTex[id] = color;
+
+}

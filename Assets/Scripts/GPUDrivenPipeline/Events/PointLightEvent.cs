@@ -58,13 +58,11 @@ namespace MPipeline
             cullJobHandler = cullJob.Schedule(MPointLight.allPointLights.Count, 32);
 
         }
-        static readonly int _CubeShadowMapArray = Shader.PropertyToID("_CubeShadowMapArray");
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             PipelineBaseBuffer baseBuffer;
             if (!SceneController.GetBaseBuffer(out baseBuffer))
             {
-                cbdr.pointLightEnabled = false;
                 return;
             }
             CommandBuffer buffer = data.buffer;
@@ -76,7 +74,7 @@ namespace MPipeline
             {
                 if (shadowList.Length > 0)
                 {
-                    buffer.GetTemporaryRT(_CubeShadowMapArray, new RenderTextureDescriptor
+                    RenderTexture shadowArray = RenderTexture.GetTemporary(new RenderTextureDescriptor
                     {
                         autoGenerateMips = false,
                         bindMS = false,
@@ -94,6 +92,8 @@ namespace MPipeline
                         useMipMap = false,
                         vrUsage = VRTextureUsage.None
                     });
+                    buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, shadowArray);
+                    cam.temporalRT.Add(shadowArray);
                     NativeArray<Vector4> positions = new NativeArray<Vector4>(shadowList.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                     for (int i = 0; i < shadowList.Length; ++i)
                     {
@@ -111,7 +111,8 @@ namespace MPipeline
                         frustumPlanes = null,
                         isOrtho = false
                     };
-                    cubeBuffer.renderTarget = _CubeShadowMapArray;
+                    cubeBuffer.renderTarget = shadowArray;
+                    cbdr.cubemapShadowArray = shadowArray;
                     for (int i = 0; i < shadowList.Length; ++i)
                     {
                         MPointLight light = MPointLight.allPointLights[shadowList[i]];
@@ -120,10 +121,8 @@ namespace MPipeline
                 }
                 VoxelPointLight(indicesArray, lightCount, buffer);
                 buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);
-                cbdr.pointLightEnabled = true;
+                cbdr.lightFlag |= 1;
             }
-            else
-                cbdr.pointLightEnabled = false;
             data.ExecuteCommandBuffer();
         }
 

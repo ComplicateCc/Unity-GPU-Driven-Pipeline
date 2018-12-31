@@ -41,7 +41,6 @@ public static partial class ShaderIDs
 
     public static readonly int _ShadowMapResolution = Shader.PropertyToID("_ShadowMapResolution");
     public static readonly int _ScreenSize = Shader.PropertyToID("_ScreenSize");
-    public static readonly int _VolumetricTex = Shader.PropertyToID("_VolumetricTex");
     public static readonly int _LightDir = Shader.PropertyToID("_LightDir");
     public static readonly int _WorldPoses = Shader.PropertyToID("_WorldPoses");
     public static readonly int _PreviousLevel = Shader.PropertyToID("_PreviousLevel");
@@ -52,6 +51,7 @@ public static partial class ShaderIDs
     public static readonly int _Depth = Shader.PropertyToID("_Depth");
     public static readonly int _LastDepth = Shader.PropertyToID("_LastDepth");
     public static readonly int _NonJitterVP = Shader.PropertyToID("_NonJitterVP");
+    public static readonly int _InvNonJitterVP = Shader.PropertyToID("_InvNonJitterVP");
 
     public static readonly int _Lut3D = Shader.PropertyToID("_Lut3D");
     public static readonly int _Lut3D_Params = Shader.PropertyToID("_Lut3D_Params");
@@ -90,5 +90,7 @@ public static partial class ShaderIDs
     public static readonly int heightMapBuffer = Shader.PropertyToID("heightMapBuffer");
     public static readonly int triangleBuffer = Shader.PropertyToID("triangleBuffer");
     public static readonly int _MeshSize = Shader.PropertyToID("_MeshSize");
+    public static readonly int _LightFlag = Shader.PropertyToID("_LightFlag");
+    public static readonly int _CubeShadowMapArray = Shader.PropertyToID("_CubeShadowMapArray");
     public static readonly int _MarchStep = Shader.PropertyToID("_MarchStep");
 }

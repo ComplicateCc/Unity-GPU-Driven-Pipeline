@@ -18,6 +18,8 @@ namespace MPipeline
     public unsafe class CBDRSharedData : PipelineSharedData
     {
         public ComputeShader cbdrShader;
+        public RenderTexture dirLightShadowmap;
+        public RenderTexture cubemapShadowArray;
         public RenderTexture xyPlaneTexture;
         public RenderTexture zPlaneTexture;
         public RenderTexture froxelZPlaneTexture;
@@ -30,13 +32,11 @@ namespace MPipeline
         public const int YRES = 16;
         public const int ZRES = 64;
         public const int MAXLIGHTPERCLUSTER = 8;
-        public bool directLightEnabled = false;
-        public bool directLightShadowEnable = false;
-        public bool pointLightEnabled = false;
         public const int pointLightInitCapacity = 50;
-
+        public uint lightFlag = 0;
         public NativeArray<PointLightStruct> pointLightArray;
         public int* pointLightCount = null;
+       
 
         public CBDRSharedData(PipelineResources res)
         {

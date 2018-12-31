@@ -19,6 +19,8 @@ MonoBehaviour:
   pointLightFrustumCulling: {fileID: 7200000, guid: 7011edaf13151fd4d8c2d60c5d147390,
     type: 3}
   terrainCompute: {fileID: 7200000, guid: df2ca219aec3d6c4dbd51730f91bcf0a, type: 3}
+  volumetricScattering: {fileID: 7200000, guid: f0b93ef950efeed42866aebefd835cc2,
+    type: 3}
   copyShader: {fileID: 4800000, guid: c2654d1ef3f0b64408cc68e6eeb7795b, type: 3}
   taaShader: {fileID: 4800000, guid: 51bcf79c50dc92e47ba87821b61100c3, type: 3}
   indirectDepthShader: {fileID: 4800000, guid: 2896c2d5ef5101b46942a11a481cb2d6, type: 3}

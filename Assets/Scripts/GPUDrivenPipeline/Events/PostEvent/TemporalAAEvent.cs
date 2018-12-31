@@ -33,16 +33,14 @@ namespace MPipeline
         private int sampleIndex = 0;
         private const int k_SampleCount = 8;
         private Material taaMat;
-        private MaterialPropertyBlock block;
         private PostProcessAction taaFunction;
         private RenderTexture historyTex;
         protected override void Init(PipelineResources resources)
         {
-            block = new MaterialPropertyBlock();
             taaMat = new Material(resources.taaShader);
             taaFunction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier dest) =>
             {
-                buffer.BlitSRT(block, source, dest, taaMat, 0);
+                buffer.BlitSRT(source, dest, taaMat, 0);
                 buffer.CopyTexture(dest, historyTex);
             };
         }
@@ -62,11 +60,10 @@ namespace MPipeline
             //TAA Start
             const float kMotionAmplification_Blending = 100f * 60f;
             const float kMotionAmplification_Bounding = 100f * 30f;
-            block.SetVector(ShaderIDs._Jitter, jitter);
-            block.SetFloat(ShaderIDs._Sharpness, sharpness);
-            block.SetVector(ShaderIDs._TemporalClipBounding, new Vector4(stationaryAABBScale, motionAABBScale, kMotionAmplification_Bounding, 0f));
-            block.SetVector(ShaderIDs._FinalBlendParameters, new Vector4(stationaryBlending, motionBlending, kMotionAmplification_Blending, 0f));
-            block.SetTexture(ShaderIDs._HistoryTex, historyTex);
+            buffer.SetGlobalFloat(ShaderIDs._Sharpness, sharpness);
+            buffer.SetGlobalVector(ShaderIDs._TemporalClipBounding, new Vector4(stationaryAABBScale, motionAABBScale, kMotionAmplification_Bounding, 0f));
+            buffer.SetGlobalVector(ShaderIDs._FinalBlendParameters, new Vector4(stationaryBlending, motionBlending, kMotionAmplification_Blending, 0f));
+            buffer.SetGlobalTexture(ShaderIDs._HistoryTex, historyTex);
             PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, taaFunction);
             data.ExecuteCommandBuffer();
         }
@@ -75,6 +72,7 @@ namespace MPipeline
         {
             cam.cam.ResetProjectionMatrix();
             ConfigureJitteredProjectionMatrix(cam.cam);
+            Shader.SetGlobalVector(ShaderIDs._Jitter, jitter);
         }
 
         Vector2 GenerateRandomOffset()

@@ -385,8 +385,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330718099}
-  m_LocalRotation: {x: -0.005969651, y: 0.9927634, z: -0.05579312, w: -0.10617173}
-  m_LocalPosition: {x: 15.005975, y: 4.3502235, z: -26.934734}
+  m_LocalRotation: {x: -0.00890088, y: 0.9906785, z: -0.10955765, w: -0.08046124}
+  m_LocalPosition: {x: 15.005968, y: 4.3502164, z: -26.934801}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1180,8 +1180,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_renderPath: 2
-  m_enabledInPipeline: 0
-  m_enableBeforePipeline: 0
+  m_enabledInPipeline: 1
+  m_enableBeforePipeline: 1
   layer: 3000
   jitterSpread: 1
   sharpness: 0.25
@@ -1251,7 +1251,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_renderPath: 2
-  m_enabledInPipeline: 0
+  m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2600
   profile: {fileID: 11400000, guid: 6d0d1a1ad21c9604896988c0fd15fc68, type: 2}
@@ -1273,7 +1273,7 @@ MonoBehaviour:
   m_enableBeforePipeline: 0
   layer: 2100
   availableDistance: 64
-  marchStep: 64
+  step: 4
 --- !u!1 &8525019080748604213
 GameObject:
   m_ObjectHideFlags: 0

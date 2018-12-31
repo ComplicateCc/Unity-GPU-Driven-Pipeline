@@ -16,6 +16,7 @@ namespace MPipeline
             ref Matrix4x4 lastVp = ref lastData.lastVP;
             Shader.SetGlobalMatrix(ShaderIDs._LastVp, lastVp);
             Shader.SetGlobalMatrix(ShaderIDs._NonJitterVP, nonJitterVP);
+            Shader.SetGlobalMatrix(ShaderIDs._InvNonJitterVP, nonJitterVP.inverse);
             Shader.SetGlobalMatrix(ShaderIDs._InvVP, data.inverseVP);
             Shader.SetGlobalMatrix(ShaderIDs._VP, data.vp);
             Shader.SetGlobalMatrix(ShaderIDs._InvLastVP, lastVp.inverse);

@@ -6,7 +6,7 @@ namespace MPipeline
 {
     [PipelineEvent(false, true)]
     public unsafe class DirLightEvent : PipelineEvent
-    {    
+    {
         private Material shadMaskMaterial;
         private static int[] _Count = new int[2];
         private Matrix4x4[] cascadeShadowMapVP = new Matrix4x4[4];
@@ -33,11 +33,11 @@ namespace MPipeline
             PipelineBaseBuffer baseBuffer;
             if (SunLight.current == null || !SunLight.current.enabled || !SceneController.GetBaseBuffer(out baseBuffer))
             {
-                cbdr.directLightEnabled = false;
                 return;
             }
-            cbdr.directLightEnabled = true;
-            cbdr.directLightShadowEnable = SunLight.current.enableShadow;
+            cbdr.lightFlag |= 0b100;
+            if (SunLight.current.enableShadow)
+                cbdr.lightFlag |= 0b010;
             CommandBuffer buffer = data.buffer;
             int pass;
             if (SunLight.current.enableShadow)
@@ -56,7 +56,8 @@ namespace MPipeline
                 SceneController.current.DrawDirectionalShadow(cam.cam, ref opts, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP);
                 buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
                 buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.shadMap.shadowmapTexture);
-                pass = 0; 
+                cbdr.dirLightShadowmap = SunLight.shadMap.shadowmapTexture;
+                pass = 0;
             }
             else
             {

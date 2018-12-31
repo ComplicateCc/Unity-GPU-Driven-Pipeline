@@ -11,6 +11,7 @@ namespace MPipeline
         public ComputeShader streamingShader;
         public ComputeShader pointLightFrustumCulling;
         public ComputeShader terrainCompute;
+        public ComputeShader volumetricScattering;
         public Shader copyShader;
         public Shader taaShader;
         public Shader indirectDepthShader;
