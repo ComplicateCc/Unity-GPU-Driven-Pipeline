@@ -117,6 +117,7 @@ namespace MPipeline
             //Dispose
             buffer.ReleaseTemporaryRT(_TempMap);
             buffer.ReleaseTemporaryRT(_DownSampledDepth);
+            buffer.ReleaseTemporaryRT(_VolumeTex);
             PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
 

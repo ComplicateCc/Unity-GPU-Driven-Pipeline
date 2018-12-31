@@ -385,8 +385,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330718099}
-  m_LocalRotation: {x: 0.15383916, y: 0.79614186, z: -0.22707652, w: 0.53937733}
-  m_LocalPosition: {x: -2.1274185, y: 1.5741119, z: -1.0624142}
+  m_LocalRotation: {x: -0.005969651, y: 0.9927634, z: -0.05579312, w: -0.10617173}
+  m_LocalPosition: {x: 15.005975, y: 4.3502235, z: -26.934734}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -813,7 +813,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1391845210}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3b404c01670a841439f40cbf2b2282c6, type: 3}
   m_Name: 
@@ -1272,7 +1272,8 @@ MonoBehaviour:
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2100
-  availableDistance: 10
+  availableDistance: 64
+  marchStep: 64
 --- !u!1 &8525019080748604213
 GameObject:
   m_ObjectHideFlags: 0
