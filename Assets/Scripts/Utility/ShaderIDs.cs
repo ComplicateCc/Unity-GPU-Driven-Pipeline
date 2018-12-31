@@ -27,7 +27,6 @@ public static partial class ShaderIDs
     public static readonly int instanceCountBuffer = Shader.PropertyToID("instanceCountBuffer");
     public static readonly int resultBuffer = Shader.PropertyToID("resultBuffer");
     public static readonly int verticesBuffer = Shader.PropertyToID("verticesBuffer");
-    public static readonly int boneBuffer = Shader.PropertyToID("boneBuffer");
     public static readonly int _NormalBiases = Shader.PropertyToID("_NormalBiases");
     public static readonly int dispatchBuffer = Shader.PropertyToID("dispatchBuffer");
     public static readonly int reCheckResult = Shader.PropertyToID("reCheckResult");
@@ -44,7 +43,6 @@ public static partial class ShaderIDs
     public static readonly int _ScreenSize = Shader.PropertyToID("_ScreenSize");
     public static readonly int _VolumetricTex = Shader.PropertyToID("_VolumetricTex");
     public static readonly int _LightDir = Shader.PropertyToID("_LightDir");
-    public static readonly int allCubeBuffer = Shader.PropertyToID("allCubeBuffer");
     public static readonly int _WorldPoses = Shader.PropertyToID("_WorldPoses");
     public static readonly int _PreviousLevel = Shader.PropertyToID("_PreviousLevel");
     public static readonly int _HizDepthTex = Shader.PropertyToID("_HizDepthTex");
@@ -88,4 +86,9 @@ public static partial class ShaderIDs
     public static readonly int _RandomNumber = Shader.PropertyToID("_RandomNumber");
     public static readonly int _RandomWeight = Shader.PropertyToID("_RandomWeight");
     public static readonly int _RandomTex = Shader.PropertyToID("_RandomTex");
+
+    public static readonly int heightMapBuffer = Shader.PropertyToID("heightMapBuffer");
+    public static readonly int triangleBuffer = Shader.PropertyToID("triangleBuffer");
+    public static readonly int _MeshSize = Shader.PropertyToID("_MeshSize");
+    public static readonly int _MarchStep = Shader.PropertyToID("_MarchStep");
 }

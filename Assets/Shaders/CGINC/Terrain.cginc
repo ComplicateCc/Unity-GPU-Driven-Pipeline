@@ -1,11 +1,5 @@
 #ifndef __TERRAIN_INCLUDE__
 #define __TERRAIN_INCLUDE__
-struct TerrainVertex
-{
-    float2 uv;
-    int2 vertexIndex;
-    float2 localPos;
-};
 
 struct TerrainPanel
 {
@@ -13,6 +7,7 @@ struct TerrainPanel
     float3 position;
     int4 textureIndex;
     int heightMapIndex;
+    uint edgeFlag;
 };
 
 uint _CullingPlaneCount;
@@ -26,5 +21,15 @@ float PlaneTest(float3 position, float3 extent){
         result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ? 1.0 : 0.0;
     }
     return result;
+}
+
+inline uint2 GetIndex(uint id, const uint width)
+{
+    return int2(id % width, id / width);
+}
+
+inline uint GetIndex(uint2 id, const uint width)
+{
+    return id.y * width + id.x;
 }
 #endif

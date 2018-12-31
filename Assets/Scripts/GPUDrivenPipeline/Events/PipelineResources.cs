@@ -10,6 +10,7 @@ namespace MPipeline
         public ComputeShader gpuSkin;
         public ComputeShader streamingShader;
         public ComputeShader pointLightFrustumCulling;
+        public ComputeShader terrainCompute;
         public Shader copyShader;
         public Shader taaShader;
         public Shader indirectDepthShader;
@@ -23,6 +24,7 @@ namespace MPipeline
         public Shader cubeDepthShader;
         public Shader clusterRenderShader;
         public Shader volumetricShader;
+        public Shader terrainShader;
         public Mesh occluderMesh;
         public Mesh sphereMesh;
     }

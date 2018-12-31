@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Rendering;
 using System;
+using Random = Unity.Mathematics.Random;
 namespace MPipeline
 {
     public struct RenderClusterOptions
@@ -12,7 +13,10 @@ namespace MPipeline
         public Vector4[] frustumPlanes;
         public CommandBuffer command;
         public bool isOrtho;
+        public bool isClusterEnabled;
+        public bool isTerrainEnabled;
         public ComputeShader cullingShader;
+        public ComputeShader terrainCompute;
     }
 
     public struct HizOptions
@@ -34,6 +38,7 @@ namespace MPipeline
                 public int belonged;
             }
             public Material clusterMaterial;
+            public Material terrainMaterial;
             public Dictionary<string, TextureIdentifier> texDict;
             public NativeList<int> avaiableTexs;
             public NativeList<int> avaiableProperties;
@@ -41,6 +46,7 @@ namespace MPipeline
             public ComputeBuffer texCopyBuffer;
             public ComputeBuffer propertyBuffer;
             public RenderTexture texArray;
+            public TerrainDrawStreaming terrainDrawStreaming;
             public int GetIndex(string guid, out bool alreadyContained)
             {
                 if (string.IsNullOrEmpty(guid))
@@ -48,18 +54,19 @@ namespace MPipeline
                     alreadyContained = false;
                     return -1;
                 }
-                if(texDict.ContainsKey(guid) && texDict[guid].usedCount > 0)
+                if (texDict.ContainsKey(guid) && texDict[guid].usedCount > 0)
                 {
                     TextureIdentifier ident = texDict[guid];
                     ident.usedCount++;
                     texDict[guid] = ident;
                     alreadyContained = true;
                     return ident.belonged;
-                }else
+                }
+                else
                 {
                     TextureIdentifier ident;
                     ident.usedCount = 1;
-                    if(avaiableTexs.Length <= 0)
+                    if (avaiableTexs.Length <= 0)
                     {
                         throw new Exception("No available texture lefted!");
                     }
@@ -73,15 +80,16 @@ namespace MPipeline
             }
             public void RemoveTex(string guid)
             {
-                if(texDict.ContainsKey(guid))
+                if (texDict.ContainsKey(guid))
                 {
                     TextureIdentifier ident = texDict[guid];
                     ident.usedCount--;
-                    if(ident.usedCount <= 0)
+                    if (ident.usedCount <= 0)
                     {
                         texDict.Remove(guid);
                         avaiableTexs.Add(ident.belonged);
-                    }else
+                    }
+                    else
                     {
                         texDict[guid] = ident;
                     }
@@ -93,7 +101,7 @@ namespace MPipeline
                 NativeArray<uint> properties = new NativeArray<uint>(count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                 uint* ptr = properties.Ptr();
                 int last = avaiableProperties.Length - 1;
-                for(int i = 0; i < count; ++i)
+                for (int i = 0; i < count; ++i)
                 {
                     ptr[i] = (uint)avaiableProperties[last - i];
                 }
@@ -103,7 +111,7 @@ namespace MPipeline
             public void RemoveProperty(NativeArray<uint> pool)
             {
                 uint* ptr = pool.Ptr();
-                for(int i = 0; i < pool.Length; ++i)
+                for (int i = 0; i < pool.Length; ++i)
                 {
                     avaiableProperties.Add((int)ptr[i]);
                 }
@@ -125,12 +133,8 @@ namespace MPipeline
         public int propertyCapacity = 500;
         public void Awake(MonoBehaviour behavior)
         {
-            if (current != null)
-            {
-                Debug.LogError("Should Be Singleton!");
-                return;
-            }
             current = this;
+            addList = new NativeList<ulong>(10, Allocator.Persistent);
             this.behavior = behavior;
             baseBuffer = new PipelineBaseBuffer();
             clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
@@ -171,7 +175,9 @@ namespace MPipeline
                 propertyBuffer = new ComputeBuffer(propertyCapacity, sizeof(PropertyValue)),
                 copyTextureMat = new Material(RenderPipeline.current.resources.copyShader),
                 texArray = new RenderTexture(desc),
-                clusterMaterial = new Material(RenderPipeline.current.resources.clusterRenderShader)
+                clusterMaterial = new Material(RenderPipeline.current.resources.clusterRenderShader),
+                terrainMaterial = new Material(RenderPipeline.current.resources.terrainShader),
+                terrainDrawStreaming = new TerrainDrawStreaming(100, 16, RenderPipeline.current.resources.terrainCompute)
             };
             commonData.clusterMaterial.SetBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
             commonData.clusterMaterial.SetTexture(ShaderIDs._MainTex, commonData.texArray);
@@ -184,6 +190,22 @@ namespace MPipeline
             for (int i = 0; i < texArrayCapacity; ++i)
             {
                 commonData.avaiableTexs.Add(i);
+            }
+            testNodeArray = new NativeList<ulong>(terrainTransforms.Length, Allocator.Persistent);
+            foreach (var i in terrainTransforms)
+            {
+                TerrainQuadTree.QuadTreeNode* testNode = (TerrainQuadTree.QuadTreeNode*)UnsafeUtility.Malloc(sizeof(TerrainQuadTree.QuadTreeNode), 16, Allocator.Persistent);
+                testNode->listPosition = -1;
+                ref TerrainPanel panel = ref testNode->panel;
+                if (i.localScale.x > 1.1f)
+                    panel.edgeFlag = 0;
+                else
+                    panel.edgeFlag = 15;
+                panel.extent = i.localScale * 0.5f;
+                panel.position = i.position;
+                panel.textureIndex = 0;
+                panel.heightMapIndex = 0;
+                testNodeArray.Add((ulong)testNode);
             }
         }
 
@@ -200,27 +222,62 @@ namespace MPipeline
             commonData.propertyBuffer.Dispose();
             commonData.texDict.Clear();
             commonData.texArray.Release();
+            commonData.terrainDrawStreaming.Dispose();
+            UnityEngine.Object.Destroy(commonData.terrainMaterial);
             UnityEngine.Object.Destroy(commonData.copyTextureMat);
+            foreach (var i in testNodeArray)
+            {
+                UnsafeUtility.Free((void*)i, Allocator.Persistent);
+            }
+            testNodeArray.Dispose();
+            addList.Dispose();
         }
         //Press number load scene
+        public Transform[] terrainTransforms;
+        public NativeList<ulong> addList;
+        public NativeList<ulong> testNodeArray;
         public void Update()
         {
+            /* int value;
+             if (int.TryParse(Input.inputString, out value) && value < testNodeArray.Length)
+             {
+                 Random rd = new Random((uint)Guid.NewGuid().GetHashCode());
+                 addList.Add(testNodeArray[value]);
+                 TerrainQuadTree.QuadTreeNode* node = (TerrainQuadTree.QuadTreeNode*)testNodeArray[value];
+                 if (node->listPosition < 0)
+                 {
+                     NativeArray<float> heightMap = new NativeArray<float>(commonData.terrainDrawStreaming.heightMapSize, Allocator.Temp);
+                     for(int i = 0; i < heightMap.Length; ++i)
+                     {
+                         heightMap[i] = (float)(rd.NextDouble() * 0.2);
+                     }
+                     commonData.terrainDrawStreaming.AddQuadTrees(addList, heightMap);
+
+                 }
+                 else
+                 {
+                     commonData.terrainDrawStreaming.RemoveQuadTrees(addList);
+                 }
+                 addList.Clear();
+             }
+             */
             int value;
-            if (int.TryParse(Input.inputString, out value))
-            {
-                if (value < allScenes.Count)
-                {
-                    SceneStreaming str = allScenes[value];
-                    if (str.state == SceneStreaming.State.Loaded)
-                        behavior.StartCoroutine(str.Delete());
-                    else if (str.state == SceneStreaming.State.Unloaded)
-                        behavior.StartCoroutine(str.Generate());
-                }
-            }
+             if (int.TryParse(Input.inputString, out value))
+             {
+                 if (value < allScenes.Count)
+                 {
+                     SceneStreaming str = allScenes[value];
+                     if (str.state == SceneStreaming.State.Loaded)
+                         behavior.StartCoroutine(str.Delete());
+                     else if (str.state == SceneStreaming.State.Unloaded)
+                         behavior.StartCoroutine(str.Generate());
+                 }
+             }
+
         }
         public static bool GetBaseBuffer(out PipelineBaseBuffer result)
         {
-            if(current == null)
+            if (current == null)
             {
                 result = null;
                 return false;
@@ -229,35 +286,43 @@ namespace MPipeline
             return result.clusterCount > 0;
         }
 
-
         #region DrawFunctions
-        public void DrawCluster(ref RenderClusterOptions options)
+        public void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets)
         {
-            PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
-            PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
-            PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
+            if (options.isClusterEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
+                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
+                PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
+                options.command.DispatchCompute(options.cullingShader, 1, 1, 1, 1);
+            }
             //TODO 绘制其他物体
-
+            if (options.isTerrainEnabled)
+            {
+                commonData.terrainDrawStreaming.DrawTerrain(ref options, commonData.terrainMaterial, targets.renderTargetIdentifier, targets.depthIdentifier);
+            }
             //TODO
-            options.command.DispatchCompute(options.cullingShader, 1, 1, 1, 1);
         }
 
-        public void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts)
+        public void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets targets)
         {
             CommandBuffer buffer = options.command;
-            buffer.SetComputeVectorParam(options.cullingShader, ShaderIDs._CameraUpVector, hizOpts.hizData.lastFrameCameraUp);
-            buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-            buffer.SetComputeTextureParam(options.cullingShader, 5, ShaderIDs._HizDepthTex, hizOpts.hizData.historyDepth);
-            buffer.SetComputeVectorArrayParam(options.cullingShader, ShaderIDs.planes, options.frustumPlanes);
-            buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-            buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-            buffer.SetComputeBufferParam(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
-            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
-            buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-            buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, buffer);
-            buffer.DispatchCompute(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, 1, 1, 1);
+            if (options.isClusterEnabled)
+            {
+                buffer.SetComputeVectorParam(options.cullingShader, ShaderIDs._CameraUpVector, hizOpts.hizData.lastFrameCameraUp);
+                buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+                buffer.SetComputeTextureParam(options.cullingShader, 5, ShaderIDs._HizDepthTex, hizOpts.hizData.historyDepth);
+                buffer.SetComputeVectorArrayParam(options.cullingShader, ShaderIDs.planes, options.frustumPlanes);
+                buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+                buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+                buffer.SetComputeBufferParam(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+                hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
+                hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
+                buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+                buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+                PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, buffer);
+                buffer.DispatchCompute(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, 1, 1, 1);
+            }
             //TODO 绘制其他物体
 
             //TODO
@@ -269,29 +334,35 @@ namespace MPipeline
         {
             CommandBuffer buffer = options.command;
             ComputeShader gpuFrustumShader = options.cullingShader;
-            PipelineFunctions.UpdateOcclusionBuffer(
-baseBuffer, gpuFrustumShader,
-buffer,
-hizOpts.hizData,
-options.frustumPlanes,
-options.isOrtho);
-            //绘制第一次剔除结果
-            PipelineFunctions.DrawLastFrameCullResult(baseBuffer, buffer, commonData.clusterMaterial);
-            //更新Vector，Depth Mip Map
-            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
-            PipelineFunctions.ClearOcclusionData(baseBuffer, buffer, gpuFrustumShader);
+            if (options.isClusterEnabled)
+            {
+                PipelineFunctions.UpdateOcclusionBuffer(
+    baseBuffer, gpuFrustumShader,
+    buffer,
+    hizOpts.hizData,
+    options.frustumPlanes,
+    options.isOrtho);
+                //绘制第一次剔除结果
+                PipelineFunctions.DrawLastFrameCullResult(baseBuffer, buffer, commonData.clusterMaterial);
+                //更新Vector，Depth Mip Map
+                hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
+                PipelineFunctions.ClearOcclusionData(baseBuffer, buffer, gpuFrustumShader);
+            }
             //TODO 绘制其他物体
 
             //TODO
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
-            //使用新数据进行二次剔除
-            PipelineFunctions.OcclusionRecheck(baseBuffer, gpuFrustumShader, buffer, hizOpts.hizData);
-            //绘制二次剔除结果
-            buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthIdentifier);
-            PipelineFunctions.DrawRecheckCullResult(baseBuffer, commonData.clusterMaterial, buffer);
-            buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
-            hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
+            if (options.isClusterEnabled)
+            {
+                //使用新数据进行二次剔除
+                PipelineFunctions.OcclusionRecheck(baseBuffer, gpuFrustumShader, buffer, hizOpts.hizData);
+                //绘制二次剔除结果
+                buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthIdentifier);
+                PipelineFunctions.DrawRecheckCullResult(baseBuffer, commonData.clusterMaterial, buffer);
+                buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
+                hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
+            }
         }
 
         public void DrawDirectionalShadow(Camera currentCam, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)

@@ -385,8 +385,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330718099}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 14.441511, y: 3.4098108, z: -30.235067}
+  m_LocalRotation: {x: 0.15383916, y: 0.79614186, z: -0.22707652, w: 0.53937733}
+  m_LocalPosition: {x: -2.1274185, y: 1.5741119, z: -1.0624142}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -875,6 +875,36 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1609523484
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1609523485}
+  m_Layer: 0
+  m_Name: TerrainObj
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1609523485
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1609523484}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.5, y: 0, z: 5.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 8
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1657096685
 GameObject:
   m_ObjectHideFlags: 0
@@ -938,6 +968,10 @@ MonoBehaviour:
     resolution: 1024
     texArrayCapacity: 60
     propertyCapacity: 500
+    terrainTransforms:
+    - {fileID: 1948874112}
+    - {fileID: 1609523485}
+    - {fileID: 2054499550}
 --- !u!1 &1767835315
 GameObject:
   m_ObjectHideFlags: 0
@@ -986,6 +1020,66 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 7
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1948874111
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1948874112}
+  m_Layer: 0
+  m_Name: TerrainObj (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1948874112
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1948874111}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 1, z: 2}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 9
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2054499549
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2054499550}
+  m_Layer: 0
+  m_Name: TerrainObj (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2054499550
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2054499549}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.5, y: 0, z: 2.869}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &5068905028044915633
 Transform:
@@ -1086,8 +1180,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_renderPath: 2
-  m_enabledInPipeline: 1
-  m_enableBeforePipeline: 1
+  m_enabledInPipeline: 0
+  m_enableBeforePipeline: 0
   layer: 3000
   jitterSpread: 1
   sharpness: 0.25
@@ -1127,7 +1221,7 @@ MonoBehaviour:
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2000
-  occCullingMod: 2
+  occCullingMod: 0
 --- !u!114 &5974951340317444175
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1157,7 +1251,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_renderPath: 2
-  m_enabledInPipeline: 1
+  m_enabledInPipeline: 0
   m_enableBeforePipeline: 0
   layer: 2600
   profile: {fileID: 11400000, guid: 6d0d1a1ad21c9604896988c0fd15fc68, type: 2}
@@ -1175,7 +1269,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_renderPath: 2
-  m_enabledInPipeline: 0
+  m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2100
   availableDistance: 10

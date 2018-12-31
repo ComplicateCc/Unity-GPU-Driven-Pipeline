@@ -6,10 +6,9 @@
 uint _Count;
 
 RWStructuredBuffer<TerrainPanel> clusterBuffer;    
-StructuredBuffer<TerrainVertex> verticesBuffer;
 StructuredBuffer<uint2> _IndexBuffer;
 RWStructuredBuffer<uint> instanceCountBuffer;
-RWStructuredBuffer<uint> resultBuffer;        
+RWStructuredBuffer<uint> resultBuffer;
 
 [numthreads(64,1,1)]
 void Remove (uint id : SV_DispatchThreadID)

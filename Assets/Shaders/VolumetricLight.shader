@@ -10,7 +10,6 @@ CGINCLUDE
 #include "CGINC/VoxelLight.cginc"
 #include "UnityCG.cginc"
 
-static const float MARCHSTEP = 1 / 96.0;
 #pragma multi_compile _ DIRLIGHT
 #pragma multi_compile _ DIRLIGHTSHADOW
 #pragma multi_compile _ POINTLIGHT
@@ -20,82 +19,16 @@ float4 _ShadowDisableDistance;
 float3 _DirLightPos;
 float2 _CameraClipDistance; //X: Near Y: Far - Near
 float3 _DirLightFinalColor;
+float _MarchStep;
 
 TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
-Texture2D<half4> _MainTex; SamplerState sampler_MainTex;
 
-StructuredBuffer<float3> verticesBuffer;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<uint> _PointLightIndexBuffer;
 Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
 Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;   float4 _DownSampledDepth_TexelSize;
+RWTexture3D<half3> _VolumeTex; 
 
-            //-----------------------------------------------------------------------------------------
-		// GaussianWeight
-		//-----------------------------------------------------------------------------------------
-        #define GAUSS_BLUR_DEVIATION 1.5   
-        #define BLUR_DEPTH_FACTOR 0.5
-		#define PI 3.14159265359f
-		#define GaussianWeight(offset, deviation2) (deviation2.y * exp(-(offset * offset) / (deviation2.x)))
-        #define MINIMUMBLUR 0.5
-		//-----------------------------------------------------------------------------------------
-		// BilateralBlur
-		//-----------------------------------------------------------------------------------------
-		half4 BilateralBlur(float2 uv, const half2 direction, Texture2D<half> depth, SamplerState depthSampler, const int kernelRadius, const half kernelWeight)
-		{
-			//const float deviation = kernelRadius / 2.5;
-			const half dev = kernelWeight / GAUSS_BLUR_DEVIATION; // make it really strong
-			const half dev2 = dev * dev * 2;
-			const half2 deviation = half2(dev2, 1.0f / (dev2 * PI));
-			half4 centerColor = _MainTex.Sample(sampler_MainTex, uv);
-			half3 color = centerColor.xyz;
-			//return float4(color, 1);
-			half centerDepth = (LinearEyeDepth(depth.Sample(depthSampler, uv)));
-
-			half weightSum = 0;
-
-			// gaussian weight is computed from constants only -> will be computed in compile time
-            half weight = GaussianWeight(0, deviation);
-			color *= weight;
-			weightSum += weight;
-						
-			[unroll] for (int i = -kernelRadius; i < 0; i += 1)
-			{
-                half2 offset = (direction * i);
-                half sampleColor = _MainTex.Sample(sampler_MainTex, uv, offset);
-                half sampleDepth = (LinearEyeDepth(depth.Sample(depthSampler, uv, offset)));
-
-				half depthDiff = abs(centerDepth - sampleDepth);
-                half dFactor = depthDiff * BLUR_DEPTH_FACTOR;	//Should be 0.5
-				half w = exp(-(dFactor * dFactor));
-
-				// gaussian weight is computed from constants only -> will be computed in compile time
-				weight = GaussianWeight(i, deviation) * max(w, MINIMUMBLUR);
-
-				color += weight * sampleColor;
-				weightSum += weight;
-			}
-
-			[unroll] for (i = 1; i <= kernelRadius; i += 1)
-			{
-				half2 offset = (direction * i);
-                half3 sampleColor = _MainTex.Sample(sampler_MainTex, uv, offset);
-                half sampleDepth = (LinearEyeDepth(depth.Sample(depthSampler, uv, offset)));
-
-				half depthDiff = abs(centerDepth - sampleDepth);
-                half dFactor = depthDiff * BLUR_DEPTH_FACTOR;	//Should be 0.5
-				half w = exp(-(dFactor * dFactor));
-				
-				// gaussian weight is computed from constants only -> will be computed in compile time
-				weight = GaussianWeight(i, deviation) * max(w, MINIMUMBLUR);
-
-				color += weight * sampleColor;
-				weightSum += weight;
-			}
-
-			color /= weightSum;
-			return half4(color, centerColor.w);
-		}
 			float GetHardShadow(float3 worldPos, float eyeDistance)
 			{
 				float4 eyeRange = eyeDistance < _ShadowDisableDistance;
@@ -113,6 +46,11 @@ Texture2D<half> _DownSampledDepth; SamplerState sampler_DownSampledDepth;   floa
 				float atten = dist < _DirShadowMap.Sample(sampler_DirShadowMap, half3(shadowUV, zAxisUV));
 				return atten;
 			}
+
+            inline float EyeDepthToProj(float lin)
+            {
+                return (1/lin - _ZBufferParams.w) / _ZBufferParams.z;
+            }
 
             struct v2fScreen
             {
@@ -137,10 +75,11 @@ ENDCG
  Pass
         {
             Cull off ZWrite off ZTest Always
+            Blend zero one
             CGPROGRAM
             #pragma vertex screenVert
             #pragma fragment frag
-            static const float _MaxDistance = 30;
+            float _MaxDistance;
             
             half4 frag(v2fScreen i) : SV_TARGET
             {
@@ -148,30 +87,27 @@ ENDCG
                 float2 uv = i.uv;
                 //TODO
                 //Transform magic number
-                uv += (float2(rand(float3(uv, -1)), rand(float3(uv, -2))) - 0.5) * _DownSampledDepth_TexelSize.xy;
                 float sceneDepth = _DownSampledDepth.Sample(sampler_DownSampledDepth, uv);
+                float linearDepth = min(_MaxDistance, LinearEyeDepth(sceneDepth));
                 float2 projCoord = uv * 2 - 1;
-                float4 worldPosition = mul(_InvVP, float4(projCoord, sceneDepth, 1));
                 #if UNITY_REVERSED_Z
                 float4 worldNearPos = mul(_InvVP, float4(projCoord, 1, 1));
                 #else
                 float4 worldNearPos = mul(_InvVP, float4(projCoord, 0, 1));
                 #endif
-                worldPosition /= worldPosition.w;
                 worldNearPos /= worldNearPos.w;
-                float3 viewDir = worldPosition - worldNearPos.xyz;
-                float viewLen = length(viewDir);
-                float3 targetWorldPos = worldNearPos.xyz + viewDir / viewLen * min(_MaxDistance, viewLen);
-                float4 targetProjPos = mul(UNITY_MATRIX_VP, float4(targetWorldPos, 1));
-                float linearDepth = LinearEyeDepth(targetProjPos.z / targetProjPos.w);
+                float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
+                targetWorldPos /= targetWorldPos.w;
                 uint2 xyVox = (uint2)(i.uv * float2(XRES, YRES));
                 uint curZ = -1;
                 uint2 ind;
-                float3 color = 0;//TODO: Ambient Light
+                uint voxelStep = 0;
+                const float step = 1 / _MarchStep;
                 [loop]
-                for(float aa = MARCHSTEP; aa < 1; aa += MARCHSTEP)
+                for(float aa = 0; aa < 1; aa += step)
                 {
-                    float4 currentPos = lerp(float4(worldNearPos.xyz, _CameraClipDistance.x), float4(targetWorldPos, linearDepth), aa + MARCHSTEP * rand(float3(randomSeed, aa)));//xyz: worldPos w: linearDepth
+                    float3 color = 0;//TODO: Ambient Light
+                    float4 currentPos = lerp(float4(worldNearPos.xyz, _CameraClipDistance.x), float4(targetWorldPos.xyz, linearDepth), aa + step * rand(float3(randomSeed, aa)));//xyz: worldPos w: linearDepth
                     #if DIRLIGHT
                     #if DIRLIGHTSHADOW
                     color += _DirLightFinalColor * GetHardShadow(currentPos.xyz, currentPos.w);
@@ -199,108 +135,52 @@ ENDCG
                             half lightDist = lenOfLightDir / pt.sphere.w;
                             currentCol *= lightDist <= shadowDist;
                         }
-                        //TODO
-                        //color integration
                         color += currentCol;
                     }
                     #endif
+                    _VolumeTex[uint3(i.vertex.xy, voxelStep)] = color;
+                    voxelStep++;
                 }
-                color *= MARCHSTEP;
-                return float4(color, 1);
+                return 0;
             }
             ENDCG
         }
-        //Pass 1: Down Sampler Chessboard
+        //Pass 1: Down Sampler
         Pass
         {
             Cull off ZWrite off ZTest Always
             CGPROGRAM
             #pragma vertex screenVert
             #pragma fragment frag
-            Texture2D<float> _OriginMap; SamplerState sampler_OriginMap;
-            float4 _OriginMap_TexelSize;
-            #define Samp(uv) (_OriginMap.Sample(sampler_OriginMap, uv))
+            Texture2D<float> _MainTex; SamplerState sampler_MainTex;
+            float4 _MainTex_TexelSize;
+            #define Samp(uv) (_MainTex.Sample(sampler_MainTex, uv))
             float frag(v2fScreen i) : SV_TARGET
             {
-                float2 offset = _OriginMap_TexelSize.xy * 0.5;
+                float2 offset = _MainTex_TexelSize.xy * 0.5;
                 float4 depth = float4(Samp(i.uv + offset), Samp(i.uv + offset * float2(1, -1)), Samp(i.uv + offset * float2(-1, 1)), Samp(i.uv + offset * -1));
-                //return dot(values, 0.25);
-               float minDepth = min(min(depth.x, depth.y), min(depth.z, depth.w));
-			float maxDepth = max(max(depth.x, depth.y), max(depth.z, depth.w));
-
-			// chessboard pattern
-			int2 position = i.vertex.xy % 2;
-			int index = position.x + position.y;
-            #if UNITY_REVERSED_Z
-                return index == 1 ? maxDepth : minDepth;
-                #else
-			    return index == 1 ? minDepth : maxDepth;
-                #endif
-            }
-            ENDCG
-        }
-        //Pass 2: Blend 
-        Pass
-        {
-            Cull off ZWrite off ZTest Always
-            Blend srcAlpha OneminusSrcAlpha
-            CGPROGRAM
-            #pragma vertex screenVert
-            #pragma fragment frag
-            Texture2D<half3> _VolumeTex; SamplerState sampler_VolumeTex;
-            Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
-            half4 frag(v2fScreen i) : SV_TARGET
-            {
-                float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
-                float4 worldPos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
-                worldPos /= worldPos.w;
-                float dist = distance(_WorldSpaceCameraPos, worldPos.xyz);
-                return float4(_VolumeTex.Sample(sampler_VolumeTex, i.uv), saturate(1 - exp(-dist * 0.05)));
-            }
-            ENDCG
-        }
-        //Pass 3: Horizontal biliteral blend
-        Pass
-        {
-            Cull off ZWrite off ZTest Always
-            CGPROGRAM
-            #pragma vertex screenVert
-            #pragma fragment frag
-            half4 frag(v2fScreen i) : SV_TARGET
-            {
-                return BilateralBlur(i.uv, half2(1, 0), _DownSampledDepth, sampler_DownSampledDepth, 4, 3.5);
+			    float maxDepth = max(max(depth.x, depth.y), max(depth.z, depth.w));
+                return maxDepth;
             }
             ENDCG
         }
 
-        //Pass 4: Verticle biliteral blend
-        Pass
+        //Pass 2: Accumulate
+        pass
         {
             Cull off ZWrite off ZTest Always
             CGPROGRAM
             #pragma vertex screenVert
             #pragma fragment frag
-            half4 frag(v2fScreen i) : SV_TARGET
+            float3 frag(v2fScreen i) : SV_TARGET
             {
-                return BilateralBlur(i.uv, half2(0, 1), _DownSampledDepth, sampler_DownSampledDepth, 4, 3.5);
-            }
-            ENDCG
-        }
-        //Pass 5: Down Sampler Average
-        Pass
-        {
-            Cull off ZWrite off ZTest Always
-            CGPROGRAM
-            #pragma vertex screenVert
-            #pragma fragment frag
-            Texture2D<float> _OriginMap; SamplerState sampler_OriginMap;
-            float4 _OriginMap_TexelSize;
-            #define Samp(uv) (_OriginMap.Sample(sampler_OriginMap, uv))
-            float frag(v2fScreen i) : SV_TARGET
-            {
-                float2 offset = _OriginMap_TexelSize.xy * 0.5;
-                float4 depth = float4(Samp(i.uv + offset), Samp(i.uv + offset * float2(1, -1)), Samp(i.uv + offset * float2(-1, 1)), Samp(i.uv + offset * -1));
-                return dot(depth, 0.25);
+                float3 color = 0;
+                for(int a = 0; a < _MarchStep; ++a)
+                {
+                    color += _VolumeTex[uint3(i.vertex.xy, a)];
+                }
+                color /= _MarchStep;
+                return color;
             }
             ENDCG
         }

@@ -18,6 +18,7 @@ MonoBehaviour:
   streamingShader: {fileID: 7200000, guid: c1cd0cb9f5eddbf489aa459bceba9e14, type: 3}
   pointLightFrustumCulling: {fileID: 7200000, guid: 7011edaf13151fd4d8c2d60c5d147390,
     type: 3}
+  terrainCompute: {fileID: 7200000, guid: df2ca219aec3d6c4dbd51730f91bcf0a, type: 3}
   copyShader: {fileID: 4800000, guid: c2654d1ef3f0b64408cc68e6eeb7795b, type: 3}
   taaShader: {fileID: 4800000, guid: 51bcf79c50dc92e47ba87821b61100c3, type: 3}
   indirectDepthShader: {fileID: 4800000, guid: 2896c2d5ef5101b46942a11a481cb2d6, type: 3}
@@ -31,5 +32,6 @@ MonoBehaviour:
   cubeDepthShader: {fileID: 4800000, guid: b33fc3a2454d9ca46b31777fb5e46e00, type: 3}
   clusterRenderShader: {fileID: 4800000, guid: 538f1aea21e411247a28ba6f5befa4c1, type: 3}
   volumetricShader: {fileID: 4800000, guid: b18907693260b7442b86918d80df23f8, type: 3}
+  terrainShader: {fileID: 4800000, guid: 6fb475602d94ae848a82d502a93ade30, type: 3}
   occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}

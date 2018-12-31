@@ -34,20 +34,23 @@ namespace MPipeline
             buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthIdentifier);
             buffer.ClearRenderTarget(true, true, Color.black);
             PipelineBaseBuffer baseBuffer;
-            if (!SceneController.GetBaseBuffer(out baseBuffer)) return;
+            bool isClusterEnabled = SceneController.GetBaseBuffer(out baseBuffer);
             HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, () => new HizOcclusionData());
             RenderClusterOptions options = new RenderClusterOptions
             {
                 command = buffer,
                 frustumPlanes = data.arrayCollection.frustumPlanes,
                 isOrtho = cam.cam.orthographic,
-                cullingShader = data.resources.gpuFrustumCulling
+                cullingShader = data.resources.gpuFrustumCulling,
+                terrainCompute = data.resources.terrainCompute,
+                isClusterEnabled = isClusterEnabled,
+                isTerrainEnabled = true
             };
             HizOptions hizOptions;
             switch (occCullingMod)
             {
                 case OcclusionCullingMode.None:
-                    SceneController.current.DrawCluster(ref options);
+                    SceneController.current.DrawCluster(ref options, ref cam.targets);
                     break;
                 case OcclusionCullingMode.SingleCheck:
                     hizOptions = new HizOptions
@@ -58,7 +61,7 @@ namespace MPipeline
                         linearLODMaterial = linearMat,
                         currentDepthTex = cam.targets.depthTexture
                     };
-                    SceneController.current.DrawClusterOccSingleCheck(ref options, ref hizOptions);
+                    SceneController.current.DrawClusterOccSingleCheck(ref options, ref hizOptions, ref cam.targets);
                     break;
                 case OcclusionCullingMode.DoubleCheck:
                     hizOptions = new HizOptions
