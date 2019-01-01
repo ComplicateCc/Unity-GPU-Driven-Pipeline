@@ -996,7 +996,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1767835315}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9bc98792b41dcad4b862fea31c3c7022, type: 3}
   m_Name: 
@@ -1004,7 +1004,7 @@ MonoBehaviour:
   useShadow: 1
   range: 10
   color: {r: 1, g: 0.6886793, b: 0, a: 1}
-  intensity: 100
+  intensity: 20
   radius: 1
   length: 1
 --- !u!4 &1767835317
@@ -1015,7 +1015,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1767835315}
   m_LocalRotation: {x: -0.10739195, y: 0.11367038, z: -0.012361057, w: -0.98762}
-  m_LocalPosition: {x: 11.39, y: 2, z: -33.66}
+  m_LocalPosition: {x: 11.39, y: 3.775, z: -33.66}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1272,8 +1272,7 @@ MonoBehaviour:
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2100
-  availableDistance: 32
-  step: 4
+  availableDistance: 50
 --- !u!1 &8525019080748604213
 GameObject:
   m_ObjectHideFlags: 0

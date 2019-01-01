@@ -10,20 +10,37 @@ CGINCLUDE
 #include "CGINC/VoxelLight.cginc"
 #include "UnityCG.cginc"
 
-#pragma multi_compile _ DIRLIGHT
-#pragma multi_compile _ DIRLIGHTSHADOW
-#pragma multi_compile _ POINTLIGHT
-float4x4 _InvVP;
-float4x4 _ShadowMapVPs[4];
-float4 _ShadowDisableDistance;
-float3 _DirLightPos;
-float2 _CameraClipDistance; //X: Near Y: Far - Near
-float3 _DirLightFinalColor;
-float _MaxDistance;
-uint _MarchStep;
-
 Texture3D<half4> _VolumeTex; SamplerState sampler_VolumeTex;
 Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
+float4 _RandomSeed;
+inline int ihash(int n)
+{
+	n = (n<<13)^n;
+	return (n*(n*n*15731+789221)+1376312589) & 2147483647;
+}
+
+inline float frand(int n)
+{
+	return ihash(n) / 2147483647.0;
+}
+
+inline float2 cellNoise(int2 p)
+{
+	int i = p.y*256 + p.x;
+	return sin(float2(frand(i), frand(i + 57)) * _RandomSeed.xy + _RandomSeed.zw);
+}
+
+half4 Fog(half linear01Depth, half2 screenuv)
+{
+	half z = linear01Depth * _NearFarClip.x;
+	z = (z - _NearFarClip.y) / (1 - _NearFarClip.y);
+	if (z < 0.0)
+		return half4(0, 0, 0, 1);
+
+	half3 uvw = half3(screenuv.x, screenuv.y, z);
+	uvw.xy += cellNoise(uvw.xy * _Screen_TexelSize.zw) / (float2)_ScreenSize.xy;
+	return _VolumeTex.Sample(sampler_VolumeTex, uvw);
+}
             struct v2fScreen
             {
                 float4 vertex : SV_POSITION;
@@ -46,21 +63,15 @@ ENDCG
         pass
         {
             Cull off ZWrite off ZTest Always
-            Blend srcAlpha oneMinusSrcAlpha
+            Blend oneMinusSrcAlpha srcAlpha
             CGPROGRAM
             #pragma vertex screenVert
             #pragma fragment frag
             float4 frag(v2fScreen i) : SV_TARGET
             {
-                float linearDepth = min(_MaxDistance, LinearEyeDepth(_CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv)));
-                const float step = 4.0 / _MarchStep;
-                float3 color = 0;
-                for(float aa = 0; aa < 1; aa += step)
-                {
-                    float currentDepth = lerp(_CameraClipDistance.x, linearDepth, aa ) / _MaxDistance;
-                    color += _VolumeTex.Sample(sampler_VolumeTex, float3(i.uv, currentDepth)).xyz;
-                }
-                return float4(color / _MarchStep, saturate(linearDepth * 0.03));
+                half linear01Depth = Linear01Depth(_CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv));
+		        half4 fog = Fog(linear01Depth, i.uv);
+		        return fog;
             }
             ENDCG
         }

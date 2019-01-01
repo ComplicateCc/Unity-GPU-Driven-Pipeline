@@ -5,17 +5,15 @@
 #pragma kernel CSMain CUBEMAP
 #pragma kernel CSMain DIRMAP
 #pragma kernel CSMain CUBEMAP DIRMAP
-
+#pragma kernel Scatter
 #include "CGINC/VoxelLight.cginc"
 #include "UnityCG.cginc"
 
 float4x4 _InvVP;
 float4x4 _ShadowMapVPs[4];
 float4 _ShadowDisableDistance;
-float2 _CameraClipDistance; //X: Near Y: Far - Near
 float3 _DirLightFinalColor;
 uint _LightFlag;
-uint _MarchStep;
 float4x4 _LastVp;
 float _TemporalWeight;
 
@@ -48,11 +46,9 @@ Texture3D<half4> _LastVolume; SamplerState sampler_LastVolume;
 				return atten;
 			}
 
-float3 GetColor(float3 targetWorldPos, float linearDepth, float2 projCoord, float2 uv)
+float3 GetColor(float3 targetWorldPos, uint zAxis, float linearDepth, float2 projCoord, float2 uv)
 {
-    
-    float rate = saturate((linearDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
-    uint3 clusterCoord = uint3(uv * float2(XRES, YRES), rate * ZRES);
+    uint3 clusterCoord = uint3(uv * float2(XRES, YRES), zAxis * ZRES / _ScreenSize.z);
     uint sb = GetIndex(clusterCoord, VOXELSIZE);
     uint2 ind = uint2(sb + 1, _PointLightIndexBuffer[sb]);
     float3 color = 0;
@@ -68,7 +64,7 @@ float3 GetColor(float3 targetWorldPos, float linearDepth, float2 projCoord, floa
     for(uint c = ind.x; c < ind.y; c++)
     {
         PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
-        float3 currentCol = pt.lightColor * saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w);
+        float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
         #ifdef CUBEMAP
         if(pt.shadowIndex >= 0){
             float3 lightDir = pt.sphere.xyz - targetWorldPos;
@@ -83,26 +79,53 @@ float3 GetColor(float3 targetWorldPos, float linearDepth, float2 projCoord, floa
     }
     return color;
 }
+
+float4 ScatterStep(float3 accumulatedLight, float accumulatedTransmittance, float3 sliceLight, float sliceDensity)
+{
+	sliceDensity = max(sliceDensity, 0.000001);
+	float  sliceTransmittance = exp(-sliceDensity / _ScreenSize.z);
+
+	// Seb Hillaire's improved transmission by calculating an integral over slice depth instead of
+	// constant per slice value. Light still constant per slice, but that's acceptable. See slide 28 of
+	// Physically-based & Unified Volumetric Rendering in Frostbite
+	// http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
+	float3 sliceLightIntegral = sliceLight * (1.0 - sliceTransmittance) / sliceDensity;
+
+	accumulatedLight += sliceLightIntegral * accumulatedTransmittance;
+	accumulatedTransmittance *= sliceTransmittance;
+	
+	return float4(accumulatedLight, accumulatedTransmittance);
+}
 float _MaxDistance;
-[numthreads(4, 2, VOXELZ)]
+[numthreads(8, 2, VOXELZ)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    float2 uv = id.xy / _ScreenSize;
-    float2 seed = getSeed(uv);
-    uv += (seed - 0.5) / _ScreenSize * 0.2;
-    float randomSeed = rand(float3(seed, id.z));
-    const float step = 0.5 / _MarchStep;
-    float lerpPos = id.z / (float)_MarchStep + step * randomSeed;
-    half linearDepth = lerp(_CameraClipDistance.x, _MaxDistance, lerpPos);
-    float2 projCoord = uv * 2 - 1;
+    float3 jitterCoord = getRandomFloat3(GetIndex(id, _ScreenSize));
+    float2 uv = float2(id.xy + (jitterCoord.xy - 0.5) * 2) / (float2)(_ScreenSize.xy - 1);
+    half2 projCoord = uv * 2 - 1;
+    const float step = 1.0 / _ScreenSize.z;
+    float lerpPos = id.z / ((half)_ScreenSize.z - 1) + step * jitterCoord.z;
+    half linearDepth = lerp(_NearFarClip.z, _MaxDistance, lerpPos);
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
     float4 lastFrameClip = mul(_LastVp, targetWorldPos);
     lastFrameClip /= lastFrameClip.w;
     float3 lastFrameUV =float3(lastFrameClip.xy * 0.5 + 0.5, LinearEyeDepth(lastFrameClip.z) / _MaxDistance);
-    bool3 uvInRange = lastFrameUV > 0 && lastFrameUV < 1;
     half4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
     targetWorldPos /= targetWorldPos.w;
-    float temporalWeight = (uvInRange.x && uvInRange.y && uvInRange.z) ? _TemporalWeight : 0;
-    _VolumeTex[id] = lerp(float4(GetColor(targetWorldPos.xyz, linearDepth, projCoord, uv), 1), lastFrameColor, temporalWeight);
+    float reprojectionValid = _TemporalWeight * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
+    _VolumeTex[id] = lerp(float4(GetColor(targetWorldPos.xyz, id.z, linearDepth, projCoord, uv), 1), lastFrameColor, reprojectionValid);
+}
 
+[numthreads(32, 2, 1)]
+void Scatter(uint2 id : SV_DISPATCHTHREADID)
+{
+	float4 accum = float4(0, 0, 0, 1);
+	uint3 pos = uint3(id.xy, 0);
+	for(uint z = 0; z < _ScreenSize.z; z++)
+	{
+		pos.z = z;
+		float4 slice = _VolumeTex[pos];
+		accum = ScatterStep(accum.rgb, accum.a, slice.rgb, slice.a);
+		_VolumeTex[pos] = accum;
+	}
 }

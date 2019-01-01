@@ -40,7 +40,6 @@ public static partial class ShaderIDs
     public static readonly int _CullingPlaneCount = Shader.PropertyToID("_CullingPlaneCount");
 
     public static readonly int _ShadowMapResolution = Shader.PropertyToID("_ShadowMapResolution");
-    public static readonly int _ScreenSize = Shader.PropertyToID("_ScreenSize");
     public static readonly int _LightDir = Shader.PropertyToID("_LightDir");
     public static readonly int _WorldPoses = Shader.PropertyToID("_WorldPoses");
     public static readonly int _PreviousLevel = Shader.PropertyToID("_PreviousLevel");
@@ -74,25 +73,26 @@ public static partial class ShaderIDs
     public static readonly int _CameraForward = Shader.PropertyToID("_CameraForward");
     public static readonly int _CameraNearPos = Shader.PropertyToID("_CameraNearPos");
     public static readonly int _CameraFarPos = Shader.PropertyToID("_CameraFarPos");
-    public static readonly int _CameraClipDistance = Shader.PropertyToID("_CameraClipDistance");
     public static readonly int _PointLightCount = Shader.PropertyToID("_PointLightCount");
     public static readonly int _XYPlaneTexture = Shader.PropertyToID("_XYPlaneTexture");
     public static readonly int _ZPlaneTexture = Shader.PropertyToID("_ZPlaneTexture");
     public static readonly int _PointLightTexture = Shader.PropertyToID("_PointLightTexture");
     public static readonly int _AllPointLight = Shader.PropertyToID("_AllPointLight");
     public static readonly int _PointLightIndexBuffer = Shader.PropertyToID("_PointLightIndexBuffer");
-    public static readonly int _RandomNumber = Shader.PropertyToID("_RandomNumber");
-    public static readonly int _RandomWeight = Shader.PropertyToID("_RandomWeight");
-    public static readonly int _RandomTex = Shader.PropertyToID("_RandomTex");
+    public static readonly int _FrameCount = Shader.PropertyToID("_FrameCount");
 
     public static readonly int heightMapBuffer = Shader.PropertyToID("heightMapBuffer");
     public static readonly int triangleBuffer = Shader.PropertyToID("triangleBuffer");
     public static readonly int _MeshSize = Shader.PropertyToID("_MeshSize");
     public static readonly int _LightFlag = Shader.PropertyToID("_LightFlag");
     public static readonly int _CubeShadowMapArray = Shader.PropertyToID("_CubeShadowMapArray");
-    public static readonly int _MarchStep = Shader.PropertyToID("_MarchStep");
     public static readonly int _TemporalWeight = Shader.PropertyToID("_TemporalWeight");
     public static readonly int _MaxDistance = Shader.PropertyToID("_MaxDistance");
     public static readonly int _VolumeTex = Shader.PropertyToID("_VolumeTex");
+    public static readonly int _RandomBuffer = Shader.PropertyToID("_RandomBuffer");
+    public static readonly int _RandomSeed = Shader.PropertyToID("_RandomSeed");
     public static readonly int _LastVolume = Shader.PropertyToID("_LastVolume");
+    public static readonly int _NearFarClip = Shader.PropertyToID("_NearFarClip");
+    public static readonly int _CameraClipDistance = Shader.PropertyToID("_CameraClipDistance");
+    public static readonly int _Screen_TexelSize = Shader.PropertyToID("_Screen_TexelSize");
 }
