@@ -10,7 +10,8 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
 
 
 #define VOXELSIZE uint3(XRES, YRES, ZRES)
-#define MAXLIGHTPERCLUSTER 8 
+#define MAXLIGHTPERCLUSTER 16
+
             struct PointLight{
                 float3 lightColor;
                 float lightIntensity;

@@ -30,7 +30,7 @@ namespace MPipeline
         public const int XRES = 16;
         public const int YRES = 8;
         public const int ZRES = 64;
-        public const int MAXLIGHTPERCLUSTER = 8;
+        public const int MAXLIGHTPERCLUSTER = 16;
         public const int pointLightInitCapacity = 50;
         public uint lightFlag = 0;
         public NativeArray<PointLightStruct> pointLightArray;
