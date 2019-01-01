@@ -6,6 +6,8 @@
 #define ZRES 64
 #define VOXELZ 64
 
+static const float2 _ScreenSize = float2(160, 90);
+
 #define VOXELSIZE uint3(XRES, YRES, ZRES)
 #define MAXLIGHTPERCLUSTER 8 
             struct PointLight{

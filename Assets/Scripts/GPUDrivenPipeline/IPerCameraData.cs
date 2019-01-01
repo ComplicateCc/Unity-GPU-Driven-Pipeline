@@ -3,7 +3,7 @@ namespace MPipeline
 {
     public abstract class IPerCameraData
     {
-        public static T GetProperty<T>(PipelineCamera camera, Func<IPerCameraData> initFunc) where T : IPerCameraData
+        public static T GetProperty<T>(PipelineCamera camera, Func<T> initFunc) where T : IPerCameraData
         {
             IPerCameraData data;
             if (!camera.postDatas.TryGetValue(typeof(T), out data))
@@ -24,7 +24,7 @@ namespace MPipeline
             camera.postDatas.Remove(typeof(T));
         }
 
-        public static T GetProperty<T>(PipelineCamera camera, Func<PipelineCamera, IPerCameraData> initFunc) where T : IPerCameraData
+        public static T GetProperty<T>(PipelineCamera camera, Func<PipelineCamera, T> initFunc) where T : IPerCameraData
         {
             IPerCameraData data;
             if (!camera.postDatas.TryGetValue(typeof(T), out data))
@@ -35,7 +35,7 @@ namespace MPipeline
             return (T)data;
         }
 
-        public static T GetProperty<T>(PipelineCamera camera, PipelineResources resource, Func<PipelineCamera, PipelineResources, IPerCameraData> initFunc) where T : IPerCameraData
+        public static T GetProperty<T>(PipelineCamera camera, PipelineResources resource, Func<PipelineCamera, PipelineResources, T> initFunc) where T : IPerCameraData
         {
             IPerCameraData data;
             if (!camera.postDatas.TryGetValue(typeof(T), out data))
@@ -45,7 +45,7 @@ namespace MPipeline
             }
             return (T)data;
         }
-        public static T GetProperty<T>(PipelineCamera camera, PipelineResources resource, Func<PipelineResources, IPerCameraData> initFunc) where T : IPerCameraData
+        public static T GetProperty<T>(PipelineCamera camera, PipelineResources resource, Func<PipelineResources, T> initFunc) where T : IPerCameraData
         {
             IPerCameraData data;
             if (!camera.postDatas.TryGetValue(typeof(T), out data))

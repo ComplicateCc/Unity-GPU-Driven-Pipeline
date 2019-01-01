@@ -1186,9 +1186,9 @@ MonoBehaviour:
   jitterSpread: 1
   sharpness: 0.25
   stationaryBlending: 0.95
-  motionBlending: 0.92
-  stationaryAABBScale: 3
-  motionAABBScale: 1
+  motionBlending: 0.87
+  stationaryAABBScale: 4
+  motionAABBScale: 1.5
 --- !u!114 &5974951340317444173
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1272,7 +1272,7 @@ MonoBehaviour:
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2100
-  availableDistance: 64
+  availableDistance: 32
   step: 4
 --- !u!1 &8525019080748604213
 GameObject:

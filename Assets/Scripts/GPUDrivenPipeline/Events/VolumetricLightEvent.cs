@@ -12,14 +12,10 @@ namespace MPipeline
     {
         private CBDRSharedData cbdr;
         private Material volumeMat;
-        private static readonly int _TempMap = Shader.PropertyToID("_TempMap");
-        private static readonly int _OriginMap = Shader.PropertyToID("_OriginMap");
-        private static readonly int _DownSampledDepth = Shader.PropertyToID("_DownSampledDepth");
-        private static readonly int _MaxDistance = Shader.PropertyToID("_MaxDistance");
-        private static readonly int _VolumeTex = Shader.PropertyToID("_VolumeTex");
         public float availableDistance = 64;
         const int marchStep = 64;
-        [Range(1, 4)]
+        static readonly int2 downSampledSize = new int2(160, 90);
+        [Range(1, 8)]
         public int step = 1;
 
         protected override void Init(PipelineResources resources)
@@ -52,6 +48,7 @@ namespace MPipeline
         {
             CommandBuffer buffer = data.buffer;
             ComputeShader scatter = data.resources.volumetricScattering;
+
             //Set Voxel Based Lighting
             VoxelLightCommonData(buffer, cam.cam);
             if (cbdr.lightFlag == 0)
@@ -83,24 +80,15 @@ namespace MPipeline
                     cbdr.lightFlag &= 0b111111111110;//Kill point light if there is nothing in the culled list
                 }
             }
-            int2 downSampledSize = new int2(cam.cam.pixelWidth / 8, cam.cam.pixelHeight / 8);
             //Set Random
             buffer.SetGlobalVector(ShaderIDs._RandomNumber, new Vector4(Random.Range(10f, 50f), Random.Range(10f, 50f), Random.Range(10f, 50f), Random.Range(20000f, 40000f)));
             buffer.SetGlobalVector(ShaderIDs._RandomWeight, new Vector4(Random.value, Random.value, Random.value, Random.value));
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._RandomTex, cbdr.randomTex);
-            buffer.SetGlobalFloat(_MaxDistance, availableDistance);
+            buffer.SetGlobalFloat(ShaderIDs._MaxDistance, availableDistance);
             buffer.SetGlobalInt(ShaderIDs._MarchStep, step * marchStep);
-            //DownSample
-            buffer.GetTemporaryRT(_DownSampledDepth, cam.cam.pixelWidth / 2, cam.cam.pixelHeight / 2, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
-            buffer.BlitSRT(cam.targets.depthTexture, _DownSampledDepth, volumeMat, 0);
-            buffer.GetTemporaryRT(_TempMap, cam.cam.pixelWidth / 4, cam.cam.pixelHeight / 4, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
-            buffer.BlitSRT(_DownSampledDepth, _TempMap, volumeMat, 0);
-            buffer.ReleaseTemporaryRT(_DownSampledDepth);
-            buffer.GetTemporaryRT(_DownSampledDepth, downSampledSize.x, downSampledSize.y, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
-            buffer.BlitSRT(_TempMap, _DownSampledDepth, volumeMat, 1);
-            buffer.ReleaseTemporaryRT(_TempMap);
+            HistoryVolumetric historyVolume = IPerCameraData.GetProperty(cam, () => new HistoryVolumetric());
             //Volumetric Light
-            buffer.GetTemporaryRT(_VolumeTex, new RenderTextureDescriptor
+            RenderTextureDescriptor desc = new RenderTextureDescriptor
             {
                 autoGenerateMips = false,
                 bindMS = false,
@@ -117,20 +105,39 @@ namespace MPipeline
                 useMipMap = false,
                 volumeDepth = marchStep * step,
                 vrUsage = VRTextureUsage.None
-            });
+            };
+            buffer.GetTemporaryRT(ShaderIDs._VolumeTex, desc);
+            if (!historyVolume.lastVolume)
+            {
+                historyVolume.lastVolume = new RenderTexture(desc);
+                historyVolume.lastVolume.filterMode = FilterMode.Bilinear;
+                historyVolume.lastVolume.wrapMode = TextureWrapMode.Clamp;
+                historyVolume.lastVolume.Create();
+                buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0);
+            }
+            else
+            {
+                if(historyVolume.lastVolume.volumeDepth != desc.volumeDepth)
+                {
+                    historyVolume.lastVolume.Release();
+                    historyVolume.lastVolume.volumeDepth = desc.volumeDepth;
+                    historyVolume.lastVolume.Create();
+                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0);
+                }
+                else
+                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.7f);
+            }
             buffer.SetGlobalVector(ShaderIDs._ScreenSize, new Vector2(downSampledSize.x, downSampledSize.y));
-            buffer.SetComputeTextureParam(scatter, pass, _DownSampledDepth, _DownSampledDepth);
-            buffer.SetComputeTextureParam(scatter, pass, _VolumeTex, _VolumeTex);
+            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
+            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._LastVolume, historyVolume.lastVolume);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._DirShadowMap, cbdr.dirLightShadowmap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubemapShadowArray);
             cbdr.cubemapShadowArray = null;
             cbdr.dirLightShadowmap = null;
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
-            buffer.DispatchCompute(scatter, pass, (int)math.ceil(downSampledSize.x / 4f), (int)math.ceil(downSampledSize.y / 4f), step);
-            buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 2);
-            //Dispose
-            buffer.ReleaseTemporaryRT(_DownSampledDepth);
-            buffer.ReleaseTemporaryRT(_VolumeTex);
+            buffer.DispatchCompute(scatter, pass, downSampledSize.x / 4, downSampledSize.y / 2, step);
+            buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 0);
+            buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);
             cbdr.lightFlag = 0;
             PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
@@ -166,6 +173,18 @@ namespace MPipeline
         protected override void Dispose()
         {
             Destroy(volumeMat);
+        }
+    }
+    public class HistoryVolumetric : IPerCameraData
+    {
+        public RenderTexture lastVolume = null;
+        public override void DisposeProperty()
+        {
+            if (lastVolume != null)
+            {
+                lastVolume.Release();
+                lastVolume = null;
+            }
         }
     }
 }

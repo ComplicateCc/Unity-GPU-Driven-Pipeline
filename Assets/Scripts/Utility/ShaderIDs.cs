@@ -51,8 +51,6 @@ public static partial class ShaderIDs
     public static readonly int _Depth = Shader.PropertyToID("_Depth");
     public static readonly int _LastDepth = Shader.PropertyToID("_LastDepth");
     public static readonly int _NonJitterVP = Shader.PropertyToID("_NonJitterVP");
-    public static readonly int _InvNonJitterVP = Shader.PropertyToID("_InvNonJitterVP");
-
     public static readonly int _Lut3D = Shader.PropertyToID("_Lut3D");
     public static readonly int _Lut3D_Params = Shader.PropertyToID("_Lut3D_Params");
     public static readonly int _PostExposure = Shader.PropertyToID("_PostExposure");
@@ -93,4 +91,8 @@ public static partial class ShaderIDs
     public static readonly int _LightFlag = Shader.PropertyToID("_LightFlag");
     public static readonly int _CubeShadowMapArray = Shader.PropertyToID("_CubeShadowMapArray");
     public static readonly int _MarchStep = Shader.PropertyToID("_MarchStep");
+    public static readonly int _TemporalWeight = Shader.PropertyToID("_TemporalWeight");
+    public static readonly int _MaxDistance = Shader.PropertyToID("_MaxDistance");
+    public static readonly int _VolumeTex = Shader.PropertyToID("_VolumeTex");
+    public static readonly int _LastVolume = Shader.PropertyToID("_LastVolume");
 }
