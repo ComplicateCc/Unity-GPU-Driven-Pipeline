@@ -111,6 +111,8 @@ namespace MPipeline
                 }
                 if (after) evt.drawEvents.InsertTo(this, compareFunc);
                 if (before) evt.preRenderEvents.InsertTo(this, compareFunc);
+                if (Application.isPlaying)
+                    OnEventEnable();
             }
             else
             {
@@ -120,14 +122,16 @@ namespace MPipeline
                     if (after) evt.drawEvents.Remove(this);
                     if (before) evt.preRenderEvents.Remove(this);
                 }
+                if (Application.isPlaying)
+                    OnEventDisable();
             }
         }
 
         public void InitEvent(PipelineResources resources)
         {
             SetAttribute();
-            SetPipelineEnable(true, m_enabledInPipeline, m_enableBeforePipeline, m_renderPath);
             Init(resources);
+            SetPipelineEnable(true, m_enabledInPipeline, m_enableBeforePipeline, m_renderPath);
         }
         public void DisposeEvent()
         {
@@ -138,5 +142,7 @@ namespace MPipeline
         protected virtual void Dispose() { }
         public virtual void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data) { }
         public virtual void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data) { }
+        public virtual void OnEventEnable() { }
+        public virtual void OnEventDisable() { }
     }
 }

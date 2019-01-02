@@ -1,16 +1,19 @@
 #ifndef __VOXELLIGHT_INCLUDE__
 #define __VOXELLIGHT_INCLUDE__
 
-#define XRES 16
-#define YRES 8
-#define ZRES 64
+#define XRES 32
+#define YRES 16
+#define ZRES 16
 #define VOXELZ 64
+#define MAXLIGHTPERCLUSTER 16
+#define MAXLIGHTPERTILE 128
+#define FROXELMAXLIGHTPERTILE 32
 
 static const uint3 _ScreenSize = uint3(160, 90, 256);
 
 
 #define VOXELSIZE uint3(XRES, YRES, ZRES)
-#define MAXLIGHTPERCLUSTER 16
+
 
             struct PointLight{
                 float3 lightColor;
@@ -21,7 +24,6 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
 float3 _CameraForward;
 float3 _CameraNearPos;
 float3 _CameraFarPos;
-uint _PointLightCount;
 float3 _NearFarClip; //x: farClip / availiable distance y: nearclip / availiable distance z: nearClip
 
 float4 _Screen_TexelSize;

@@ -22,20 +22,20 @@ namespace MPipeline
         public RenderTexture cubemapShadowArray;
         public RenderTexture xyPlaneTexture;
         public RenderTexture zPlaneTexture;
-        public RenderTexture froxelZPlaneTexture;
+        public RenderTexture tileLightList;
+        public RenderTexture froxelTileLightList;
         public ComputeBuffer allPointLightBuffer;
         public ComputeBuffer pointlightIndexBuffer;
-        public ComputeBuffer froxelPointLightBuffer;
-        public ComputeBuffer froxelPointLightIndexBuffer;
-        public const int XRES = 16;
-        public const int YRES = 8;
-        public const int ZRES = 64;
+        public const int XRES = 32;
+        public const int YRES = 16;
+        public const int ZRES = 16;
         public const int MAXLIGHTPERCLUSTER = 16;
+        public const int MAXLIGHTPERTILE = 128;
+        public const int FROXELMAXLIGHTPERTILE = 32;
         public const int pointLightInitCapacity = 50;
         public uint lightFlag = 0;
-        public NativeArray<PointLightStruct> pointLightArray;
-        public int* pointLightCount = null;
-       
+        public bool useFroxel = false;
+        public float availiableDistance;
 
         public CBDRSharedData(PipelineResources res)
         {
@@ -69,9 +69,16 @@ namespace MPipeline
             zPlaneTexture.Create();
             pointlightIndexBuffer = new ComputeBuffer(XRES * YRES * ZRES * (MAXLIGHTPERCLUSTER + 1), sizeof(int));
             allPointLightBuffer = new ComputeBuffer(pointLightInitCapacity, sizeof(PointLightStruct));
-            froxelZPlaneTexture = new RenderTexture(zPlaneTexture.descriptor);
-            froxelPointLightIndexBuffer = new ComputeBuffer(pointlightIndexBuffer.count, pointlightIndexBuffer.stride);
-            froxelPointLightBuffer = new ComputeBuffer(allPointLightBuffer.count, allPointLightBuffer.stride);
+            desc.width = XRES;
+            desc.height = YRES;
+            desc.volumeDepth = MAXLIGHTPERTILE;
+            desc.colorFormat = RenderTextureFormat.RInt;
+            desc.dimension = TextureDimension.Tex3D;
+            tileLightList = new RenderTexture(desc);
+            tileLightList.Create();
+            desc.volumeDepth = FROXELMAXLIGHTPERTILE;
+            froxelTileLightList = new RenderTexture(desc);
+            froxelTileLightList.Create();
 
         }
         public static void ResizeBuffer(ref ComputeBuffer buffer, int newCapacity)
@@ -82,7 +89,23 @@ namespace MPipeline
         }
         public const int SetXYPlaneKernel = 0;
         public const int SetZPlaneKernel = 1;
-        public const int PointLightKernel = 2;
+        public const int DeferredCBDR = 2;
+        public int TBDRKernel
+        {
+            get
+            {
+                return useFroxel ? 4 : 3;
+            }
+        }
+
+        public int ClearKernel
+        {
+            get
+            {
+                return useFroxel ? 6 : 5;
+            }
+        }
+
 
         public override void Dispose()
         {
@@ -90,9 +113,8 @@ namespace MPipeline
             zPlaneTexture.Release();
             pointlightIndexBuffer.Dispose();
             allPointLightBuffer.Dispose();
-            froxelPointLightBuffer.Dispose();
-            froxelPointLightIndexBuffer.Dispose();
-            Object.Destroy(froxelZPlaneTexture); 
+            Object.Destroy(froxelTileLightList); 
+            Object.Destroy(tileLightList); 
         }
     }
 }

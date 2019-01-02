@@ -35,10 +35,20 @@ float BoxIntersect(float3 extent, float3 position, float4 planes[6]){
     return result;
 }
 
-float SphereIntersect(float4 sphere, float4 planes[6])
+float SphereIntersect(float4 sphere, float4 planes[2])
 {
     float result = 1;
-    for(uint i = 0; i < 6; ++i)
+    for(uint i = 0; i < 2; ++i)
+    {
+        result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w) ? 1.0 : 0.0;
+    }
+    return result;
+}
+
+float SphereIntersect(float4 sphere, float4 planes[4])
+{
+    float result = 1;
+    for(uint i = 0; i < 4; ++i)
     {
         result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w) ? 1.0 : 0.0;
     }

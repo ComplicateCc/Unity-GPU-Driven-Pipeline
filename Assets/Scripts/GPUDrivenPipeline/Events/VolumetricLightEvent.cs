@@ -7,7 +7,7 @@ using Random = Unity.Mathematics.Random;
 using System.Threading;
 namespace MPipeline
 {
-    [PipelineEvent(false, true)]
+    [PipelineEvent(true, true)]
     public unsafe class VolumetricLightEvent : PipelineEvent
     {
         private CBDRSharedData cbdr;
@@ -25,7 +25,7 @@ namespace MPipeline
             NativeArray<uint> randomArray = new NativeArray<uint>(randomBuffer.count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             uint* randPtr = randomArray.Ptr();
             rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
-            for(int i = 0; i < randomArray.Length; ++i)
+            for (int i = 0; i < randomArray.Length; ++i)
             {
                 randPtr[i] = (uint)rand.NextInt();
             }
@@ -33,6 +33,21 @@ namespace MPipeline
             randomArray.Dispose();
             cbdr = PipelineSharedData.Get(renderPath, resources, (res) => new CBDRSharedData(res));
             volumeMat = new Material(resources.volumetricShader);
+        }
+
+        public override void OnEventDisable()
+        {
+            cbdr.useFroxel = false;
+        }
+
+        public override void OnEventEnable()
+        {
+            cbdr.useFroxel = true;
+        }
+
+        public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
+        {
+            cbdr.availiableDistance = availableDistance;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -48,7 +63,8 @@ namespace MPipeline
             {
                 if (PlaneContact(ref plane, ref allPointLight[index].sphere))
                 {
-                    int lastIndex = Interlocked.Increment(ref froxelLightCount) - 1;
+                    int lastIndex = froxelLightCount;
+                    froxelLightCount++;
                     froxelPointLight[lastIndex] = allPointLight[index];
                 }
             }
@@ -60,8 +76,6 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             ComputeShader scatter = data.resources.volumetricScattering;
 
-            //Set Voxel Based Lighting
-            VoxelLightCommonData(buffer, cam.cam);
             if (cbdr.lightFlag == 0)
             {
                 cbdr.cubemapShadowArray = null;
@@ -73,24 +87,6 @@ namespace MPipeline
                 pass |= 0b001;
             if (cbdr.dirLightShadowmap != null)
                 pass |= 0b010;
-            if ((cbdr.lightFlag & 1) != 0)
-            {
-                int froxelLightCount = 0;
-                Transform camTrans = cam.cam.transform;
-                float3 inPoint = camTrans.position + camTrans.forward * availableDistance;
-                float3 normal = camTrans.forward;
-                float4 plane = new float4(normal, -math.dot(normal, inPoint));
-                var froxelPointLightArray = GetCulledPointLight(ref plane, cbdr.pointLightArray.Ptr(), ref froxelLightCount, *cbdr.pointLightCount);
-                if (froxelLightCount > 0)
-                {
-                    cbdr.froxelPointLightBuffer.SetData(froxelPointLightArray, 0, 0, froxelLightCount);
-                    VoxelPointLight(froxelPointLightArray, froxelLightCount, buffer);
-                }
-                else
-                {
-                    cbdr.lightFlag &= 0b111111111110;//Kill point light if there is nothing in the culled list
-                }
-            }
             buffer.SetGlobalFloat(ShaderIDs._MaxDistance, availableDistance);
             buffer.SetGlobalInt(ShaderIDs._FrameCount, Time.frameCount);
             HistoryVolumetric historyVolume = IPerCameraData.GetProperty(cam, () => new HistoryVolumetric());
@@ -124,7 +120,7 @@ namespace MPipeline
             }
             else
             {
-                if(historyVolume.lastVolume.volumeDepth != desc.volumeDepth)
+                if (historyVolume.lastVolume.volumeDepth != desc.volumeDepth)
                 {
                     historyVolume.lastVolume.Release();
                     historyVolume.lastVolume.volumeDepth = desc.volumeDepth;
@@ -134,8 +130,8 @@ namespace MPipeline
                 else
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.7f);
             }
-            buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllPointLight, cbdr.froxelPointLightBuffer);
-            buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._PointLightIndexBuffer, cbdr.froxelPointLightIndexBuffer);
+            buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
+            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelTileLightList, cbdr.froxelTileLightList);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._RandomBuffer, randomBuffer);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
             buffer.SetComputeTextureParam(scatter, scatterPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
@@ -157,36 +153,11 @@ namespace MPipeline
             PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
 
-        private void VoxelLightCommonData(CommandBuffer buffer, Camera cam)
-        {
-            ComputeShader cbdrShader = cbdr.cbdrShader;
-            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.SetZPlaneKernel, ShaderIDs._ZPlaneTexture, cbdr.froxelZPlaneTexture);
-            Transform camTrans = cam.transform;
-            buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._CameraFarPos, camTrans.position + availableDistance * camTrans.forward);
-            buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._CameraNearPos, camTrans.position + cam.nearClipPlane * camTrans.forward);
-            buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._CameraForward, camTrans.forward);
-            buffer.SetGlobalVector(ShaderIDs._NearFarClip, new Vector4(cam.farClipPlane / availableDistance, cam.nearClipPlane / availableDistance, cam.nearClipPlane));
-            buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetZPlaneKernel, 1, 1, 1);
-        }
-
-        public void VoxelPointLight(NativeArray<PointLightStruct> arr, int length, CommandBuffer buffer)
-        {
-            CBDRSharedData.ResizeBuffer(ref cbdr.froxelPointLightBuffer, length);
-            ComputeShader cbdrShader = cbdr.cbdrShader;
-            const int PointLightKernel = CBDRSharedData.PointLightKernel;
-            cbdr.froxelPointLightBuffer.SetData(arr, 0, 0, length);
-            buffer.SetGlobalInt(ShaderIDs._PointLightCount, length);
-            buffer.SetComputeTextureParam(cbdrShader, PointLightKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
-            buffer.SetComputeTextureParam(cbdrShader, PointLightKernel, ShaderIDs._ZPlaneTexture, cbdr.froxelZPlaneTexture);
-            buffer.SetComputeBufferParam(cbdrShader, PointLightKernel, ShaderIDs._AllPointLight, cbdr.froxelPointLightBuffer);
-            buffer.SetComputeBufferParam(cbdrShader, PointLightKernel, ShaderIDs._PointLightIndexBuffer, cbdr.froxelPointLightIndexBuffer);
-            buffer.DispatchCompute(cbdrShader, PointLightKernel, 1, 1, CBDRSharedData.ZRES);
-        }
-
         protected override void Dispose()
         {
             Destroy(volumeMat);
             randomBuffer.Dispose();
+
         }
     }
     public class HistoryVolumetric : IPerCameraData

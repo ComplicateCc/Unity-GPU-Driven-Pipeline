@@ -23,6 +23,7 @@ StructuredBuffer<uint> _PointLightIndexBuffer;
 Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
 RWTexture3D<half4> _VolumeTex;
 Texture3D<half4> _LastVolume; SamplerState sampler_LastVolume;
+Texture3D<int> _FroxelTileLightList;
 
             inline float EyeDepthToProj(float lin)
             {
@@ -46,11 +47,8 @@ Texture3D<half4> _LastVolume; SamplerState sampler_LastVolume;
 				return atten;
 			}
 
-float3 GetColor(float3 targetWorldPos, uint zAxis, float linearDepth, float2 projCoord, float2 uv)
+float3 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
 {
-    uint3 clusterCoord = uint3(uv * float2(XRES, YRES), zAxis * ZRES / _ScreenSize.z);
-    uint sb = GetIndex(clusterCoord, VOXELSIZE);
-    uint2 ind = uint2(sb + 1, _PointLightIndexBuffer[sb]);
     float3 color = 0;
     if(_LightFlag & 4)
     {
@@ -61,21 +59,24 @@ float3 GetColor(float3 targetWorldPos, uint zAxis, float linearDepth, float2 pro
         #endif
     }
     if(_LightFlag & 1){
-    for(uint c = ind.x; c < ind.y; c++)
-    {
-        PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
-        float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
-        #ifdef CUBEMAP
-        if(pt.shadowIndex >= 0){
+        uint2 tileIndex = uv * uint2(XRES, YRES);
+        uint len = min(_FroxelTileLightList[uint3(tileIndex, 0)], FROXELMAXLIGHTPERTILE + 1);
+        for(uint c = 1; c < len; c++)
+        {
+            PointLight pt = _AllPointLight[_FroxelTileLightList[uint3(tileIndex, c)]];
             float3 lightDir = pt.sphere.xyz - targetWorldPos;
-            half lenOfLightDir = length(lightDir);
-            half shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex), 0);
-            half lightDist = lenOfLightDir / pt.sphere.w;
-            currentCol *= lightDist <= shadowDist;
+            float lenOfLightDir = length(lightDir);
+            if(lenOfLightDir > pt.sphere.w) continue;
+            float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
+            #ifdef CUBEMAP
+            if(pt.shadowIndex >= 0){
+                float shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex), 0);
+                float lightDist = lenOfLightDir / pt.sphere.w;
+                currentCol *= lightDist <= shadowDist;
+            }
+            #endif
+            color += currentCol;
         }
-        #endif
-        color += currentCol;
-    }
     }
     return color;
 }
@@ -101,19 +102,19 @@ float _MaxDistance;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     float3 jitterCoord = getRandomFloat3(GetIndex(id, _ScreenSize));
-    float2 uv = float2(id.xy + (jitterCoord.xy - 0.5) * 2) / (float2)(_ScreenSize.xy - 1);
+    float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     half2 projCoord = uv * 2 - 1;
     const float step = 1.0 / _ScreenSize.z;
-    float lerpPos = id.z / ((half)_ScreenSize.z - 1) + step * jitterCoord.z;
+    float lerpPos = id.z / ((half)_ScreenSize.z) + step * jitterCoord.z;
     half linearDepth = lerp(_NearFarClip.z, _MaxDistance, lerpPos);
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
     float4 lastFrameClip = mul(_LastVp, targetWorldPos);
     lastFrameClip /= lastFrameClip.w;
-    float3 lastFrameUV =float3(lastFrameClip.xy * 0.5 + 0.5, LinearEyeDepth(lastFrameClip.z) / _MaxDistance);
+    float3 lastFrameUV = float3(lastFrameClip.xy * 0.5 + 0.5, LinearEyeDepth(lastFrameClip.z) / _MaxDistance);
     half4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
     targetWorldPos /= targetWorldPos.w;
     float reprojectionValid = _TemporalWeight * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
-    _VolumeTex[id] = lerp(float4(GetColor(targetWorldPos.xyz, id.z, linearDepth, projCoord, uv), 1), lastFrameColor, reprojectionValid);
+    _VolumeTex[id] = lerp(float4(GetColor(targetWorldPos.xyz, linearDepth, uv), 1), lastFrameColor, reprojectionValid);
 }
 
 [numthreads(32, 2, 1)]

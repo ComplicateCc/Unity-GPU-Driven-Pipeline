@@ -73,7 +73,6 @@ public static partial class ShaderIDs
     public static readonly int _CameraForward = Shader.PropertyToID("_CameraForward");
     public static readonly int _CameraNearPos = Shader.PropertyToID("_CameraNearPos");
     public static readonly int _CameraFarPos = Shader.PropertyToID("_CameraFarPos");
-    public static readonly int _PointLightCount = Shader.PropertyToID("_PointLightCount");
     public static readonly int _XYPlaneTexture = Shader.PropertyToID("_XYPlaneTexture");
     public static readonly int _ZPlaneTexture = Shader.PropertyToID("_ZPlaneTexture");
     public static readonly int _PointLightTexture = Shader.PropertyToID("_PointLightTexture");
@@ -95,4 +94,7 @@ public static partial class ShaderIDs
     public static readonly int _NearFarClip = Shader.PropertyToID("_NearFarClip");
     public static readonly int _CameraClipDistance = Shader.PropertyToID("_CameraClipDistance");
     public static readonly int _Screen_TexelSize = Shader.PropertyToID("_Screen_TexelSize");
+    public static readonly int _FroxelPlane = Shader.PropertyToID("_FroxelPlane");
+    public static readonly int _TileLightList = Shader.PropertyToID("_TileLightList");
+    public static readonly int _FroxelTileLightList = Shader.PropertyToID("_FroxelTileLightList");
 }

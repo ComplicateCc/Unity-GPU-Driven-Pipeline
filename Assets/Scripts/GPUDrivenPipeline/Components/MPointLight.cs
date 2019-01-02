@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using Unity.Collections;
+using UnityEngine.Rendering;
 
 public unsafe class MPointLight : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public unsafe class MPointLight : MonoBehaviour
     private int index;
     [System.NonSerialized]
     public Vector3 position;
+    [System.NonSerialized]
+    public RenderTexture shadowMap;
     
     private void Update()
     {
@@ -25,6 +28,24 @@ public unsafe class MPointLight : MonoBehaviour
         position = transform.position;
         index = allPointLights.Count;
         allPointLights.Add(this);
+        shadowMap = RenderTexture.GetTemporary(new RenderTextureDescriptor
+        {
+            autoGenerateMips = false,
+            bindMS = false,
+            colorFormat = RenderTextureFormat.RHalf,
+            depthBufferBits = 0,
+            dimension = TextureDimension.Tex2DArray,
+            volumeDepth = 6,
+            enableRandomWrite = false,
+            height = 1024,
+            width = 1024,
+            memoryless = RenderTextureMemoryless.None,
+            msaaSamples = 1,
+            shadowSamplingMode = ShadowSamplingMode.None,
+            sRGB = false,
+            useMipMap = false,
+            vrUsage = VRTextureUsage.None
+        });
     }
 
     private void OnDisable()
@@ -34,6 +55,7 @@ public unsafe class MPointLight : MonoBehaviour
             allPointLights.Clear();
             return;
         }
+        shadowMap.Release();
         int last = allPointLights.Count - 1;
         allPointLights[index] = allPointLights[last];
         allPointLights[index].index = index;
