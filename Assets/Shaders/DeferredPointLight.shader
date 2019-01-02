@@ -172,11 +172,9 @@ ENDCG
                     half3 LightPos = Light.sphere.rgb;
                     half3 LightColor = Light.lightColor;
                     half3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
-                    half3 Un_LightDir = LightPos - WorldPos;
+                    half3 Un_LightDir = LightPos - WorldPos.xyz;
                     half3 LightDir = normalize(Un_LightDir);
                     half3 HalfDir = normalize(ViewDir + LightDir);
-
-
                     //////Shadow
                     if(Light.shadowIndex >= 0){
                         half Length_LightDir = length(Un_LightDir);
@@ -191,7 +189,6 @@ ENDCG
 
                     //////Shading
                     half3 Energy = Point_Energy(Un_LightDir, LightColor, LumianceIntensity, LightRange * 5, LightData.NoL) * ShadowTrem;
-                   // ShadingColor += length(Un_LightDir) < Light.sphere.w ? 1 : 0;
                     ShadingColor += Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1);
                 }
 

@@ -37,7 +37,7 @@
 
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 col = _MainTex[uint3(i.uv * uint2(16, 8), 0)] * 0.1;
+                fixed4 col = _MainTex[uint3(i.uv * uint2(32, 16), 0)] * 0.1;
                 return col;
             }
             ENDCG

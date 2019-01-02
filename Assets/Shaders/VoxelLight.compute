@@ -27,15 +27,20 @@ void SetXYPlane (uint2 id : SV_DispatchThreadID)
     leftBotUV = leftBotUV * 2 - 1;
     rightTopUV = rightTopUV* 2 - 1;
     #if UNITY_REVERSED_Z
-    const float farZ = 0;
+    const float nearZ = 1;
+    _XYPlaneTexture[uint3(id, 0)] = GetPlane( mul(_InvVP, float4(1,rightTopUV.y, nearZ, 1)),mul(_InvVP, float4(-1, rightTopUV.y, nearZ, 1)), mul(_InvVP, float4(0, rightTopUV.y, 0.5, 1)));                  //TOP
+    _XYPlaneTexture[uint3(id, 1)] = GetPlane( mul(_InvVP, float4(-1, leftBotUV.y, nearZ, 1)),mul(_InvVP, float4(1, leftBotUV.y, nearZ, 1)),  mul(_InvVP, float4(0, leftBotUV.y, 0.5, 1)));                  //DOWN
+    _XYPlaneTexture[uint3(id, 2)] = GetPlane(mul(_InvVP, float4(leftBotUV.x, 1, nearZ, 1)), mul(_InvVP, float4(leftBotUV.x, -1, nearZ, 1)), mul(_InvVP, float4(leftBotUV.x, 0, 0.5, 1)));        //LEFT
+    _XYPlaneTexture[uint3(id, 3)] = GetPlane(mul(_InvVP, float4(rightTopUV.x, -1, nearZ, 1)), mul(_InvVP, float4(rightTopUV.x, 1, nearZ, 1)), mul(_InvVP, float4(rightTopUV.x, 0, 0.5, 1)));            //RIGHT
     #else
-    const float farZ = 1;
+    const float nearZ = 1;
+    _XYPlaneTexture[uint3(id, 0)] = GetPlane(mul(_InvVP, float4(-1, rightTopUV.y, nearZ, 1)), mul(_InvVP, float4(1,rightTopUV.y, nearZ, 1)), mul(_InvVP, float4(0, rightTopUV.y, 0.5, 1)));                  //TOP
+    _XYPlaneTexture[uint3(id, 1)] = GetPlane(mul(_InvVP, float4(1, leftBotUV.y, nearZ, 1)),  mul(_InvVP, float4(-1, leftBotUV.y, nearZ, 1)), mul(_InvVP, float4(0, leftBotUV.y, 0.5, 1)));                  //DOWN
+    _XYPlaneTexture[uint3(id, 2)] = GetPlane(mul(_InvVP, float4(leftBotUV.x, -1, nearZ, 1)),mul(_InvVP, float4(leftBotUV.x, 1, nearZ, 1)),  mul(_InvVP, float4(leftBotUV.x, 0, 0.5, 1)));        //LEFT
+    _XYPlaneTexture[uint3(id, 3)] = GetPlane(mul(_InvVP, float4(rightTopUV.x, 1, nearZ, 1)),mul(_InvVP, float4(rightTopUV.x, -1, nearZ, 1)),  mul(_InvVP, float4(rightTopUV.x, 0, 0.5, 1)));            //RIGHT
+
     #endif
-    _XYPlaneTexture[uint3(id, 0)] = GetPlane(mul(_InvVP, float4(-1, rightTopUV.y, farZ, 1)), mul(_InvVP, float4(1,rightTopUV.y, farZ, 1)), mul(_InvVP, float4(0, rightTopUV.y, 0.5, 1)));                  //TOP
-    _XYPlaneTexture[uint3(id, 1)] = GetPlane(mul(_InvVP, float4(1, leftBotUV.y, farZ, 1)),  mul(_InvVP, float4(-1, leftBotUV.y, farZ, 1)), mul(_InvVP, float4(0, leftBotUV.y, 0.5, 1)));                  //DOWN
-    _XYPlaneTexture[uint3(id, 2)] = GetPlane(mul(_InvVP, float4(leftBotUV.x, -1, farZ, 1)), mul(_InvVP, float4(leftBotUV.x, 1, farZ, 1)), mul(_InvVP, float4(leftBotUV.x, 0, 0.5, 1)));        //LEFT
-    _XYPlaneTexture[uint3(id, 3)] = GetPlane(mul(_InvVP, float4(rightTopUV.x, 1, farZ, 1)), mul(_InvVP, float4(rightTopUV.x, -1, farZ, 1)), mul(_InvVP, float4(rightTopUV.x, 0, 0.5, 1)));            //RIGHT
-}
+    }
 
 [numthreads(ZRES, 1, 1)]
 void SetZPlane(uint id : SV_DISPATCHTHREADID)

@@ -32,11 +32,8 @@ namespace MPipeline
         private int lightCount = 0;
         private NativeList<int> shadowList;
         #endregion
-        public Shader debugShader;
-        private Material debugMat;
         protected override void Init(PipelineResources resources)
         {
-            debugMat = new Material(debugShader);
             cbdr = PipelineSharedData.Get(renderPath, resources, (a) => new CBDRSharedData(a));
             shadMaskMaterial = new Material(resources.shadowMaskShader);
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
@@ -195,7 +192,6 @@ namespace MPipeline
                     }
                 }
                 VoxelLightCalculate(indicesArray, lightCount, buffer, cam.cam);
-              //  buffer.BlitSRT(cbdr.tileLightList, cam.targets.renderTargetIdentifier, debugMat, 0);
                 buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);
                 cbdr.lightFlag |= 1;
             }
