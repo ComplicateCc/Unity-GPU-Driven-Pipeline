@@ -50,27 +50,6 @@ namespace MPipeline
             cbdr.availiableDistance = availableDistance;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool PlaneContact(ref float4 plane, ref float4 sphere)
-        {
-            return math.dot(plane.xyz, sphere.xyz) + plane.w < sphere.w;
-        }
-        public static NativeArray<PointLightStruct> GetCulledPointLight(ref float4 plane, PointLightStruct* allPointLight, ref int froxelLightCount, int lightCount)
-        {
-            NativeArray<PointLightStruct> sct = new NativeArray<PointLightStruct>(lightCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            PointLightStruct* froxelPointLight = sct.Ptr();
-            for (int index = 0; index < lightCount; ++index)
-            {
-                if (PlaneContact(ref plane, ref allPointLight[index].sphere))
-                {
-                    int lastIndex = froxelLightCount;
-                    froxelLightCount++;
-                    froxelPointLight[lastIndex] = allPointLight[index];
-                }
-            }
-            return sct;
-        }
-
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
@@ -130,6 +109,8 @@ namespace MPipeline
                 else
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.7f);
             }
+            buffer.SetGlobalVector(ShaderIDs._NearFarClip, new Vector4(cam.cam.farClipPlane / availableDistance, cam.cam.nearClipPlane / availableDistance, cam.cam.nearClipPlane));
+            buffer.SetGlobalVector(ShaderIDs._Screen_TexelSize, new Vector4(1f / cam.cam.pixelWidth, 1f / cam.cam.pixelHeight, cam.cam.pixelWidth, cam.cam.pixelHeight));
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelTileLightList, cbdr.froxelTileLightList);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._RandomBuffer, randomBuffer);
@@ -138,7 +119,6 @@ namespace MPipeline
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._LastVolume, historyVolume.lastVolume);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._DirShadowMap, cbdr.dirLightShadowmap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubemapShadowArray);
-            buffer.SetGlobalVector(ShaderIDs._Screen_TexelSize, new Vector4(1f / cam.cam.pixelWidth, 1f / cam.cam.pixelHeight, cam.cam.pixelWidth, cam.cam.pixelHeight));
             buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
 
             cbdr.cubemapShadowArray = null;

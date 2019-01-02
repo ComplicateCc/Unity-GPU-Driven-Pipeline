@@ -47,15 +47,15 @@ Texture3D<int> _FroxelTileLightList;
 				return atten;
 			}
 
-float3 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
+float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
 {
-    float3 color = 0;
+    float4 color = 0;
     if(_LightFlag & 4)
     {
         #ifdef DIRMAP
-            color += _DirLightFinalColor * GetHardShadow(targetWorldPos, linearDepth);
+            color.rgb += _DirLightFinalColor * GetHardShadow(targetWorldPos, linearDepth);
         #else
-            color += _DirLightFinalColor;
+            color.rgb += _DirLightFinalColor;
         #endif
     }
     if(_LightFlag & 1){
@@ -75,9 +75,10 @@ float3 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                 currentCol *= lightDist <= shadowDist;
             }
             #endif
-            color += currentCol;
+            color.rgb += currentCol;
         }
     }
+    color.a = 1;//TODO
     return color;
 }
 
@@ -114,7 +115,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     half4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
     targetWorldPos /= targetWorldPos.w;
     float reprojectionValid = _TemporalWeight * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
-    _VolumeTex[id] = lerp(float4(GetColor(targetWorldPos.xyz, linearDepth, uv), 1), lastFrameColor, reprojectionValid);
+    _VolumeTex[id] = lerp(GetColor(targetWorldPos.xyz, linearDepth, uv), lastFrameColor, reprojectionValid);
 }
 
 [numthreads(32, 2, 1)]

@@ -13,6 +13,7 @@ CGINCLUDE
 Texture3D<half4> _VolumeTex; SamplerState sampler_VolumeTex;
 Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
 float4 _RandomSeed;
+float4 _Screen_TexelSize;
 inline int ihash(int n)
 {
 	n = (n<<13)^n;
@@ -69,6 +70,7 @@ ENDCG
             #pragma fragment frag
             float4 frag(v2fScreen i) : SV_TARGET
             {
+                
                 half linear01Depth = Linear01Depth(_CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv));
 		        half4 fog = Fog(linear01Depth, i.uv);
 		        return fog;

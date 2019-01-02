@@ -26,8 +26,6 @@ float3 _CameraNearPos;
 float3 _CameraFarPos;
 float3 _NearFarClip; //x: farClip / availiable distance y: nearclip / availiable distance z: nearClip
 
-float4 _Screen_TexelSize;
-
 inline uint GetIndex(uint3 id, const uint3 size){
     const uint3 multiValue = uint3(1, size.x, size.x * size.y) * (MAXLIGHTPERCLUSTER + 1);
     return dot(id, multiValue);

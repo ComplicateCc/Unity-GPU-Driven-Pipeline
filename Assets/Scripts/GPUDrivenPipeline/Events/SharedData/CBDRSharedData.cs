@@ -79,6 +79,7 @@ namespace MPipeline
             desc.volumeDepth = FROXELMAXLIGHTPERTILE;
             froxelTileLightList = new RenderTexture(desc);
             froxelTileLightList.Create();
+            Debug.Log("Created");
 
         }
         public static void ResizeBuffer(ref ComputeBuffer buffer, int newCapacity)
