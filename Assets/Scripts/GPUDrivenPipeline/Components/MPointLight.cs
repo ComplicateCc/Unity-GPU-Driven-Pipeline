@@ -2,7 +2,7 @@
 using UnityEngine;
 using Unity.Collections;
 using UnityEngine.Rendering;
-
+using UnityEngine.Jobs;
 public unsafe class MPointLight : MonoBehaviour
 {
     public static List<MPointLight> allPointLights = new List<MPointLight>();
@@ -17,17 +17,11 @@ public unsafe class MPointLight : MonoBehaviour
     public Vector3 position;
     [System.NonSerialized]
     public RenderTexture shadowMap;
-    
-    private void Update()
-    {
-        position = transform.position;
-    }
+    [System.NonSerialized]
+    public int frameCount = -1;
 
-    private void OnEnable()
+    private void Awake()
     {
-        position = transform.position;
-        index = allPointLights.Count;
-        allPointLights.Add(this);
         shadowMap = RenderTexture.GetTemporary(new RenderTextureDescriptor
         {
             autoGenerateMips = false,
@@ -46,6 +40,19 @@ public unsafe class MPointLight : MonoBehaviour
             useMipMap = false,
             vrUsage = VRTextureUsage.None
         });
+        shadowMap.Create();
+    }
+
+    private void OnDestroy()
+    {
+        shadowMap.Release();
+    }
+
+    private void OnEnable()
+    {
+        position = transform.position;
+        index = allPointLights.Count;
+        allPointLights.Add(this);
     }
 
     private void OnDisable()
@@ -55,7 +62,7 @@ public unsafe class MPointLight : MonoBehaviour
             allPointLights.Clear();
             return;
         }
-        shadowMap.Release();
+        
         int last = allPointLights.Count - 1;
         allPointLights[index] = allPointLights[last];
         allPointLights[index].index = index;

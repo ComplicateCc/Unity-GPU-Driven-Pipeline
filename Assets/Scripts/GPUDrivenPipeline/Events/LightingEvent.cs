@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using Unity.Jobs;
 using System.Threading;
 using Unity.Collections;
+using UnityEngine.Jobs;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 namespace MPipeline
@@ -68,7 +69,7 @@ namespace MPipeline
             cullJob.lightCount = (int*)UnsafeUtility.AddressOf(ref lightCount);
             shadowList.Clear();
             cullJob.shadowList = shadowList;
-            cullJobHandler = cullJob.Schedule(MPointLight.allPointLights.Count, 32);
+            cullJobHandler = cullJob.Schedule(MPointLight.allPointLights.Count, 8);
         }
 
         protected override void Dispose()
@@ -161,6 +162,7 @@ namespace MPipeline
                         useMipMap = false,
                         vrUsage = VRTextureUsage.None
                     });
+                    shadowArray.filterMode = FilterMode.Point;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, shadowArray);
 
                     cam.temporalRT.Add(shadowArray);
@@ -168,7 +170,8 @@ namespace MPipeline
                     for (int i = 0; i < shadowList.Length; ++i)
                     {
                         MPointLight light = MPointLight.allPointLights[shadowList[i]];
-                        positions[i] = new Vector4(light.position.x, light.position.y, light.position.z, light.range);
+                        Vector3 position = light.transform.position;
+                        positions[i] = new Vector4(position.x, position.y, position.z, light.range);
                     }
 
                     CubeFunction.UpdateLength(ref cubeBuffer, shadowList.Length);
@@ -186,7 +189,16 @@ namespace MPipeline
                     for (int i = 0; i < shadowList.Length; ++i)
                     {
                         MPointLight light = MPointLight.allPointLights[shadowList[i]];
-                        SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap);
+                        if (light.frameCount < 0)
+                        {
+                            SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap);
+                          light.frameCount = 10000;
+                        }
+                        else
+                        {
+                            SceneController.current.CopyToCubeMap(shadowArray, light.shadowMap, buffer, i);
+                        }
+                       
                         //TODO
                         //Multi frame shadowmap
                     }

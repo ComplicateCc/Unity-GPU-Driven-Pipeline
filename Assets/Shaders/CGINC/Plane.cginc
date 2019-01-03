@@ -54,4 +54,29 @@ float SphereIntersect(float4 sphere, float4 planes[4])
     }
     return result;
 }
+
+
+float BoxIntersect(float3 extent, float3 position, RWTexture3D<float4> tex, uint2 uv, const uint count){
+    float result = 1;
+    [unroll]
+    for(uint i = 0; i < count; ++i)
+    {
+        float4 plane = tex[uint3(uv, i)];
+        float3 absNormal = abs(plane.xyz);
+        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ? 1.0 : 0.0;
+    }
+    return result;
+}
+
+float SphereIntersect(float4 sphere, RWTexture3D<float4> tex, uint2 uv, const uint count)
+{
+    float result = 1;
+    [unroll]
+    for(uint i = 0; i < count; ++i)
+    {
+        result *= (GetDistanceToPlane(tex[uint3(uv, i)], sphere.xyz) < sphere.w) ? 1.0 : 0.0;
+    }
+    return result;
+}
+
 #endif

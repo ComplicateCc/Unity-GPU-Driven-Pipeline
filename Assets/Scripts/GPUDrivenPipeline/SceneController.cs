@@ -410,17 +410,17 @@ namespace MPipeline
             cam.aspect = 1;
             cam.farClipPlane = lit.range;
             cam.nearClipPlane = 0.3f;
-            cam.position = lit.position;
+            Vector3 position = lit.transform.position;
+            cam.position = position;
             cam.fov = 90f;
             Matrix4x4 vpMatrix;
-            cb.SetGlobalVector(ShaderIDs._LightPos, new Vector4(lit.position.x, lit.position.y, lit.position.z, lit.range));
+            cb.SetGlobalVector(ShaderIDs._LightPos, new Vector4(position.x, position.y, position.z, lit.range));
             cb.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
             cb.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             //Forward
             cam.forward = Vector3.forward;
             cam.up = Vector3.down;
             cam.right = Vector3.left;
-            cam.position = lit.position;
             cam.UpdateTRSMatrix();
             cam.UpdateProjectionMatrix();
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
@@ -493,20 +493,20 @@ namespace MPipeline
             cb.SetComputeIntParam(shader, ShaderIDs._LightOffset, offset);
             ComputeShaderUtility.Dispatch(shader, cb, CubeFunction.RunFrustumCull, baseBuffer.clusterCount, 64);
             PerspCam cam = new PerspCam();
+            Vector3 position = lit.transform.position;
             cam.aspect = 1;
             cam.farClipPlane = lit.range;
             cam.nearClipPlane = 0.3f;
-            cam.position = lit.position;
+            cam.position = position;
             cam.fov = 90f;
             Matrix4x4 vpMatrix;
-            cb.SetGlobalVector(ShaderIDs._LightPos, new Vector4(lit.position.x, lit.position.y, lit.position.z, lit.range));
+            cb.SetGlobalVector(ShaderIDs._LightPos, new Vector4(position.x, position.y, position.z, lit.range));
             cb.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
             cb.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             //Forward
             cam.forward = Vector3.forward;
             cam.up = Vector3.down;
             cam.right = Vector3.left;
-            cam.position = lit.position;
             cam.UpdateTRSMatrix();
             cam.UpdateProjectionMatrix();
             vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true) * cam.worldToCameraMatrix;
@@ -577,6 +577,14 @@ namespace MPipeline
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrix);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 1, targetCopyTex, 1);
+        }
+        public void CopyToCubeMap(RenderTexture cubemapArray, RenderTexture texArray, CommandBuffer buffer, int offset)
+        {
+            offset *= 6;
+            for (int i = 0; i < 6; ++i)
+            {
+                buffer.CopyTexture(texArray, i, cubemapArray, offset + i);
+            }
         }
         #endregion
 
