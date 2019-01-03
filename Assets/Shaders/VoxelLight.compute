@@ -64,7 +64,7 @@ void CBDR(uint3 id : SV_DISPATCHTHREADID)
     //TODO
     //
     uint clusterCount = 0;
-    uint sBufferIndex = GetIndex(id, VOXELSIZE) + 1;
+    uint sBufferIndex = GetIndex(id, VOXELSIZE,  (MAXLIGHTPERCLUSTER + 1)) + 1;
     uint len = min(_TileLightList[uint3(id.xy, 0)], MAXLIGHTPERTILE + 1);
     for(i = 1; i < len && clusterCount < MAXLIGHTPERCLUSTER; ++i){
         int lightIndex = _TileLightList[uint3(id.xy, i)];

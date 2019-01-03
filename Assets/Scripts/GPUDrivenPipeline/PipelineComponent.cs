@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 using Unity.Collections;
 namespace MPipeline
 {
@@ -257,7 +258,6 @@ namespace MPipeline
     public struct RenderTargets
     {
         public RenderTexture backupTarget;
-        public RenderTexture[] gbufferTextures;
         public RenderTargetIdentifier[] gbufferIdentifier;
         public RenderTargetIdentifier renderTargetIdentifier;
         public RenderTargetIdentifier backupIdentifier;
@@ -276,7 +276,6 @@ namespace MPipeline
                 Shader.PropertyToID("_CameraDepthTexture")
             };
             rt.gbufferIdentifier = new RenderTargetIdentifier[6];
-            rt.gbufferTextures = new RenderTexture[6];
             rt.backupTarget = null;
             rt.backupIdentifier = default;
             rt.depthIdentifier = default;
@@ -285,15 +284,15 @@ namespace MPipeline
         }
         public RenderTargetIdentifier depthTexture
         {
-            get { return new RenderTargetIdentifier(gbufferTextures[5]); }
+            get { return gbufferIdentifier[5]; }
         }
         public RenderTargetIdentifier motionVectorTexture
         {
-            get { return new RenderTargetIdentifier(gbufferTextures[4]); }
+            get { return gbufferIdentifier[4]; }
         }
         public RenderTargetIdentifier normalIdentifier
         {
-            get { return new RenderTargetIdentifier(gbufferTextures[2]); }
+            get { return gbufferIdentifier[2]; }
         }
     }
 
@@ -303,6 +302,7 @@ namespace MPipeline
         public Matrix4x4 inverseVP;
         public RenderArray arrayCollection;
         public CommandBuffer buffer;
+        public ScriptableRenderContext context;
         public MPipeline.PipelineResources resources;
     }
 }

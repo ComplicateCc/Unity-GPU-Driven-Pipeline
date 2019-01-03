@@ -27,7 +27,8 @@ namespace MPipeline
             rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
             for (int i = 0; i < randomArray.Length; ++i)
             {
-                randPtr[i] = (uint)rand.NextInt();
+                randPtr[i] = (uint)System.Guid.NewGuid().GetHashCode();
+                
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();

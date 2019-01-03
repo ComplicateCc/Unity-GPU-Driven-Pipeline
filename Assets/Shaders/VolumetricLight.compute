@@ -99,10 +99,15 @@ float4 ScatterStep(float3 accumulatedLight, float accumulatedTransmittance, floa
 	return float4(accumulatedLight, accumulatedTransmittance);
 }
 float _MaxDistance;
+
+inline uint From3DTo1D(uint3 id, const uint3 size){
+    const uint3 multiValue = uint3(1, size.x, size.x * size.y);
+    return dot(id, multiValue);
+}
 [numthreads(8, 2, VOXELZ)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    float3 jitterCoord = getRandomFloat3(GetIndex(id, _ScreenSize));
+    float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     half2 projCoord = uv * 2 - 1;
     const float step = 1.0 / _ScreenSize.z;

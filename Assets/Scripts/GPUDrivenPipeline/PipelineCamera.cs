@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 namespace MPipeline
 {
     [RequireComponent(typeof(Camera))]
@@ -31,25 +33,17 @@ namespace MPipeline
 
         private void OnDisable()
         {
-            foreach(var i in postDatas.Values)
+            foreach (var i in postDatas.Values)
             {
                 i.DisposeProperty();
             }
             postDatas.Clear();
         }
 
-        private void OnRenderImage(RenderTexture source, RenderTexture destination)
+        public void RenderSRP(RenderTargetIdentifier destination, ref ScriptableRenderContext context)
         {
-            if (RenderPipeline.current)
-            {
-                PipelineFunctions.InitRenderTarget(ref targets, cam, temporaryTextures);
-                RenderPipeline.current.Render(renderingPath, this, destination);
-                PipelineFunctions.ReleaseRenderTarget(temporaryTextures);
-            }
-            else
-            {
-                Graphics.Blit(source, destination);
-            }
+            RenderPipeline.current.Render(renderingPath, this, destination, ref context);
+            PipelineFunctions.ReleaseRenderTarget(temporaryTextures);
         }
     }
 }

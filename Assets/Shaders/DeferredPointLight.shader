@@ -139,7 +139,7 @@ ENDCG
             {
                 float rate = saturate((eyeDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
                 uint3 voxelValue =uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
-                uint sb = GetIndex(voxelValue, VOXELSIZE);
+                uint sb = GetIndex(voxelValue, VOXELSIZE,  (MAXLIGHTPERCLUSTER + 1));
                 return uint2(sb + 1, _PointLightIndexBuffer[sb]);
             }
 

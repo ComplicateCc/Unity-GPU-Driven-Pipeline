@@ -5,11 +5,11 @@ using UnityEngine.Rendering;
 using Unity.Collections.LowLevel.Unsafe;
 using System;
 using System.Text;
+using System.Runtime.CompilerServices;
 using MPipeline;
 
 public unsafe static class PipelineFunctions
 {
-
     const int Vector2IntSize = 8;
     /// <summary>
     /// Get Frustum Planes
@@ -280,61 +280,60 @@ public unsafe static class PipelineFunctions
         buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
         buffer.DrawProceduralIndirect(Matrix4x4.identity, mat, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void DrawRecheckCullResult(
         PipelineBaseBuffer occBuffer,
         Material indirectMaterial, CommandBuffer buffer)
     {
         buffer.DrawProceduralIndirect(Matrix4x4.identity, indirectMaterial, 0, MeshTopology.Triangles, occBuffer.reCheckCount, 0);
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho, CommandBuffer buffer)
     {
         buffer.SetComputeIntParam(computeShader, ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
         ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 64);
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material, CommandBuffer cb)
     {
         cb.SetGlobalBuffer(ShaderIDs.resultBuffer, buffer.resultBuffer);
         cb.SetGlobalBuffer(ShaderIDs.verticesBuffer, buffer.verticesBuffer);
         cb.DrawProceduralIndirect(Matrix4x4.identity, material, 0, MeshTopology.Triangles, buffer.instanceCountBuffer, 0);
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void GetViewProjectMatrix(Camera currentCam, out Matrix4x4 vp, out Matrix4x4 invVP)
     {
         vp = GL.GetGPUProjectionMatrix(currentCam.projectionMatrix, false) * currentCam.worldToCameraMatrix;
         invVP = vp.inverse;
     }
 
-    public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, List<RenderTexture> collectRT)
+    public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, List<RenderTexture> collectRT, CommandBuffer buffer)
     {
-        tar.gbufferTextures[0] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
-        tar.gbufferTextures[1] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
-        tar.gbufferTextures[2] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB2101010, FilterMode.Point, collectRT);
-        tar.gbufferTextures[3] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 24, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear, collectRT);
-        tar.gbufferTextures[4] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RGHalf, FilterMode.Point, collectRT);
-        tar.gbufferTextures[5] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RFloat, FilterMode.Point, collectRT);
-        for (int i = 0; i < tar.gbufferTextures.Length; ++i)
+        tar.gbufferIdentifier[0] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
+        tar.gbufferIdentifier[1] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
+        tar.gbufferIdentifier[2] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB2101010, FilterMode.Point, collectRT);
+        tar.gbufferIdentifier[3] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 24, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear, collectRT);
+        tar.gbufferIdentifier[4] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RGHalf, FilterMode.Point, collectRT);
+        tar.gbufferIdentifier[5] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RFloat, FilterMode.Point, collectRT);
+        for (int i = 0; i < tar.gbufferIdentifier.Length; ++i)
         {
-            tar.gbufferIdentifier[i] = new RenderTargetIdentifier(tar.gbufferTextures[i]);
-            Shader.SetGlobalTexture(tar.gbufferIndex[i], tar.gbufferTextures[i]);
+            buffer.SetGlobalTexture(tar.gbufferIndex[i], tar.gbufferIdentifier[i]);
         }
-        RenderTexture renderTarget = tar.gbufferTextures[3];
+        RenderTargetIdentifier renderTarget = tar.gbufferIdentifier[3];
         tar.backupTarget = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear, collectRT);
         tar.backupTarget.filterMode = FilterMode.Bilinear;
-        tar.renderTargetIdentifier = new RenderTargetIdentifier(renderTarget);
+        tar.renderTargetIdentifier = renderTarget;
         tar.backupIdentifier = new RenderTargetIdentifier(tar.backupTarget);
-        tar.depthIdentifier = new RenderTargetIdentifier(renderTarget);
+        tar.depthIdentifier = renderTarget;
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RenderTexture GetTemporary(RenderTextureDescriptor descriptor, List<RenderTexture> collectList)
     {
         RenderTexture rt = RenderTexture.GetTemporary(descriptor);
         collectList.Add(rt);
         return rt;
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RenderTexture GetTemporary(int width, int height, int depth, RenderTextureFormat format, FilterMode filterMode, List<RenderTexture> collectList)
     {
         RenderTexture rt = RenderTexture.GetTemporary(width, height, depth, format, RenderTextureReadWrite.Linear);
@@ -342,7 +341,7 @@ public unsafe static class PipelineFunctions
         collectList.Add(rt);
         return rt;
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RenderTexture GetTemporary(int width, int height, int depth, RenderTextureFormat format, RenderTextureReadWrite readWrite, FilterMode filterMode, List<RenderTexture> collectList)
     {
         RenderTexture rt = RenderTexture.GetTemporary(width, height, depth, format, readWrite);
@@ -358,14 +357,16 @@ public unsafe static class PipelineFunctions
         }
         tar.Clear();
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ExecuteCommandBuffer(ref this PipelineCommandData data)
     {
-        Graphics.ExecuteCommandBuffer(data.buffer);
+        data.context.ExecuteCommandBuffer(data.buffer);
         data.buffer.Clear();
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ExecuteCommandBufferAsync(ref this PipelineCommandData data, CommandBuffer asyncBuffer, ComputeQueueType queueType)
     {
-        Graphics.ExecuteCommandBufferAsync(asyncBuffer, queueType);
+        data.context.ExecuteCommandBufferAsync(asyncBuffer, queueType);
         asyncBuffer.Clear();
     }
 
@@ -445,6 +446,7 @@ public unsafe static class PipelineFunctions
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.reCheckResult, basebuffer.reCheckResult);
         ComputeShaderUtility.Dispatch(coreShader, buffer, OcclusionBuffers.FrustumFilter, basebuffer.clusterCount, 64);
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ClearOcclusionData(
         PipelineBaseBuffer baseBuffer, CommandBuffer buffer
         , ComputeShader coreShader)
