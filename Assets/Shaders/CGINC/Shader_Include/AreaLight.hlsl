@@ -192,8 +192,9 @@ half IESFalloff(half3 L)
 
 /////////////////////////////////////////////////////////////////////////***Energy***/////////////////////////////////////////////////////////////////////////
 //////Punctual Energy
-half3 Point_Energy(half3 L, half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
+half3 Point_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
 {
+    half3 L = normalize(Un_LightDir);
     half Falloff = DistanceFalloff(Un_LightDir, range);
 
     // lightColor is the outgoing luminance of the light time the user light color
