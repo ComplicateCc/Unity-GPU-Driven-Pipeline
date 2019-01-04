@@ -15,7 +15,6 @@
             #pragma vertex vert
             #pragma fragment frag
             #include "UnityCG.cginc"
-            float4 _FarClipCorner[4];
             struct appdata
             {
                 float4 vertex : POSITION;
@@ -25,11 +24,12 @@
             struct v2f
             {
                 float4 vertex : SV_POSITION;
-                float3 worldPos : TEXCOORD1;
+                float2 uv : TEXCOORD0;
             };
             #define GetScreenPos(pos) ((float2(pos.x, pos.y) * 0.5) / pos.w + 0.5)
             float4x4 _LastVp;
             float4x4 _NonJitterVP;
+            float4x4 _InvVP;
             inline half2 CalculateMotionVector(float4x4 lastvp, half3 worldPos, half2 screenUV)
             {
 	            half4 lastScreenPos = mul(lastvp, half4(worldPos, 1));
@@ -41,7 +41,7 @@
             {
                 v2f o;
                 o.vertex = v.vertex;
-                o.worldPos = _FarClipCorner[v.uv.x + v.uv.y * 2].xyz;
+                o.uv = v.uv * 2  -1;
                 return o;
             } 
             samplerCUBE _MainTex;
@@ -50,11 +50,13 @@
             out half4 skyboxColor : SV_TARGET0,
             out half2 outMotionVector : SV_TARGET1)
             {
-                float3 viewDir = normalize(i.worldPos - _WorldSpaceCameraPos);
+                float4 worldPos = mul(_InvVP, float4(i.uv, 0.5, 1));
+                worldPos /= worldPos.w;
+                float3 viewDir = normalize(worldPos.xyz - _WorldSpaceCameraPos);
                 skyboxColor = texCUBE(_MainTex, viewDir);
-                half4 screenPos = mul(_NonJitterVP, float4(i.worldPos, 1));
+                half4 screenPos = mul(_NonJitterVP, float4(worldPos.xyz, 1));
                 half2 screenUV = GetScreenPos(screenPos);
-                outMotionVector = CalculateMotionVector(_LastVp, i.worldPos, screenUV);
+                outMotionVector = CalculateMotionVector(_LastVp, worldPos.xyz, screenUV);
             }
             ENDCG
         }

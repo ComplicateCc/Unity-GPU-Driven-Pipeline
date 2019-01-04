@@ -56,12 +56,23 @@ namespace MPipeline
         }
     }
 
-    public struct CubeCullingBuffer
+    public unsafe struct CubeCullingBuffer
     {
         public ComputeBuffer planes;
         public ComputeBuffer lightPositionBuffer;
         public ComputeBuffer indirectDrawBuffer;
         public RenderTexture renderTarget;
+        public CubemapViewProjMatrix* vpMatrices;
         public int currentLength;
+    }
+
+    public struct CubemapViewProjMatrix
+    {
+        public Matrix4x4 forward;
+        public Matrix4x4 back;
+        public Matrix4x4 up;
+        public Matrix4x4 down;
+        public Matrix4x4 right;
+        public Matrix4x4 left;
     }
 }

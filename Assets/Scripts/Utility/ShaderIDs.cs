@@ -32,7 +32,6 @@ public static partial class ShaderIDs
     public static readonly int reCheckResult = Shader.PropertyToID("reCheckResult");
     public static readonly int reCheckCount = Shader.PropertyToID("reCheckCount");
 
-    public static readonly int _FarClipCorner = Shader.PropertyToID("_FarClipCorner");
     public static readonly int _Jitter = Shader.PropertyToID("_Jitter");
     public static readonly int _Sharpness = Shader.PropertyToID("_Sharpness");
     public static readonly int _FinalBlendParameters = Shader.PropertyToID("_FinalBlendParameters");

@@ -232,29 +232,6 @@ namespace MPipeline
         public Camera mainCamTrans;
         public NativeArray<Vector3> frustumCorners;
     }
-    public struct RenderArray
-    {
-        public Vector4[] farFrustumCorner;
-        public Vector4[] nearFrustumCorner;
-        public Vector4[] frustumPlanes;
-        public RenderArray(bool init)
-        {
-            if (init)
-            {
-                frustumPlanes = new Vector4[6];
-                farFrustumCorner = new Vector4[6];
-                nearFrustumCorner = new Vector4[6];
-            }
-            else
-            {
-                farFrustumCorner = null;
-                nearFrustumCorner = null;
-                frustumPlanes = null;
-            }
-        }
-    }
-
-
     public struct RenderTargets
     {
         public RenderTexture backupTarget;
@@ -300,9 +277,10 @@ namespace MPipeline
     {
         public Matrix4x4 vp;
         public Matrix4x4 inverseVP;
-        public RenderArray arrayCollection;
+        public Vector4[] frustumPlanes;
         public CommandBuffer buffer;
         public ScriptableRenderContext context;
-        public MPipeline.PipelineResources resources;
+        public CullResults cullResults;
+        public PipelineResources resources;
     }
 }

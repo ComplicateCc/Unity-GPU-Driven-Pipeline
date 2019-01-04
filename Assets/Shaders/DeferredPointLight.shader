@@ -158,7 +158,7 @@ ENDCG
                 WorldPos /= WorldPos.w;
 
 
-                half ShadowTrem = 0;
+                half ShadowTrem = 1;
                 half3 ShadingColor = 0;
                 uint2 LightIndex = GetVoxelIte(LinearEyeDepth(SceneDepth), uv);
 
@@ -168,17 +168,17 @@ ENDCG
 
                     //////Light Data
                     half LumianceIntensity = Light.lightIntensity;
-                    half LightRange = Light.sphere.a;
-                    half3 LightPos = Light.sphere.rgb;
+                    half LightRange = Light.sphere.w;
+                    half3 LightPos = Light.sphere.xyz;
                     half3 LightColor = Light.lightColor;
-                    half3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
+                    half3 ViewDir = normalize(_WorldSpaceCameraPos.xyz - WorldPos.xyz);
                     half3 Un_LightDir = LightPos - WorldPos.xyz;
                     half3 LightDir = normalize(Un_LightDir);
                     half3 HalfDir = normalize(ViewDir + LightDir);
                     //////Shadow
                     if(Light.shadowIndex >= 0){
                         half Length_LightDir = length(Un_LightDir);
-                        half DepthMap = (Length_LightDir - 0.025) / LightRange;
+                        half DepthMap = (Length_LightDir - 0.05) / LightRange;
                         half ShadowMap = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(Un_LightDir * float3(-1, -1, 1), Light.shadowIndex));
                         ShadowTrem = DepthMap <= ShadowMap;
                     }
@@ -188,7 +188,7 @@ ENDCG
                     Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
 
                     //////Shading
-                    half3 Energy = Point_Energy(Un_LightDir, LightColor, LumianceIntensity, LightRange * 5, LightData.NoL) * ShadowTrem;
+                    half3 Energy = Point_Energy(LightDir, Un_LightDir, LightColor, LumianceIntensity, LightRange * 5, LightData.NoL) * ShadowTrem;
                     ShadingColor += Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1);
                 }
 

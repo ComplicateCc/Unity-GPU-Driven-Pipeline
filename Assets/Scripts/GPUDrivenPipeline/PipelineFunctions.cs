@@ -10,49 +10,34 @@ using MPipeline;
 
 public unsafe static class PipelineFunctions
 {
-    const int Vector2IntSize = 8;
-    /// <summary>
-    /// Get Frustum Planes
-    /// </summary>
-    /// <param name="invVp"></param> View Projection Inverse Matrix
-    /// <param name="cullingPlanes"></param> Culling Planes results
-    public static void GetCullingPlanes(ref Matrix4x4 invVp, Vector4[] cullingPlanes, Vector4[] farClipPlane, Vector4[] nearClipPlane)
+    public static void GetCullingPlanes(ref Matrix4x4 invVp, Vector4* cullingPlanes)
     {
         Vector3 nearLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 1));
         Vector3 nearLeftTop = invVp.MultiplyPoint(new Vector3(-1, 1, 1));
         Vector3 nearRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 1));
         Vector3 nearRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 1));
         Vector3 farLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 0));
-        Vector3 farLeftTop = invVp.MultiplyPoint(new Vector3(-1, 1, 0));
-        Vector3 farRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 0));
         Vector3 farRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 0));
-        nearClipPlane[0] = nearLeftButtom;
-        nearClipPlane[1] = nearRightButtom;
-        nearClipPlane[2] = nearLeftTop;
-        nearClipPlane[3] = nearRightTop;
-        farClipPlane[0] = farLeftButtom;
-        farClipPlane[1] = farRightButtom;
-        farClipPlane[2] = farLeftTop;
-        farClipPlane[3] = farRightTop;
+        Vector3 farRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 0));
         Plane plane;
         //Far
         plane = new Plane(farLeftButtom, farRightButtom, farRightTop);
         cullingPlanes[0] = plane.normal;
         cullingPlanes[0].w = plane.distance;
         //Up
-        plane = new Plane(farLeftTop, farRightTop, nearRightTop);
+        plane = new Plane(nearLeftTop, farRightTop, nearRightTop);
         cullingPlanes[1] = plane.normal;
         cullingPlanes[1].w = plane.distance;
         //Down
-        plane = new Plane(nearRightButtom, farRightButtom, farLeftButtom);
+        plane = new Plane(nearRightButtom, farLeftButtom, nearLeftButtom);
         cullingPlanes[2] = plane.normal;
         cullingPlanes[2].w = plane.distance;
         //Left
-        plane = new Plane(farLeftButtom, farLeftTop, nearLeftTop);
+        plane = new Plane(farLeftButtom, nearLeftTop, nearLeftButtom);
         cullingPlanes[3] = plane.normal;
         cullingPlanes[3].w = plane.distance;
         //Right
-        plane = new Plane(farRightButtom, nearRightButtom, nearRightTop);
+        plane = new Plane(farRightTop, nearRightButtom, nearRightTop);
         cullingPlanes[4] = plane.normal;
         cullingPlanes[4].w = plane.distance;
         //Near
@@ -61,42 +46,48 @@ public unsafe static class PipelineFunctions
         cullingPlanes[5].w = plane.distance;
 
     }
-    public static void GetCullingPlanes(ref Matrix4x4 invVp, Vector4[] cullingPlanes)
+
+    public static void GetCullingPlanes(ref Matrix4x4 invVp, Vector4* cullingPlanes, float nearClip, float farClip, Vector3 cameraPosition, Vector3 cameraForward)
     {
         Vector3 nearLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 1));
         Vector3 nearLeftTop = invVp.MultiplyPoint(new Vector3(-1, 1, 1));
         Vector3 nearRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 1));
         Vector3 nearRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 1));
-        Vector3 farLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 0));
-        Vector3 farLeftTop = invVp.MultiplyPoint(new Vector3(-1, 1, 0));
-        Vector3 farRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 0));
-        Vector3 farRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 0));
+        Vector3 farLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 0.5f));
+        Vector3 farRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 0.5f));
         Plane plane;
         //Far
-        plane = new Plane(farLeftButtom, farRightButtom, farRightTop);
-        cullingPlanes[0] = plane.normal;
+        plane = new Plane(cameraForward, cameraPosition + cameraForward * farClip);
+        cullingPlanes[0] = cameraForward;
         cullingPlanes[0].w = plane.distance;
         //Up
-        plane = new Plane(farLeftTop, farRightTop, nearRightTop);
+        plane = new Plane(nearLeftTop, farRightTop, nearRightTop);
         cullingPlanes[1] = plane.normal;
         cullingPlanes[1].w = plane.distance;
         //Down
-        plane = new Plane(nearRightButtom, farRightButtom, farLeftButtom);
+        plane = new Plane(nearRightButtom, farLeftButtom, nearLeftButtom);
         cullingPlanes[2] = plane.normal;
         cullingPlanes[2].w = plane.distance;
         //Left
-        plane = new Plane(farLeftButtom, farLeftTop, nearLeftTop);
+        plane = new Plane(farLeftButtom, nearLeftTop, nearLeftButtom);
         cullingPlanes[3] = plane.normal;
         cullingPlanes[3].w = plane.distance;
         //Right
-        plane = new Plane(farRightButtom, nearRightButtom, nearRightTop);
+        plane = new Plane(farRightTop, nearRightButtom, nearRightTop);
         cullingPlanes[4] = plane.normal;
         cullingPlanes[4].w = plane.distance;
         //Near
-        plane = new Plane(nearRightTop, nearRightButtom, nearLeftButtom);
-        cullingPlanes[5] = plane.normal;
+        plane = new Plane(-cameraForward, cameraPosition + cameraForward * nearClip);
+        cullingPlanes[5] = -cameraForward;
         cullingPlanes[5].w = plane.distance;
 
+    }
+    public static void GetCullingPlanesForSRP(Vector4* planes, int count = 6)
+    {
+        for(int i = 0; i < count; ++i)
+        {
+            planes[i] = -planes[i];
+        }
     }
     //TODO: Streaming Loading
     /// <summary>
@@ -151,6 +142,7 @@ public unsafe static class PipelineFunctions
         shadMap.frustumCorners[6] = targetCamera.ViewportToWorldPoint(new Vector3(0, 1, distance.y));
         // top right
         shadMap.frustumCorners[7] = targetCamera.ViewportToWorldPoint(new Vector3(1, 1, distance.y));
+
     }
 
     public static bool FrustumCulling(ref Matrix4x4 ObjectToWorld, Vector3 extent, Vector4* frustumPlanes)

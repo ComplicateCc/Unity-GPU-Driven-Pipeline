@@ -6,6 +6,7 @@
 #pragma kernel CSMain DIRMAP
 #pragma kernel CSMain CUBEMAP DIRMAP
 #pragma kernel Scatter
+#include "CGINC/Shader_Include/Include_HLSL.hlsl"
 #include "CGINC/VoxelLight.cginc"
 #include "UnityCG.cginc"
 
@@ -67,7 +68,10 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             float3 lightDir = pt.sphere.xyz - targetWorldPos;
             float lenOfLightDir = length(lightDir);
             if(lenOfLightDir > pt.sphere.w) continue;
-            float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
+
+            //float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
+            float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * GetLumianceIntensity(pt.lightIntensity) * PhaseFunction(0.36, dot(normalize(pt.sphere.xyz - targetWorldPos), normalize(_WorldSpaceCameraPos.rgb - targetWorldPos))) * pt.lightColor * 50;
+
             #ifdef CUBEMAP
             if(pt.shadowIndex >= 0){
                 float shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex), 0);

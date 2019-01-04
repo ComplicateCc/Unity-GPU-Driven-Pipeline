@@ -26,8 +26,6 @@ namespace MPipeline
         void Awake()
         {
             cam = GetComponent<Camera>();
-            cam.renderingPath = RenderingPath.Forward;
-            cam.cullingMask = 0;
             targets = RenderTargets.Init();
         }
 
@@ -40,9 +38,9 @@ namespace MPipeline
             postDatas.Clear();
         }
 
-        public void RenderSRP(RenderTargetIdentifier destination, ref ScriptableRenderContext context)
+        public void RenderSRP(RenderTargetIdentifier destination, ref ScriptableRenderContext context, ref CullResults cullResults)
         {
-            RenderPipeline.current.Render(renderingPath, this, destination, ref context);
+            RenderPipeline.current.Render(renderingPath, this, destination, ref context, ref cullResults);
             PipelineFunctions.ReleaseRenderTarget(temporaryTextures);
         }
     }

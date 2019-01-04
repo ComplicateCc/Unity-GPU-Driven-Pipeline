@@ -19,7 +19,6 @@ namespace MPipeline
             Shader.SetGlobalMatrix(ShaderIDs._InvVP, data.inverseVP);
             Shader.SetGlobalMatrix(ShaderIDs._VP, data.vp);
             Shader.SetGlobalMatrix(ShaderIDs._InvLastVP, lastVp.inverse);
-            Shader.SetGlobalVectorArray(ShaderIDs._FarClipCorner, data.arrayCollection.farFrustumCorner);
             lastVp = nonJitterVP;
         }
     }

@@ -35,11 +35,11 @@ namespace MPipeline
             buffer.ClearRenderTarget(true, true, Color.black);
             PipelineBaseBuffer baseBuffer;
             bool isClusterEnabled = SceneController.GetBaseBuffer(out baseBuffer);
-            HizOcclusionData hizData = IPerCameraData.GetProperty<HizOcclusionData>(cam, () => new HizOcclusionData());
+            HizOcclusionData hizData = IPerCameraData.GetProperty(cam, () => new HizOcclusionData());
             RenderClusterOptions options = new RenderClusterOptions
             {
                 command = buffer,
-                frustumPlanes = data.arrayCollection.frustumPlanes,
+                frustumPlanes = data.frustumPlanes,
                 isOrtho = cam.cam.orthographic,
                 cullingShader = data.resources.gpuFrustumCulling,
                 terrainCompute = data.resources.terrainCompute,

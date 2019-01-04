@@ -151,10 +151,9 @@ half GetLumianceIntensity(half lumiance)
 
 half SmoothFalloff(half squaredDistance, half invSqrAttRadius)
 {
-    half factor = squaredDistance * invSqrAttRadius;
-    half smoothFactor = saturate(1 - factor * factor);
-    return smoothFactor * smoothFactor;
+    return Square( saturate(1 - Square(squaredDistance * Square(invSqrAttRadius))) );
 }
+
 half DistanceFalloff(half3 unLightDir, half invSqrAttRadius)
 {
     half sqrDist = dot(unLightDir, unLightDir);
@@ -193,10 +192,9 @@ half IESFalloff(half3 L)
 
 /////////////////////////////////////////////////////////////////////////***Energy***/////////////////////////////////////////////////////////////////////////
 //////Punctual Energy
-half3 Point_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
+half3 Point_Energy(half3 L, half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
 {
-    half3 L = normalize(Un_LightDir);
-    half Falloff = DistanceFalloff(Un_LightDir, (1 / range));
+    half Falloff = DistanceFalloff(Un_LightDir, range);
 
     // lightColor is the outgoing luminance of the light time the user light color
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
@@ -207,7 +205,7 @@ half3 Point_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half rang
 half3 Spot_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
 {
     half3 L = normalize(Un_LightDir);
-    half Falloff = DistanceFalloff(Un_LightDir, (1 / range));
+    half Falloff = DistanceFalloff(Un_LightDir, range);
 
     ///Falloff *= AngleFalloff(L, lightForward, lightAngleScale, lightAngleOffset);
     //half lightAngleScale = 1 / max ( 0.001, (90 - 30) );
@@ -256,7 +254,7 @@ half Sphere_Energy(half3 worldNormal, half3 Un_LightDir, half3 lightPos, half3 l
 
 #endif
 
-    half RangeFalloff = DistanceFalloff(Un_LightDir, (1 / range));
+    half RangeFalloff = DistanceFalloff(Un_LightDir, range);
     half LumiancePower = lightColor * GetLumianceIntensity(lumiance);
     return illuminance * RangeFalloff * LumiancePower;
 }

@@ -5,24 +5,25 @@ using UnityEngine.Rendering;
 using UnityEngine.Jobs;
 public unsafe class MPointLight : MonoBehaviour
 {
-    public static List<MPointLight> allPointLights = new List<MPointLight>();
-    public bool useShadow = true;
-    public float range = 5;
-    public Color color = Color.white;
-    public float intensity = 1;
-    public float radius = 1;
-    public float length = 1;
-    private int index;
-    [System.NonSerialized]
-    public Vector3 position;
     [System.NonSerialized]
     public RenderTexture shadowMap;
     [System.NonSerialized]
     public int frameCount = -1;
-
+    [System.NonSerialized]
+    public Light light;
+    private static Dictionary<Light, MPointLight> lightDict = new Dictionary<Light, MPointLight>(47);
+    public static MPointLight GetPointLight(Light light)
+    {
+        MPointLight mp;
+        if (lightDict.TryGetValue(light, out mp)) return mp;
+        mp = light.gameObject.AddComponent<MPointLight>();
+        return mp;
+    }
     private void Awake()
     {
-        shadowMap = RenderTexture.GetTemporary(new RenderTextureDescriptor
+        light = GetComponent<Light>();
+        lightDict.Add(light, this);
+        shadowMap = new RenderTexture(new RenderTextureDescriptor
         {
             autoGenerateMips = false,
             bindMS = false,
@@ -46,26 +47,6 @@ public unsafe class MPointLight : MonoBehaviour
     private void OnDestroy()
     {
         shadowMap.Release();
-    }
-
-    private void OnEnable()
-    {
-        position = transform.position;
-        index = allPointLights.Count;
-        allPointLights.Add(this);
-    }
-
-    private void OnDisable()
-    {
-        if (allPointLights.Count <= 1)
-        {
-            allPointLights.Clear();
-            return;
-        }
-        
-        int last = allPointLights.Count - 1;
-        allPointLights[index] = allPointLights[last];
-        allPointLights[index].index = index;
-        allPointLights.RemoveAt(last);
+        lightDict.Remove(light);
     }
 }

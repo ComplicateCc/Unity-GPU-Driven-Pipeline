@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 
 namespace MPipeline
-{ 
+{
     public unsafe class RenderPipeline : MonoBehaviour
     {
         #region STATIC_AREA
@@ -33,12 +33,12 @@ namespace MPipeline
             data.buffer = new CommandBuffer();
             DontDestroyOnLoad(this);
             current = this;
-            data.arrayCollection = new RenderArray(true);
+            data.frustumPlanes = new Vector4[6];
             allEvents = pipelinePrefab.GetComponentsInChildren<PipelineEvent>();
             foreach (var i in allEvents)
                 i.InitEvent(resources);
             sceneController.Awake(this);
-        } 
+        }
 
         private void Update()
         {
@@ -61,44 +61,16 @@ namespace MPipeline
             PipelineSharedData.DisposeAll();
         }
 
-        public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTexture dest)
-        {
-            //Set Global Data
-            Camera cam = pipelineCam.cam;
-            data.resources = resources;
-            PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);
-            ref RenderArray arr = ref data.arrayCollection;
-            PipelineFunctions.GetCullingPlanes(ref data.inverseVP, arr.frustumPlanes, arr.farFrustumCorner, arr.nearFrustumCorner);
-            DrawEvent evt;
-            if (allDrawEvents.TryGetValue(path, out evt))
-            {
-                //Pre Calculate Events
-                foreach (var i in evt.preRenderEvents)
-                {
-                    i.PreRenderFrame(pipelineCam, ref data);
-                }
-                //Run job system together
-                JobHandle.ScheduleBatchedJobs();
-                //Start Prepare Render Targets
-                //Frame Update Events
-                foreach (var i in evt.drawEvents)
-                {
-                    i.FrameUpdate(pipelineCam, ref data);
-                }
-            }
-            PipelineFunctions.ExecuteCommandBuffer(ref data);
-        }
-
-        public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context)
+        public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, ref CullResults cullResults)
         {
             //Set Global Data
             Camera cam = pipelineCam.cam;
             data.context = context;
+            data.cullResults = cullResults;
             PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, pipelineCam.temporalRT, data.buffer);
             data.resources = resources;
             PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);
-            ref RenderArray arr = ref data.arrayCollection;
-            PipelineFunctions.GetCullingPlanes(ref data.inverseVP, arr.frustumPlanes, arr.farFrustumCorner, arr.nearFrustumCorner);
+            PipelineFunctions.GetCullingPlanes(ref data.inverseVP, data.frustumPlanes.Ptr(), cam.nearClipPlane, cam.farClipPlane, cam.transform.position, cam.transform.forward);
             DrawEvent evt;
             PipelineFunctions.ExecuteCommandBuffer(ref data);
             if (allDrawEvents.TryGetValue(path, out evt))

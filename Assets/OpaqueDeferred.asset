@@ -9,7 +9,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: 4ca4bdc6dbf22684e80c7c5220e5c76c, type: 3}
   m_Name: OpaqueDeferred
-  m_EditorClassIdentifier: Assembly-CSharp::OpaqueAssetPipe
-  deferredShading: {fileID: 0}
+  m_EditorClassIdentifier: 

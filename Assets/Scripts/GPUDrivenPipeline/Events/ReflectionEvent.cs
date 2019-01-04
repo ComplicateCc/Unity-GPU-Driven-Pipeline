@@ -30,7 +30,7 @@ namespace MPipeline
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
-            cullJob.planes = (Vector4*)UnsafeUtility.PinGCArrayAndGetDataAddress(data.arrayCollection.frustumPlanes, out gcHandler);
+            cullJob.planes = (Vector4*)UnsafeUtility.PinGCArrayAndGetDataAddress(data.frustumPlanes, out gcHandler);
             cullJob.resultIndices = new NativeList<int>(ReflectionCube.allCubes.Count, Allocator.Temp);
             cullJobHandler = cullJob.Schedule(ReflectionCube.allCubes.Count, 32);
         }

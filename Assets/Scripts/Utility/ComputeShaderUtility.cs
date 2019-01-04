@@ -55,6 +55,17 @@ public unsafe static class NativeArrayUtility
         }
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T* Ptr<T>(this T[] array) where T: unmanaged
+    {
+        return (T*)UnsafeUtility.AddressOf(ref array[0]);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T* Ptr<T>(ref this T array) where T : unmanaged
+    {
+        return (T*)UnsafeUtility.AddressOf(ref array);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void CopyTo<T>(this T[] array, T* dest, int length) where T : unmanaged
     {
         fixed (T* source = array)

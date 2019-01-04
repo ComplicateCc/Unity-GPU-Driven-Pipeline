@@ -9,7 +9,6 @@ using UnityEngine.Experimental.Rendering;
 [ExecuteInEditMode]
 public class OpaqueAssetPipe : RenderPipelineAsset
 {
-    public Shader deferredShading;
 #if UNITY_EDITOR
     [UnityEditor.MenuItem("SRP-Demo/Deferred")]
     static void CreateBasicAssetPipeline()
@@ -25,17 +24,6 @@ public class OpaqueAssetPipe : RenderPipelineAsset
 }
 public class OpaqueAssetPipeInstance : RenderPipeline
 {
-    private CommandBuffer buffer;
-    public OpaqueAssetPipeInstance()
-    {
-        buffer = new CommandBuffer();
-    }
-
-    public override void Dispose()
-    {
-        buffer.Dispose();
-    }
-
     public override void Render(ScriptableRenderContext context, Camera[] cameras)
     {
         if (!MPipeline.RenderPipeline.current) return;
@@ -43,8 +31,10 @@ public class OpaqueAssetPipeInstance : RenderPipeline
         {
             PipelineCamera cam = camera.GetComponent<PipelineCamera>();
             if (!cam) continue;
+            CullResults results;
+            if (!CullResults.Cull(camera, context, out results)) continue;
             context.SetupCameraProperties(camera);
-            cam.RenderSRP(BuiltinRenderTextureType.CameraTarget, ref context);
+            cam.RenderSRP(BuiltinRenderTextureType.CameraTarget, ref context, ref results);
             context.Submit();
         }
     }
