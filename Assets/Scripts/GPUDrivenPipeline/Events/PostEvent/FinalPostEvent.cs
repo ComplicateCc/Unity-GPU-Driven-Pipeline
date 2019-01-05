@@ -66,7 +66,6 @@ namespace MPipeline
                 sharedData.uberMaterial.shaderKeywords = sharedData.shaderKeywords.ToArray();
             }
             PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, uberAction);
-            data.ExecuteCommandBuffer();
         }
     }
 }

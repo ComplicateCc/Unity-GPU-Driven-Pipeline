@@ -190,7 +190,7 @@ ENDCG
 
                     //////Shading
                     half3 Energy = Point_Energy(Un_LightDir, LightColor, LumianceIntensity, 1 / LightRange, LightData.NoL) * ShadowTrem;
-                    ShadingColor += Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1);
+                    ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1));
                 }
 
                 return ShadingColor;

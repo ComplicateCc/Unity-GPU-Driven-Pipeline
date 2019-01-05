@@ -131,7 +131,6 @@ namespace MPipeline
             buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 0);
             buffer.ReleaseTemporaryRT(ShaderIDs._VolumeTex);
             cbdr.lightFlag = 0;
-            PipelineFunctions.ExecuteCommandBuffer(ref data);
         }
 
         protected override void Dispose()

@@ -38,9 +38,10 @@ namespace MPipeline
             postDatas.Clear();
         }
 
-        public void RenderSRP(RenderTargetIdentifier destination, ref ScriptableRenderContext context, ref CullResults cullResults)
+        public void RenderSRP(RenderTargetIdentifier destination, ref ScriptableRenderContext context)
         {
-            RenderPipeline.current.Render(renderingPath, this, destination, ref context, ref cullResults);
+            RenderPipeline.current.Render(renderingPath, this, destination, ref context);
+            context.Submit();
             PipelineFunctions.ReleaseRenderTarget(temporaryTextures);
         }
     }

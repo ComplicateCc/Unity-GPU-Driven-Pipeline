@@ -18,6 +18,7 @@ public class LoadingThread : MonoBehaviour
     private bool isRunning;
     void Awake()
     {
+        if (current == this) return;
         if (current != null)
         {
             Destroy(gameObject);

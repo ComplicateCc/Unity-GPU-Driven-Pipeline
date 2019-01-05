@@ -1,6 +1,4 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel GetFrustumPlane
-#pragma kernel RunFrustumCull
+﻿#pragma kernel RunFrustumCull
 #pragma kernel ClearCluster
 #define COMPUTESHADER
 #include "CGINC/Procedural.cginc"
@@ -13,36 +11,15 @@ struct ClusterMeshData
 RWStructuredBuffer<ClusterMeshData> clusterBuffer;
 RWStructuredBuffer<uint> instanceCountBuffer;
 RWStructuredBuffer<uint> resultBuffer;
-RWStructuredBuffer<float4> lightPositionBuffer;
-RWStructuredBuffer<float4> planes;
-uint _Count;
-uint _LightOffset;
-static const half3 CubeNormal[6] = {
-    half3(-1, 0, 0),
-    half3(1, 0, 0),
-    half3(0, -1, 0),
-    half3(0, 1, 0),
-    half3(0, 0, -1),
-    half3(0, 0, 1)
-};
-[numthreads(16,6,1)]
-void GetFrustumPlane (uint2 id : SV_DispatchThreadID)
-{
-    if(id.x >= _Count) return;
-    half3 normal = CubeNormal[id.y];
-    float4 posBufferData = lightPositionBuffer[id.x];
-    float3 position = posBufferData.xyz + normal * posBufferData.w;
-    planes[id.x * 6 + id.y] = float4(normal, -dot(position, normal));
-}
+float4 planes[6];
 
 half PlaneTest(ClusterMeshData info){
     float3 position = info.position;
     float3 extent = info.extent;
     half result = 1;
-    uint offsetValue = _LightOffset * 6;
     for(uint i = 0; i < 6; ++i)
     {
-        float4 plane = planes[i + offsetValue];
+        float4 plane = planes[i];
         float r = dot(position, plane.xyz); 
         float3 absNormal = abs(plane.xyz);
         float f = dot(absNormal, extent);
@@ -50,6 +27,7 @@ half PlaneTest(ClusterMeshData info){
     }
     return result;
 }
+uint _Count;
 [numthreads(64, 1, 1)]
 void RunFrustumCull(uint id : SV_DISPATCHTHREADID)
 {
@@ -58,16 +36,13 @@ void RunFrustumCull(uint id : SV_DISPATCHTHREADID)
     half result =  PlaneTest(currentObject);
     if(result > 0.5){
         uint currentIndex;
-        InterlockedAdd(instanceCountBuffer[_LightOffset * 5 + 1], 1, currentIndex);
+        InterlockedAdd(instanceCountBuffer[1], 1, currentIndex);
         resultBuffer[currentIndex] = id;
     }
 }
 
-[numthreads(64,1,1)]
+[numthreads(1,1,1)]
 void ClearCluster(uint id : SV_DISPATCHTHREADID)
 {
-    if(id >=_Count) return;
-    uint dd = id * 5;
-    instanceCountBuffer[dd] = CLUSTERVERTEXCOUNT;
-    instanceCountBuffer[dd + 1] = 0;
+    instanceCountBuffer[1] = 0;
 }

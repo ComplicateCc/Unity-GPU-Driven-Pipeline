@@ -50,7 +50,7 @@ namespace MPipeline
             switch (occCullingMod)
             {
                 case OcclusionCullingMode.None:
-                    SceneController.current.DrawCluster(ref options, ref cam.targets);
+                    SceneController.current.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
                     break;
                 case OcclusionCullingMode.SingleCheck:
                     hizOptions = new HizOptions
@@ -61,7 +61,7 @@ namespace MPipeline
                         linearLODMaterial = linearMat,
                         currentDepthTex = cam.targets.depthTexture
                     };
-                    SceneController.current.DrawClusterOccSingleCheck(ref options, ref hizOptions, ref cam.targets);
+                    SceneController.current.DrawClusterOccSingleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
                     break;
                 case OcclusionCullingMode.DoubleCheck:
                     hizOptions = new HizOptions
@@ -72,10 +72,9 @@ namespace MPipeline
                         linearLODMaterial = linearMat,
                         currentDepthTex = cam.targets.depthTexture
                     };
-                    SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets);
+                    SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
                     break;
             }
-            data.ExecuteCommandBuffer();
         }
     }
     public class HizOcclusionData : IPerCameraData

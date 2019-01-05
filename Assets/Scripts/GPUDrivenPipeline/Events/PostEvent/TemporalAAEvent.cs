@@ -65,7 +65,6 @@ namespace MPipeline
             buffer.SetGlobalVector(ShaderIDs._FinalBlendParameters, new Vector4(stationaryBlending, motionBlending, kMotionAmplification_Blending, 0f));
             buffer.SetGlobalTexture(ShaderIDs._HistoryTex, historyTex);
             PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, taaFunction);
-            data.ExecuteCommandBuffer();
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)

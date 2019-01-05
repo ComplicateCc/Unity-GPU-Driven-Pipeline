@@ -16,7 +16,6 @@ namespace MPipeline
             skyboxIdentifier[1] = camera.targets.motionVectorTexture;
             buffer.SetRenderTarget(skyboxIdentifier, camera.targets.depthIdentifier);
             buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, skyboxMaterial, 0, 0);
-            data.ExecuteCommandBuffer();
         }
     }
 }

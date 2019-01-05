@@ -281,6 +281,7 @@ namespace MPipeline
         public CommandBuffer buffer;
         public ScriptableRenderContext context;
         public CullResults cullResults;
+        public ScriptableCullingParameters cullParams;
         public PipelineResources resources;
     }
 }

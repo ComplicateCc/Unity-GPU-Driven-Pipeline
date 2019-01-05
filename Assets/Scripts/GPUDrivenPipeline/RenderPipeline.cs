@@ -61,18 +61,26 @@ namespace MPipeline
             PipelineSharedData.DisposeAll();
         }
 
-        public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, ref CullResults cullResults)
+        public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context)
         {
-            //Set Global Data
             Camera cam = pipelineCam.cam;
+            if (!CullResults.GetCullingParameters(cam, out data.cullParams)) return;
+            context.SetupCameraProperties(cam);
+            //Set Global Data
+
             data.context = context;
-            data.cullResults = cullResults;
+            data.cullResults = CullResults.Cull(ref data.cullParams, context);
             PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, pipelineCam.temporalRT, data.buffer);
             data.resources = resources;
             PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);
-            PipelineFunctions.GetCullingPlanes(ref data.inverseVP, data.frustumPlanes.Ptr(), cam.nearClipPlane, cam.farClipPlane, cam.transform.position, cam.transform.forward);
+            for (int i = 0; i < data.frustumPlanes.Length; ++i)
+            {
+                Plane p = data.cullParams.GetCullingPlane(i);
+                //GPU Driven RP's frustum plane is inverse from SRP's frustum plane
+                data.frustumPlanes[i] = new Vector4(-p.normal.x, -p.normal.y, -p.normal.z, -p.distance);
+            }
             DrawEvent evt;
-            PipelineFunctions.ExecuteCommandBuffer(ref data);
+            data.ExecuteCommandBuffer();
             if (allDrawEvents.TryGetValue(path, out evt))
             {
                 //Pre Calculate Events
@@ -90,7 +98,7 @@ namespace MPipeline
                 }
             }
             data.buffer.Blit(pipelineCam.targets.renderTargetIdentifier, dest);
-            PipelineFunctions.ExecuteCommandBuffer(ref data);
+            data.ExecuteCommandBuffer();
         }
     }
     public struct DrawEvent

@@ -2,71 +2,51 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Unity.Mathematics;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 namespace MPipeline
 {
-    public unsafe static class CubeFunction
-    {
-        const int initLength = 10;
-        public const int GetFrustumPlane = 0;
-        public const int RunFrustumCull = 1;
-        public const int ClearCluster = 2;
-        public const float spreadLengthRate = 1.2f;
-        public static void Init(ref CubeCullingBuffer buffer)
-        {
-            buffer.currentLength = initLength;
-            buffer.planes = new ComputeBuffer(initLength * 6, sizeof(Vector4));
-            buffer.lightPositionBuffer = new ComputeBuffer(initLength, sizeof(Vector4));
-            buffer.indirectDrawBuffer = new ComputeBuffer(initLength * 5, sizeof(int), ComputeBufferType.IndirectArguments);
-        }
-
-        public static void UpdateLength(ref CubeCullingBuffer buffer, int targetLength)
-        {
-            if (targetLength <= buffer.currentLength) return;
-            buffer.currentLength = (int)(buffer.currentLength * spreadLengthRate);
-            buffer.currentLength = Mathf.Max(buffer.currentLength, targetLength);
-            buffer.indirectDrawBuffer.Dispose();
-            buffer.planes.Dispose();
-            buffer.lightPositionBuffer.Dispose();
-            buffer.planes = new ComputeBuffer(buffer.currentLength * 6, sizeof(Vector4));
-            buffer.lightPositionBuffer = new ComputeBuffer(buffer.currentLength, sizeof(Vector4));
-            buffer.indirectDrawBuffer = new ComputeBuffer(buffer.currentLength * 5, sizeof(int), ComputeBufferType.IndirectArguments);
-        }
-
-        public static void UpdateData(ref CubeCullingBuffer buffer, PipelineBaseBuffer baseBuffer, ComputeShader shader, CommandBuffer cb, NativeArray<Vector4> positions)
-        {
-            cb.SetComputeBufferParam(shader, ClearCluster, ShaderIDs.instanceCountBuffer, buffer.indirectDrawBuffer);
-            cb.SetComputeBufferParam(shader, RunFrustumCull, ShaderIDs.instanceCountBuffer, buffer.indirectDrawBuffer);
-            cb.SetComputeBufferParam(shader, RunFrustumCull, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-            cb.SetComputeBufferParam(shader, RunFrustumCull, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-            cb.SetComputeBufferParam(shader, RunFrustumCull, ShaderIDs.planes, buffer.planes);
-            cb.SetComputeBufferParam(shader, GetFrustumPlane, ShaderIDs.planes, buffer.planes);
-            cb.SetComputeBufferParam(shader, GetFrustumPlane, ShaderIDs.lightPositionBuffer, buffer.lightPositionBuffer);
-            int targetLength = positions.Length;
-            buffer.lightPositionBuffer.SetData(positions);
-            ComputeShaderUtility.Dispatch(shader, cb, ClearCluster, targetLength, 64);
-            ComputeShaderUtility.Dispatch(shader, cb, GetFrustumPlane, targetLength, 16);
-        }
-       
-        public static void Dispose(ref CubeCullingBuffer buffer)
-        {
-            buffer.indirectDrawBuffer.Dispose();
-            buffer.planes.Dispose();
-            buffer.lightPositionBuffer.Dispose();
-        }
-    }
-
     public unsafe struct CubeCullingBuffer
     {
-        public ComputeBuffer planes;
-        public ComputeBuffer lightPositionBuffer;
+        public const int RunFrustumCull = 0;
+        public const int Clear = 1;
         public ComputeBuffer indirectDrawBuffer;
         public RenderTexture renderTarget;
         public CubemapViewProjMatrix* vpMatrices;
-        public int currentLength;
+        private Vector4[] planes;
+        private ComputeShader shader;
+        public void Init(ComputeShader shader)
+        {
+            this.shader = shader;
+            renderTarget = null;
+            vpMatrices = null;
+            planes = new Vector4[6];
+            indirectDrawBuffer = new ComputeBuffer(5, sizeof(int), ComputeBufferType.IndirectArguments);
+            NativeArray<int> ind = new NativeArray<int>(5, Allocator.Temp);
+            ind[0] = PipelineBaseBuffer.CLUSTERVERTEXCOUNT;
+            indirectDrawBuffer.SetData(ind);
+            ind.Dispose();
+        }
+        public void Dispose()
+        { 
+           indirectDrawBuffer.Dispose();
+        }
+
+        public void StartCull(PipelineBaseBuffer baseBuffer, CommandBuffer cb, float4* planesNative)
+        {
+            UnsafeUtility.MemCpy(planes.Ptr(), planesNative, sizeof(Vector4) * 6);
+            cb.SetComputeBufferParam(shader, RunFrustumCull, ShaderIDs.instanceCountBuffer, indirectDrawBuffer);
+            cb.SetComputeBufferParam(shader, RunFrustumCull, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+            cb.SetComputeBufferParam(shader, RunFrustumCull, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+            cb.SetComputeVectorArrayParam(shader, ShaderIDs.planes, planes);
+            cb.SetComputeBufferParam(shader, Clear, ShaderIDs.instanceCountBuffer, indirectDrawBuffer);
+            cb.DispatchCompute(shader, Clear, 1, 1, 1);
+            ComputeShaderUtility.Dispatch(shader, cb, RunFrustumCull, baseBuffer.clusterCount, 64);
+        }
     }
 
-    public struct CubemapViewProjMatrix
+    public unsafe struct CubemapViewProjMatrix
     {
         public Matrix4x4 forward;
         public Matrix4x4 back;
@@ -74,5 +54,7 @@ namespace MPipeline
         public Matrix4x4 down;
         public Matrix4x4 right;
         public Matrix4x4 left;
+        [NativeDisableUnsafePtrRestriction]
+        public float4* frustumPlanes;
     }
 }

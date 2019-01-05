@@ -222,14 +222,14 @@ public unsafe static class PipelineFunctions
     /// <summary>
     /// Initialize per cascade shadowmap buffers
     /// </summary>
-    public static void UpdateCascadeState(ref ShadowMapComponent comp, CommandBuffer buffer, float bias, int pass)
+    public static void UpdateCascadeState(ref ShadowMapComponent comp, CommandBuffer buffer, float bias, int pass, out Matrix4x4 rtVp)
     {
         Vector4 shadowcamDir = comp.shadCam.forward;
         shadowcamDir.w = bias;
         buffer.SetRenderTarget(comp.shadowmapTexture, 0, CubemapFace.Unknown, depthSlice: pass);
         buffer.ClearRenderTarget(true, true, Color.white);
         buffer.SetGlobalVector(ShaderIDs._ShadowCamDirection, shadowcamDir);
-        Matrix4x4 rtVp = GL.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true) * comp.shadCam.worldToCameraMatrix;
+        rtVp = GL.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true) * comp.shadCam.worldToCameraMatrix;
         buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, rtVp);
     }
     /// <summary>

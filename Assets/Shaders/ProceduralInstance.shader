@@ -1,4 +1,6 @@
-﻿ Shader "Maxwell/ProceduralInstance" {
+﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+ Shader "Maxwell/ProceduralInstance" {
 	Properties {
 		_Color ("Color", Color) = (1,1,1,1)
 		_Glossiness ("Smoothness", Range(0,1)) = 0.5
@@ -104,7 +106,7 @@ struct v2f_surf {
   float3 worldViewDir : TEXCOORD4;
 };
 float4 _MainTex_ST;
-v2f_surf vert_surf (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID) 
+v2f_surf vert_gpurp (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID) 
 {
   	Point v = getVertex(vertexID, instanceID);
   	v2f_surf o;
@@ -114,6 +116,26 @@ v2f_surf vert_surf (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
 	o.worldNormal =float4(v.normal, v.vertex.z);
   	o.worldBinormal = float4(cross(v.normal, o.worldTangent.xyz) * v.tangent.w, v.vertex.y);
   	o.worldViewDir = UnityWorldSpaceViewDir(v.vertex);
+  	return o;
+}
+struct appdata
+{
+	float4 vertex : POSITION;
+	float4 tangent : TANGENT;
+	float3 normal : NORMAL;
+	float2 texcoord : TEXCOORD0;
+};
+v2f_surf vert_deferred (appdata v) 
+{
+  	v2f_surf o;
+  	o.pack0 = v.texcoord;
+  	o.pos = UnityObjectToClipPos(v.vertex);
+	  float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
+	  worldPos /= worldPos.w;
+  	o.worldTangent = float4( v.tangent.xyz, worldPos.x);
+	o.worldNormal =float4(v.normal, worldPos.z);
+  	o.worldBinormal = float4(cross(v.normal, o.worldTangent.xyz) * v.tangent.w, worldPos.y);
+  	o.worldViewDir = UnityWorldSpaceViewDir(worldPos);
   	return o;
 }
 float4 unity_Ambient;
@@ -159,11 +181,107 @@ stencil{
 ZTest Less
 CGPROGRAM
 
-#pragma vertex vert_surf
+#pragma vertex vert_gpurp
 #pragma fragment frag_surf
 #pragma exclude_renderers nomrt
 ENDCG
 }
+
+pass
+{
+	stencil{
+  Ref 1
+  comp always
+  pass replace
+}
+Tags {"LightMode" = "GBuffer"}
+ZTest Less
+CGPROGRAM
+
+#pragma vertex vert_deferred
+#pragma fragment frag_surf
+ENDCG
+}
+
+		Pass
+		{
+			ZTest less
+			Tags {"LightMode" = "DirectionalLight"}
+			CGPROGRAM
+			#pragma vertex vert
+			#pragma fragment frag
+			// Upgrade NOTE: excluded shader from OpenGL ES 2.0 because it uses non-square matrices
+			#pragma exclude_renderers gles
+			#include "UnityCG.cginc"
+			#include "CGINC/Procedural.cginc"
+			float4x4 _ShadowMapVP;
+			float4  _ShadowCamDirection;
+			float4 _NormalBiases;
+			struct appdata_shadow
+			{
+				float4 vertex : POSITION;
+				float3 normal : NORMAL;
+			};
+			struct v2f
+			{
+				float4 vertex : SV_POSITION;
+			};
+
+			v2f vert (appdata_shadow v)
+			{
+				float4 worldPos = float4(mul(unity_ObjectToWorld, v.vertex) - _NormalBiases.x * mul((float3x3)unity_ObjectToWorld, v.normal), 1);
+				v2f o;
+				o.vertex = mul(_ShadowMapVP, worldPos);
+				return o;
+			}
+
+			
+			float frag (v2f i) : SV_Target
+			{
+				#if UNITY_REVERSED_Z
+				return 1 - i.vertex.z + _ShadowCamDirection.w;
+				#else
+				return i.vertex.z + _ShadowCamDirection.w;
+				#endif
+			}
+
+			ENDCG
+		}
+
+		Pass
+        {
+			Tags {"LightMode" = "PointLight"}
+			ZTest less
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 5.0
+            #include "CGINC/Procedural.cginc"
+			struct appdata_shadow
+			{
+				float4 vertex : POSITION;
+			};
+            struct v2f
+            {
+                float4 vertex : SV_POSITION;
+                float3 worldPos : TEXCOORD0;
+            };
+            float4x4 _VP;
+            float4 _LightPos;
+            v2f vert (appdata_shadow v) 
+            {
+                v2f o;
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex);
+                o.vertex = mul(_VP, float4(o.worldPos, 1));
+                return o;
+            }
+
+            half frag (v2f i) : SV_Target
+            {
+               return distance(i.worldPos, _LightPos.xyz) / _LightPos.w;
+            } 
+            ENDCG
+        }
 }
 CustomEditor "SpecularShaderEditor"
 }

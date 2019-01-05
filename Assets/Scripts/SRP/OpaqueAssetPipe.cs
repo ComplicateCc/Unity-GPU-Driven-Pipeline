@@ -13,7 +13,7 @@ public class OpaqueAssetPipe : RenderPipelineAsset
     [UnityEditor.MenuItem("SRP-Demo/Deferred")]
     static void CreateBasicAssetPipeline()
     {
-        var instance = ScriptableObject.CreateInstance<OpaqueAssetPipe>();
+        var instance = CreateInstance<OpaqueAssetPipe>();
         UnityEditor.AssetDatabase.CreateAsset(instance, "Assets/OpaqueDeferred.asset");
     }
 #endif
@@ -31,11 +31,7 @@ public class OpaqueAssetPipeInstance : RenderPipeline
         {
             PipelineCamera cam = camera.GetComponent<PipelineCamera>();
             if (!cam) continue;
-            CullResults results;
-            if (!CullResults.Cull(camera, context, out results)) continue;
-            context.SetupCameraProperties(camera);
-            cam.RenderSRP(BuiltinRenderTextureType.CameraTarget, ref context, ref results);
-            context.Submit();
+            cam.RenderSRP(BuiltinRenderTextureType.CameraTarget, ref context);
         }
     }
 }

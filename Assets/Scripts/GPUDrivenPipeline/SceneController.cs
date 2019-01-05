@@ -4,6 +4,8 @@ using UnityEngine;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Rendering;
+using Unity.Mathematics;
+using UnityEngine.Experimental.Rendering;
 using System;
 using Random = Unity.Mathematics.Random;
 namespace MPipeline
@@ -262,17 +264,17 @@ namespace MPipeline
              }
              */
             int value;
-             if (int.TryParse(Input.inputString, out value))
-             {
-                 if (value < allScenes.Count)
-                 {
-                     SceneStreaming str = allScenes[value];
-                     if (str.state == SceneStreaming.State.Loaded)
-                         behavior.StartCoroutine(str.Delete());
-                     else if (str.state == SceneStreaming.State.Unloaded)
-                         behavior.StartCoroutine(str.Generate());
-                 }
-             }
+            if (int.TryParse(Input.inputString, out value))
+            {
+                if (value < allScenes.Count)
+                {
+                    SceneStreaming str = allScenes[value];
+                    if (str.state == SceneStreaming.State.Loaded)
+                        behavior.StartCoroutine(str.Delete());
+                    else if (str.state == SceneStreaming.State.Unloaded)
+                        behavior.StartCoroutine(str.Generate());
+                }
+            }
 
         }
         public static bool GetBaseBuffer(out PipelineBaseBuffer result)
@@ -287,7 +289,7 @@ namespace MPipeline
         }
 
         #region DrawFunctions
-        public void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets)
+        public void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
         {
             if (options.isClusterEnabled)
             {
@@ -296,6 +298,15 @@ namespace MPipeline
                 PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
                 options.command.DispatchCompute(options.cullingShader, 1, 1, 1, 1);
             }
+            data.ExecuteCommandBuffer();
+            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            {
+                renderQueueRange = RenderQueueRange.opaque,
+                layerMask = cam.cullingMask
+            };
+            DrawRendererSettings drawSettings = new DrawRendererSettings(cam, new ShaderPassName("GBuffer"));
+            drawSettings.sorting.flags = SortFlags.CommonOpaque;
+            data.context.DrawRenderers(data.cullResults.visibleRenderers, ref drawSettings, renderSettings);
             //TODO 绘制其他物体
             if (options.isTerrainEnabled)
             {
@@ -304,7 +315,7 @@ namespace MPipeline
             //TODO
         }
 
-        public void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets targets)
+        public void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
         {
             CommandBuffer buffer = options.command;
             if (options.isClusterEnabled)
@@ -324,13 +335,21 @@ namespace MPipeline
                 buffer.DispatchCompute(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, 1, 1, 1);
             }
             //TODO 绘制其他物体
-
+            data.ExecuteCommandBuffer();
+            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            {
+                renderQueueRange = RenderQueueRange.opaque,
+                layerMask = cam.cullingMask
+            };
+            DrawRendererSettings drawSettings = new DrawRendererSettings(cam, new ShaderPassName("GBuffer"));
+            drawSettings.sorting.flags = SortFlags.CommonOpaque;
+            data.context.DrawRenderers(data.cullResults.visibleRenderers, ref drawSettings, renderSettings);
             //TODO
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
 
-        public void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets)
+        public void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
         {
             CommandBuffer buffer = options.command;
             ComputeShader gpuFrustumShader = options.cullingShader;
@@ -349,7 +368,15 @@ namespace MPipeline
                 PipelineFunctions.ClearOcclusionData(baseBuffer, buffer, gpuFrustumShader);
             }
             //TODO 绘制其他物体
-
+            data.ExecuteCommandBuffer();
+            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            {
+                renderQueueRange = RenderQueueRange.opaque,
+                layerMask = cam.cullingMask
+            };
+            DrawRendererSettings drawSettings = new DrawRendererSettings(cam, new ShaderPassName("GBuffer"));
+            drawSettings.sorting.flags = SortFlags.CommonOpaque;
+            data.context.DrawRenderers(data.cullResults.visibleRenderers, ref drawSettings, renderSettings);
             //TODO
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
@@ -365,7 +392,7 @@ namespace MPipeline
             }
         }
 
-        public void DrawDirectionalShadow(Camera currentCam, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)
+        public void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)
         {
             const int CASCADELEVELCOUNT = 4;
             const int CASCADECLIPSIZE = (CASCADELEVELCOUNT + 1) * sizeof(float);
@@ -390,29 +417,66 @@ namespace MPipeline
                 // PipelineFunctions.SetShadowCameraPositionCloseFit(ref shadMap, ref settings);
                 Matrix4x4 invpVPMatrix;
                 PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref shadMap.shadCam, pass, cascadeShadowMapVP, out invpVPMatrix);
-                Vector4* vec = (Vector4*)UnsafeUtility.AddressOf(ref opts.frustumPlanes[0]);
+                Vector4* vec = opts.frustumPlanes.Ptr();
                 PipelineFunctions.GetCullingPlanes(ref invpVPMatrix, vec);
                 PipelineFunctions.SetBaseBuffer(baseBuffer, gpuFrustumShader, opts.frustumPlanes, opts.command);
                 PipelineFunctions.RunCullDispatching(baseBuffer, gpuFrustumShader, true, opts.command);
                 float* biasList = (float*)UnsafeUtility.AddressOf(ref settings.bias);
-                PipelineFunctions.UpdateCascadeState(ref shadMap, opts.command, biasList[pass] / currentCam.farClipPlane, pass);
+                Matrix4x4 vpMatrix;
+                PipelineFunctions.UpdateCascadeState(ref shadMap, opts.command, biasList[pass] / currentCam.farClipPlane, pass, out vpMatrix);
                 opts.command.DrawProceduralIndirect(Matrix4x4.identity, shadMap.shadowDepthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
                 opts.command.DispatchCompute(gpuFrustumShader, 1, 1, 1, 1);
+                data.ExecuteCommandBuffer();
+                FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+                {
+                    renderQueueRange = RenderQueueRange.opaque,
+                    layerMask = currentCam.cullingMask
+                };
+                DrawRendererSettings drawSettings = new DrawRendererSettings(currentCam, new ShaderPassName("DirectionalLight"))
+                {
+                    flags = DrawRendererFlags.EnableDynamicBatching,
+                    rendererConfiguration = RendererConfiguration.None,
+                };
+                drawSettings.sorting.flags = SortFlags.None;
+                for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
+                {
+                    Vector4 v = vec[i];
+                    data.cullParams.SetCullingPlane(i, new Plane(-v, -v.w));
+                }
+                CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+                data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
             }
         }
 
-        public void DrawCubeMap(MPointLight lit, Material depthMaterial, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset, RenderTexture targetCopyTex)
+        public void DrawCubeMap(MPointLight lit, Material depthMaterial, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, PipelineBaseBuffer baseBuffer, Camera cam)
         {
             Light light = lit.light;
             CommandBuffer cb = opts.command;
             ComputeShader shader = opts.cullingShader;
-            cb.SetComputeIntParam(shader, ShaderIDs._LightOffset, offset);
-            ComputeShaderUtility.Dispatch(shader, cb, CubeFunction.RunFrustumCull, baseBuffer.clusterCount, 64);
+            ComputeShaderUtility.Dispatch(shader, cb, CubeCullingBuffer.RunFrustumCull, baseBuffer.clusterCount, 64);
             Vector3 position = lit.transform.position;
             cb.SetGlobalVector(ShaderIDs._LightPos, new Vector4(position.x, position.y, position.z, light.range));
             cb.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
             cb.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             ref CubemapViewProjMatrix vpMatrices = ref buffer.vpMatrices[offset];
+            buffer.StartCull(baseBuffer, cb, vpMatrices.frustumPlanes);
+            for(int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
+            {
+                ref float4 vec = ref vpMatrices.frustumPlanes[i];
+                data.cullParams.SetCullingPlane(i, new Plane(-vec.xyz, -vec.w));
+            }
+            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            {
+                renderQueueRange = RenderQueueRange.opaque,
+                layerMask = cam.cullingMask
+            };
+            DrawRendererSettings drawSettings = new DrawRendererSettings(cam, new ShaderPassName("PointLight"))
+            {
+                flags = DrawRendererFlags.EnableDynamicBatching,
+                rendererConfiguration = RendererConfiguration.None,
+            };
+            drawSettings.sorting.flags = SortFlags.None;
+            CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             //Forward
             int depthSlice = offset * 6;
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
@@ -420,36 +484,48 @@ namespace MPipeline
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.forward);
             offset = offset * 20;
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            data.ExecuteCommandBuffer();
+            data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 5, targetCopyTex, 5);
             //Back
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
             cb.ClearRenderTarget(true, true, Color.white);
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.back);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            data.ExecuteCommandBuffer();
+            data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 4, targetCopyTex, 4);
             //Up
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
             cb.ClearRenderTarget(true, true, Color.white);
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.up);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            data.ExecuteCommandBuffer();
+            data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 2, targetCopyTex, 2);
             //Down
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
             cb.ClearRenderTarget(true, true, Color.white);
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.down);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            data.ExecuteCommandBuffer();
+            data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 3, targetCopyTex, 3);
             //Right
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice);
             cb.ClearRenderTarget(true, true, Color.white);
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.right);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            data.ExecuteCommandBuffer();
+            data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
             cb.CopyTexture(buffer.renderTarget, depthSlice, targetCopyTex, 0);
             //Left
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
             cb.ClearRenderTarget(true, true, Color.white);
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.left);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            data.ExecuteCommandBuffer();
+            data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
         public void CopyToCubeMap(RenderTexture cubemapArray, RenderTexture texArray, CommandBuffer buffer, int offset)

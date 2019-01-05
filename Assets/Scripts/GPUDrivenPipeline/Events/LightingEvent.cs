@@ -37,7 +37,7 @@ namespace MPipeline
         #endregion
         protected override void Init(PipelineResources resources)
         {
-            if(SystemInfo.graphicsDeviceVersion.IndexOf("Direct3D") > -1)
+            if (SystemInfo.graphicsDeviceVersion.IndexOf("Direct3D") > -1)
             {
                 GetProjectionMatrix = (ref Matrix4x4 p) =>
                 {
@@ -50,7 +50,8 @@ namespace MPipeline
                         p[2, i] = p[2, i] * 0.5f + p[3, i] * 0.5f;
                     }
                 };
-            }else
+            }
+            else
             {
                 GetProjectionMatrix = (ref Matrix4x4 p) => { };
             }
@@ -63,7 +64,7 @@ namespace MPipeline
 
             shadowList = new List<MPointLight>(20);
             cubeBuffer = new CubeCullingBuffer();
-            CubeFunction.Init(ref cubeBuffer);
+            cubeBuffer.Init(resources.pointLightFrustumCulling);
             pointLightMaterial = new Material(resources.pointLightShader);
             cubeDepthMaterial = new Material(resources.cubeDepthShader);
             Vector3[] vertices = resources.sphereMesh.vertices;
@@ -85,7 +86,7 @@ namespace MPipeline
             Destroy(pointLightMaterial);
             Destroy(cubeDepthMaterial);
             sphereBuffer.Dispose();
-            CubeFunction.Dispose(ref cubeBuffer);
+            cubeBuffer.Dispose();
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
@@ -113,7 +114,8 @@ namespace MPipeline
                             shadowIndicesForJobs.Add(lightCount);
                             currentPtr->shadowIndex = shadowList.Count;
                             shadowList.Add(MPointLight.GetPointLight(lit));
-                        }else
+                        }
+                        else
                         {
                             currentPtr->shadowIndex = -1;
                         }
@@ -161,7 +163,7 @@ namespace MPipeline
                 buffer.SetGlobalVector(ShaderIDs._NormalBiases, settings.normalBias);   //Only Depth
                 buffer.SetGlobalVector(ShaderIDs._ShadowDisableDistance, new Vector4(settings.firstLevelDistance, settings.secondLevelDistance, settings.thirdLevelDistance, settings.farestDistance));//Only Mask
                 buffer.SetGlobalVector(ShaderIDs._SoftParam, settings.cascadeSoftValue / settings.resolution);
-                SceneController.current.DrawDirectionalShadow(cam.cam, ref opts, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP);
+                SceneController.current.DrawDirectionalShadow(cam.cam, ref data, ref opts, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP);
                 buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
                 buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.shadMap.shadowmapTexture);
                 cbdr.dirLightShadowmap = SunLight.shadMap.shadowmapTexture;
@@ -211,20 +213,8 @@ namespace MPipeline
                     });
                     shadowArray.filterMode = FilterMode.Point;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, shadowArray);
-
                     cam.temporalRT.Add(shadowArray);
-                    NativeArray<Vector4> positions = new NativeArray<Vector4>(shadowList.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                    for (int i = 0; i < shadowList.Count; ++i)
-                    {
-                        MPointLight light = shadowList[i];
-                        Vector3 position = light.transform.position;
-                        positions[i] = new Vector4(position.x, position.y, position.z, light.light.range);
-                    }
-
-                    CubeFunction.UpdateLength(ref cubeBuffer, shadowList.Count);
                     var cullShader = data.resources.pointLightFrustumCulling;
-                    CubeFunction.UpdateData(ref cubeBuffer, baseBuffer, cullShader, buffer, positions);
-                    
                     RenderClusterOptions opts = new RenderClusterOptions
                     {
                         cullingShader = cullShader,
@@ -238,17 +228,17 @@ namespace MPipeline
                     cbdr.cubemapShadowArray = shadowArray;
                     for (int i = 0; i < shadowList.Count; ++i)
                     {
-                       MPointLight light = shadowList[i];
+                        MPointLight light = shadowList[i];
                         if (light.frameCount < 0)
                         {
-                            SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap);
-                          light.frameCount = 10000;
+                            SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data, baseBuffer, cam.cam);
+                            light.frameCount = 10000;
                         }
                         else
                         {
                             SceneController.current.CopyToCubeMap(shadowArray, light.shadowMap, buffer, i);
                         }
-                       
+
                         //TODO
                         //Multi frame shadowmap
                     }
@@ -314,6 +304,10 @@ namespace MPipeline
             public int* shadowIndex;
             [NativeDisableUnsafePtrRestriction]
             public CubemapViewProjMatrix* allMatrix;
+            float4 GetPlane(float3 normal, float3 inPoint)
+            {
+                return new float4(normal, -math.dot(normal, inPoint));
+            }
             public void Execute(int index)
             {
                 ref PointLightStruct str = ref allLights[shadowIndex[index]];
@@ -372,6 +366,15 @@ namespace MPipeline
                 cam.UpdateProjectionMatrix();
                 GetProjectionMatrix(ref cam.projectionMatrix);
                 cube.left = cam.projectionMatrix * cam.worldToCameraMatrix;
+                NativeArray<float4> vec = new NativeArray<float4>(6, Allocator.Temp);
+                cube.frustumPlanes = vec.Ptr();
+                float3 camPos = cam.position;
+                cube.frustumPlanes[0] = GetPlane(new float3(0, 1, 0), camPos + new float3(0, str.sphere.w, 0));
+                cube.frustumPlanes[1] = GetPlane(new float3(0, -1, 0), camPos + new float3(0, -str.sphere.w, 0));
+                cube.frustumPlanes[2] = GetPlane(new float3(1, 0, 0), camPos + new float3(str.sphere.w, 0, 0));
+                cube.frustumPlanes[3] = GetPlane(new float3(-1, 0, 0), camPos + new float3(-str.sphere.w, 0, 0));
+                cube.frustumPlanes[4] = GetPlane(new float3(0, 0, 1), camPos + new float3(0, 0, str.sphere.w));
+                cube.frustumPlanes[5] = GetPlane(new float3(0, 0, -1), camPos + new float3(0, 0, -str.sphere.w));
             }
         }
     }
