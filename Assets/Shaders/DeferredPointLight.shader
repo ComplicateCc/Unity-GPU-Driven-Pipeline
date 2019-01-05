@@ -181,6 +181,8 @@ ENDCG
                         half Length_LightDir = length(Un_LightDir);
                         half DepthMap = (Length_LightDir - 0.025) / LightRange;
                         half ShadowMap = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(Un_LightDir * float3(-1, -1, 1), Light.shadowIndex));
+                       // ShadingColor += ShadowMap;
+                      //  continue;
                         ShadowTrem = saturate(DepthMap <= ShadowMap);
                     }
 
@@ -190,7 +192,7 @@ ENDCG
 
                     //////Shading
                     half3 Energy = Point_Energy(Un_LightDir, LightColor, LumianceIntensity, 1 / LightRange, LightData.NoL) * ShadowTrem;
-                    ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1));
+                   ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1));
                 }
 
                 return ShadingColor;

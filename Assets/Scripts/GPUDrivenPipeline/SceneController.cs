@@ -470,62 +470,61 @@ namespace MPipeline
                 renderQueueRange = RenderQueueRange.opaque,
                 layerMask = cam.cullingMask
             };
-            DrawRendererSettings drawSettings = new DrawRendererSettings(cam, new ShaderPassName("PointLight"))
+            DrawRendererSettings drawSettings = new DrawRendererSettings(cam, new ShaderPassName("PointLightPass"))
             {
                 flags = DrawRendererFlags.EnableDynamicBatching,
                 rendererConfiguration = RendererConfiguration.None,
             };
-            drawSettings.sorting.flags = SortFlags.None;
+            drawSettings.sorting.flags = SortFlags.RenderQueue;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             //Forward
             int depthSlice = offset * 6;
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.forward);
-            offset = offset * 20;
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.forwardProj, true) * vpMatrices.forwardView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 5, targetCopyTex, 5);
             //Back
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.back);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.backProj, true) * vpMatrices.backView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 4, targetCopyTex, 4);
             //Up
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.up);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.upProj, true) * vpMatrices.upView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 2, targetCopyTex, 2);
             //Down
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.down);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.downProj, true) * vpMatrices.downView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 3, targetCopyTex, 3);
             //Right
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.right);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.rightProj, true) * vpMatrices.rightView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
             cb.CopyTexture(buffer.renderTarget, depthSlice, targetCopyTex, 0);
             //Left
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.left);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, offset);
+            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.leftProj, true) * vpMatrices.leftView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref drawSettings, renderSettings);
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0); 
             cb.CopyTexture(buffer.renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
         public void CopyToCubeMap(RenderTexture cubemapArray, RenderTexture texArray, CommandBuffer buffer, int offset)

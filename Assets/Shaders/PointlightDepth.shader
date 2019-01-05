@@ -3,7 +3,7 @@
     SubShader
     {
         Tags { "RenderType"="Opaque" }
-        LOD 100
+        ZTest less
         Pass
         {
             CGPROGRAM
@@ -27,7 +27,7 @@
                 return o;
             }
 
-            half frag (v2f i) : SV_Target
+            float frag (v2f i) : SV_Target
             {
                return distance(i.worldPos, _LightPos.xyz) / _LightPos.w;
             } 

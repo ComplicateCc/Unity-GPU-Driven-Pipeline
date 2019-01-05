@@ -33,28 +33,9 @@ namespace MPipeline
         private NativeList<int> shadowIndicesForJobs;
         private NativeArray<CubemapViewProjMatrix> vpMatrices;
         private JobHandle vpMatricesJobHandle;
-        public static Functional.Function<Matrix4x4> GetProjectionMatrix;
         #endregion
         protected override void Init(PipelineResources resources)
         {
-            if (SystemInfo.graphicsDeviceVersion.IndexOf("Direct3D") > -1)
-            {
-                GetProjectionMatrix = (ref Matrix4x4 p) =>
-                {
-                    for (int i = 0; i < 4; i++)
-                    {
-                        p[1, i] = -p[1, i];
-                    }
-                    for (int i = 0; i < 4; i++)
-                    {
-                        p[2, i] = p[2, i] * 0.5f + p[3, i] * 0.5f;
-                    }
-                };
-            }
-            else
-            {
-                GetProjectionMatrix = (ref Matrix4x4 p) => { };
-            }
             cbdr = PipelineSharedData.Get(renderPath, resources, (a) => new CBDRSharedData(a));
             shadMaskMaterial = new Material(resources.shadowMaskShader);
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
@@ -136,7 +117,6 @@ namespace MPipeline
         {
             DirLight(cam, ref data);
             PointLight(cam, ref data);
-            data.ExecuteCommandBuffer();
         }
         private void DirLight(PipelineCamera cam, ref PipelineCommandData data)
         {
@@ -324,48 +304,52 @@ namespace MPipeline
                 cam.right = Vector3.left;
                 cam.UpdateTRSMatrix();
                 cam.UpdateProjectionMatrix();
-                GetProjectionMatrix(ref cam.projectionMatrix);
-                cube.forward = cam.projectionMatrix * cam.worldToCameraMatrix;
+                cube.forwardProj = cam.projectionMatrix;
+                cube.forwardView = cam.worldToCameraMatrix;
                 //Back
                 cam.forward = Vector3.back;
                 cam.up = Vector3.down;
                 cam.right = Vector3.right;
                 cam.UpdateTRSMatrix();
                 cam.UpdateProjectionMatrix();
-                GetProjectionMatrix(ref cam.projectionMatrix);
-                cube.back = cam.projectionMatrix * cam.worldToCameraMatrix;
+                cube.backProj = cam.projectionMatrix;
+                cube.backView = cam.worldToCameraMatrix;
                 //Up
                 cam.forward = Vector3.up;
                 cam.up = Vector3.back;
                 cam.right = Vector3.right;
                 cam.UpdateTRSMatrix();
                 cam.UpdateProjectionMatrix();
-                GetProjectionMatrix(ref cam.projectionMatrix);
-                cube.up = cam.projectionMatrix * cam.worldToCameraMatrix;
+
+                cube.upProj = cam.projectionMatrix;
+                cube.upView = cam.worldToCameraMatrix;
                 //Down
                 cam.forward = Vector3.down;
                 cam.up = Vector3.forward;
                 cam.right = Vector3.right;
                 cam.UpdateTRSMatrix();
                 cam.UpdateProjectionMatrix();
-                GetProjectionMatrix(ref cam.projectionMatrix);
-                cube.down = cam.projectionMatrix * cam.worldToCameraMatrix;
+
+                cube.downProj = cam.projectionMatrix;
+                cube.downView = cam.worldToCameraMatrix;
                 //Right
                 cam.forward = Vector3.right;
                 cam.up = Vector3.down;
                 cam.right = Vector3.forward;
                 cam.UpdateTRSMatrix();
                 cam.UpdateProjectionMatrix();
-                GetProjectionMatrix(ref cam.projectionMatrix);
-                cube.right = cam.projectionMatrix * cam.worldToCameraMatrix;
+
+                cube.rightProj = cam.projectionMatrix;
+                cube.rightView = cam.worldToCameraMatrix;
                 //Left
                 cam.forward = Vector3.left;
                 cam.up = Vector3.down;
                 cam.right = Vector3.back;
                 cam.UpdateTRSMatrix();
                 cam.UpdateProjectionMatrix();
-                GetProjectionMatrix(ref cam.projectionMatrix);
-                cube.left = cam.projectionMatrix * cam.worldToCameraMatrix;
+
+                cube.leftProj = cam.projectionMatrix;
+                cube.leftView = cam.worldToCameraMatrix;
                 NativeArray<float4> vec = new NativeArray<float4>(6, Allocator.Temp);
                 cube.frustumPlanes = vec.Ptr();
                 float3 camPos = cam.position;

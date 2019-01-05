@@ -250,7 +250,7 @@ ENDCG
 
 		Pass
         {
-			Tags {"LightMode" = "PointLight"}
+			Tags {"LightMode"="PointLightPass"}
 			ZTest less
             CGPROGRAM
             #pragma vertex vert
@@ -271,12 +271,13 @@ ENDCG
             v2f vert (appdata_shadow v) 
             {
                 v2f o;
-                o.worldPos = mul(unity_ObjectToWorld, v.vertex);
-                o.vertex = mul(_VP, float4(o.worldPos, 1));
+				float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
+                o.worldPos = worldPos.xyz;
+                o.vertex = mul(_VP, worldPos);
                 return o;
             }
 
-            half frag (v2f i) : SV_Target
+            float frag (v2f i) : SV_Target
             {
                return distance(i.worldPos, _LightPos.xyz) / _LightPos.w;
             } 
