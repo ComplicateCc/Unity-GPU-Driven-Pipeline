@@ -67,7 +67,7 @@ namespace MPipeline
             if (!CullResults.GetCullingParameters(cam, out data.cullParams)) return;
             context.SetupCameraProperties(cam);
             //Set Global Data
-
+            data.defaultDrawSettings = new DrawRendererSettings(cam, new ShaderPassName(""));
             data.context = context;
             data.cullResults = CullResults.Cull(ref data.cullParams, context);
             PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, pipelineCam.temporalRT, data.buffer);
@@ -80,7 +80,6 @@ namespace MPipeline
                 data.frustumPlanes[i] = new Vector4(-p.normal.x, -p.normal.y, -p.normal.z, -p.distance);
             }
             DrawEvent evt;
-            data.ExecuteCommandBuffer();
             if (allDrawEvents.TryGetValue(path, out evt))
             {
                 //Pre Calculate Events

@@ -211,7 +211,7 @@ namespace MPipeline
                         MPointLight light = shadowList[i];
                         if (light.frameCount < 0)
                         {
-                            SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data, baseBuffer, cam.cam);
+                            SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data, baseBuffer);
                             light.frameCount = 10000;
                         }
                         else

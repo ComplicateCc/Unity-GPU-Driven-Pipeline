@@ -277,7 +277,7 @@ ENDCG
                 return o;
             }
 
-            float frag (v2f i) : SV_Target
+            half frag (v2f i) : SV_Target
             {
                return distance(i.worldPos, _LightPos.xyz) / _LightPos.w;
             } 
