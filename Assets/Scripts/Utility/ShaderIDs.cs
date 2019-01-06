@@ -85,6 +85,7 @@ public static partial class ShaderIDs
     public static readonly int _MeshSize = Shader.PropertyToID("_MeshSize");
     public static readonly int _LightFlag = Shader.PropertyToID("_LightFlag");
     public static readonly int _CubeShadowMapArray = Shader.PropertyToID("_CubeShadowMapArray");
+    public static readonly int _SpotMapArray = Shader.PropertyToID("_SpotMapArray");
     public static readonly int _TemporalWeight = Shader.PropertyToID("_TemporalWeight");
     public static readonly int _MaxDistance = Shader.PropertyToID("_MaxDistance");
     public static readonly int _VolumeTex = Shader.PropertyToID("_VolumeTex");

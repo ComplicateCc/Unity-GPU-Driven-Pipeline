@@ -29,6 +29,8 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
                 float lightIntensity;
                 Cone lightCone;
                 float angle;
+                float4x4 vpMatrix;
+                int shadowIndex;
             };
 float3 _CameraForward;
 float3 _CameraNearPos;

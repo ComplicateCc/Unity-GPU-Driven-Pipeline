@@ -319,7 +319,44 @@ namespace MPipeline
             }
             //TODO
         }
-
+        public void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
+        {
+            ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
+            spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
+            options.command.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
+            options.command.ClearRenderTarget(true, true, new Color(5, 1, 1, 1));
+            options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
+            options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
+            options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
+            if (options.isClusterEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, spotcommand.GetCullingPlane(spotLightMatrix.frustumPlanes), options.command);
+                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, false, options.command);
+                PipelineFunctions.RenderProceduralCommand(baseBuffer, spotcommand.clusterShadowMaterial, options.command);
+                options.command.DispatchCompute(options.cullingShader, 1, 1, 1, 1);
+            }
+            data.ExecuteCommandBuffer();
+            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            {
+                renderQueueRange = RenderQueueRange.opaque,
+                layerMask = currentCam.cullingMask
+            };
+            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("SpotLightPass"));
+            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
+            {
+                flags = SortFlags.CommonOpaque,
+                sortMode = DrawRendererSortMode.Perspective,
+                cameraPosition = spotLights.lightCone.vertex
+            };
+            for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
+            {
+                Vector4 v = spotcommand.frustumPlanes[i];
+                data.cullParams.SetCullingPlane(i, new Plane(-v, -v.w));
+            }
+            data.cullParams.cullingFlags = CullFlag.None;
+            CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+        }
         public void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
         {
             CommandBuffer buffer = options.command;
@@ -406,7 +443,6 @@ namespace MPipeline
                 hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
             }
         }
-
         public void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)
         {
             const int CASCADELEVELCOUNT = 4;
@@ -465,7 +501,6 @@ namespace MPipeline
                 data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             }
         }
-
         public void DrawCubeMap(MPointLight lit, Material depthMaterial, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, PipelineBaseBuffer baseBuffer)
         {
             Light light = lit.light;
@@ -478,7 +513,7 @@ namespace MPipeline
             cb.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             ref CubemapViewProjMatrix vpMatrices = ref buffer.vpMatrices[offset];
             buffer.StartCull(baseBuffer, cb, vpMatrices.frustumPlanes);
-            for(int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
+            for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
             {
                 ref float4 vec = ref vpMatrices.frustumPlanes[i];
                 data.cullParams.SetCullingPlane(i, new Plane(-vec.xyz, -vec.w));
@@ -500,7 +535,8 @@ namespace MPipeline
             int depthSlice = offset * 6;
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.forwardProj, true) * vpMatrices.forwardView);
+            Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
+            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.forwardView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
@@ -508,7 +544,7 @@ namespace MPipeline
             //Back
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.backProj, true) * vpMatrices.backView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.backView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
@@ -516,7 +552,7 @@ namespace MPipeline
             //Up
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.upProj, true) * vpMatrices.upView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.upView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
@@ -524,7 +560,7 @@ namespace MPipeline
             //Down
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.downProj, true) * vpMatrices.downView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.downView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
@@ -532,7 +568,7 @@ namespace MPipeline
             //Right
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.rightProj, true) * vpMatrices.rightView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.rightView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
@@ -540,10 +576,10 @@ namespace MPipeline
             //Left
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
             cb.ClearRenderTarget(true, true, Color.white);
-            cb.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(vpMatrices.leftProj, true) * vpMatrices.leftView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.leftView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0); 
+            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, buffer.indirectDrawBuffer, 0);
             cb.CopyTexture(buffer.renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
         public void CopyToCubeMap(RenderTexture cubemapArray, RenderTexture texArray, CommandBuffer buffer, int offset)

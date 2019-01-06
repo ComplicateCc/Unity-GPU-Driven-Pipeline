@@ -48,18 +48,13 @@ namespace MPipeline
 
     public unsafe struct CubemapViewProjMatrix
     {
-        public Matrix4x4 forwardProj;
         public Matrix4x4 forwardView;
-        public Matrix4x4 backProj;
         public Matrix4x4 backView;
-        public Matrix4x4 upProj;
         public Matrix4x4 upView;
-        public Matrix4x4 downProj;
         public Matrix4x4 downView;
-        public Matrix4x4 rightProj;
         public Matrix4x4 rightView;
-        public Matrix4x4 leftProj;
         public Matrix4x4 leftView;
+        public Matrix4x4 projMat;
         [NativeDisableUnsafePtrRestriction]
         public float4* frustumPlanes;
     }

@@ -16,7 +16,6 @@ CGINCLUDE
             Texture2D<half4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
             Texture2D<half4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
             Texture2D<half4> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;
-            TextureCube<half> _CubeShadowMap; SamplerState sampler_CubeShadowMap;
 
             StructuredBuffer<PointLight> _AllPointLight;
             StructuredBuffer<uint> _PointLightIndexBuffer;
@@ -59,6 +58,7 @@ ENDCG
             #pragma fragment frag
 
             TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
+            Texture2DArray<half> _SpotMapArray; SamplerState sampler_SpotMapArray;
 
             half3 frag(v2fScreen i) : SV_TARGET
             {
@@ -84,22 +84,50 @@ ENDCG
                 uint c;
                 float3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
                 #if SPOTLIGHT
+                
                 LightIndex = uint2(sb + 1, _SpotLightIndexBuffer[sb]);
+                [loop]
                 for(c = LightIndex.x; c < LightIndex.y; c++)
                 {
                     SpotLight Light = _AllSpotLight[_SpotLightIndexBuffer[c]];
-                    Cone lightCone = Light.lightCone;
-                    float3 un_lightDir = WorldPos.xyz - lightCone.vertex;
-                    float lightDirLength = length(un_lightDir);
-                    float3 lightDir = un_lightDir / lightDirLength;
-                    float3 spotDir = lightCone.direction;
-                    float angle = acos(dot(lightDir, spotDir));
-                    ShadingColor += (angle < Light.angle) ? Light.lightIntensity * Light.lightColor * saturate(1 - lightDirLength / lightCone.radius) : 0;
+                    Cone SpotCone = Light.lightCone;
+                    
+                        //////Light Data
+                        float LumianceIntensity = Light.lightIntensity;
+                        float LightRange = SpotCone.radius;
+                        float3 LightPos = SpotCone.vertex;
+                        float3 LightColor = Light.lightColor;
+                        
+                        half LightAngle = Light.angle;
+                        float3 LightForward = SpotCone.direction;
+                        float3 Un_LightDir = LightPos - WorldPos.xyz;
+                        float3 LightDir = normalize(Un_LightDir);
+                        float3 HalfDir = normalize(ViewDir + LightDir);
+
+                        //////BSDF Variable
+                        BSDFContext LightData;
+                        Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
+
+                        //////Shading
+                        ShadowTrem = 1;
+                        float3 Energy = Spot_Energy(-Un_LightDir, LightColor, LightForward, cos(LightAngle * 0.5), cos(LightAngle), LumianceIntensity, 1.0 / LightRange, LightData.NoL);
+                        if(Light.shadowIndex >= 0)
+                    {
+                        float4 clipPos = mul(Light.vpMatrix, WorldPos);
+                        clipPos /= clipPos.w;
+                        float2 uv = clipPos.xy * 0.5 + 0.5;
+                        half shadowDist = _SpotMapArray.Sample(sampler_SpotMapArray, float3(uv, Light.shadowIndex));
+                        ShadowTrem = (length(Un_LightDir) - 0.25) / SpotCone.height < shadowDist;
+                    }
+                        ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1) * ShadowTrem);
+                    
+
                 }
                 #endif
                 #if POINTLIGHT
                 ShadowTrem = 1;
                 LightIndex = uint2(sb + 1, _PointLightIndexBuffer[sb]);
+                [loop]
                 for(c = LightIndex.x; c < LightIndex.y; c++)
                 {
                     PointLight Light = _AllPointLight[_PointLightIndexBuffer[c]];
@@ -117,11 +145,11 @@ ENDCG
                     //////Shadow
                     if(Light.shadowIndex >= 0){
                         float Length_LightDir = length(Un_LightDir);
-                        float DepthMap = (Length_LightDir - 0.025) / LightRange;
+                        float DepthMap = (Length_LightDir - 0.25) / LightRange;
                         float ShadowMap = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(Un_LightDir * float3(-1, -1, 1), Light.shadowIndex));
                        // ShadingColor += ShadowMap;
                       //  continue;
-                        ShadowTrem = saturate(DepthMap <= ShadowMap);
+                        ShadowTrem = saturate(DepthMap < ShadowMap);
                     }
 
                     //////BSDF Variable

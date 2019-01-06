@@ -41,12 +41,15 @@ namespace MPipeline
         public float lightIntensity;
         public Cone lightCone;
         public float angle;
+        public Matrix4x4 vpMatrix;
+        public int shadowIndex;
     };
     public unsafe class CBDRSharedData : PipelineSharedData
     {
         public ComputeShader cbdrShader;
         public RenderTexture dirLightShadowmap;
         public RenderTexture cubemapShadowArray;
+        public RenderTexture spotShadowArray;
         public RenderTexture xyPlaneTexture;
         public RenderTexture zPlaneTexture;
         public RenderTexture pointTileLightList;

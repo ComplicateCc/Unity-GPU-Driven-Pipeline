@@ -25,7 +25,6 @@ MonoBehaviour:
   taaShader: {fileID: 4800000, guid: 51bcf79c50dc92e47ba87821b61100c3, type: 3}
   indirectDepthShader: {fileID: 4800000, guid: 2896c2d5ef5101b46942a11a481cb2d6, type: 3}
   HizLodShader: {fileID: 4800000, guid: 26c0c9d0c19bd4f4d958db01aa775f53, type: 3}
-  spotlightShader: {fileID: 4800000, guid: 2082b8d833666e6489704a7cec5c2e39, type: 3}
   motionVectorShader: {fileID: 4800000, guid: af8fd14c9f7a6d941b247fe88b7e37f6, type: 3}
   shadowMaskShader: {fileID: 4800000, guid: 59587a2c9dce614429a67657b3058d89, type: 3}
   reflectionShader: {fileID: 4800000, guid: 570f61f4159173a449116b777a6d5480, type: 3}
@@ -35,5 +34,7 @@ MonoBehaviour:
   clusterRenderShader: {fileID: 4800000, guid: 538f1aea21e411247a28ba6f5befa4c1, type: 3}
   volumetricShader: {fileID: 4800000, guid: b18907693260b7442b86918d80df23f8, type: 3}
   terrainShader: {fileID: 4800000, guid: 6fb475602d94ae848a82d502a93ade30, type: 3}
+  spotLightDepthShader: {fileID: 4800000, guid: bed89509ad0b6d844a4a9086fbabac3c,
+    type: 3}
   occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}

@@ -16,7 +16,6 @@ namespace MPipeline
         public Shader taaShader;
         public Shader indirectDepthShader;
         public Shader HizLodShader;
-        public Shader spotlightShader;
         public Shader motionVectorShader;
         public Shader shadowMaskShader;
         public Shader reflectionShader;
@@ -26,6 +25,7 @@ namespace MPipeline
         public Shader clusterRenderShader;
         public Shader volumetricShader;
         public Shader terrainShader;
+        public Shader spotLightDepthShader;
         public Mesh occluderMesh;
         public Mesh sphereMesh;
     }

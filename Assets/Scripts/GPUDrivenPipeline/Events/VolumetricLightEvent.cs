@@ -14,7 +14,7 @@ namespace MPipeline
         private Material volumeMat;
         public float availableDistance = 64;
         const int marchStep = 64;
-        const int scatterPass = 4;
+        const int scatterPass = 8;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
         private Random rand;
@@ -67,6 +67,8 @@ namespace MPipeline
                 pass |= 0b001;
             if (cbdr.dirLightShadowmap != null)
                 pass |= 0b010;
+            if (cbdr.spotShadowArray != null)
+                pass |= 0b100;
             buffer.SetGlobalFloat(ShaderIDs._MaxDistance, availableDistance);
             buffer.SetGlobalInt(ShaderIDs._FrameCount, Time.frameCount);
             HistoryVolumetric historyVolume = IPerCameraData.GetProperty(cam, () => new HistoryVolumetric());
@@ -121,11 +123,13 @@ namespace MPipeline
             buffer.SetComputeTextureParam(scatter, scatterPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._LastVolume, historyVolume.lastVolume);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._DirShadowMap, cbdr.dirLightShadowmap);
+            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._SpotMapArray, cbdr.spotShadowArray);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubemapShadowArray);
             buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
 
             cbdr.cubemapShadowArray = null;
             cbdr.dirLightShadowmap = null;
+            cbdr.spotShadowArray = null;
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
             buffer.DispatchCompute(scatter, pass, downSampledSize.x / 8, downSampledSize.y / 2, downSampledSize.z / marchStep);
             buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);

@@ -162,13 +162,13 @@ half DistanceFalloff(half3 unLightDir, half invSqrAttRadius)
     return attenuation;
 }
 
-half AngleFalloff(half3 normalizedLightVector, half3 lightDir, half lightAngleScale, half lightAngleOffset)
+half AngleFalloff(half3 lightDir, half3 coneDir, half lightAngleScale, half lightAngleOffset)
 {
     // On the CPU
     // half lightAngleScale = 1 / max ( 0.001, (cosInner - cosOuter) );
     // half lightAngleOffset = -cosOuter * lightAngleScale ;
 
-    half cd = dot(lightDir, normalizedLightVector);
+    half cd = dot(coneDir, lightDir);
     half attenuation = saturate(cd * lightAngleScale + lightAngleOffset);
     attenuation *= attenuation;
     return attenuation;
@@ -191,34 +191,31 @@ half IESFalloff(half3 L)
 */
 
 /////////////////////////////////////////////////////////////////////////***Energy***/////////////////////////////////////////////////////////////////////////
+
 //////Punctual Energy
 half3 Point_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
 {
     half3 L = normalize(Un_LightDir);
     half Falloff = DistanceFalloff(Un_LightDir, range);
 
-    // lightColor is the outgoing luminance of the light time the user light color
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
     half3 luminance = Falloff * NoL * ( lightColor * GetLumianceIntensity(lumiance) );
     return luminance;
 }
 
-half3 Spot_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
+half3 Spot_Energy(half3 Un_LightDir, half3 lightColor, half3 coneDir, half innerCone, half outerCone, half lumiance, half range, half NoL)
 {
-    half3 L = normalize(Un_LightDir);
+    half3 LightDir = normalize(Un_LightDir);
     half Falloff = DistanceFalloff(Un_LightDir, range);
 
-    ///Falloff *= AngleFalloff(L, lightForward, lightAngleScale, lightAngleOffset);
-    //half lightAngleScale = 1 / max ( 0.001, (90 - 30) );
-    //half lightAngleOffset = -30 * lightAngleScale ;
-    //Falloff *= AngleFalloff(L, half3(0, 90, 0), lightAngleScale, lightAngleOffset);
+    half lightAngleScale = 1 / max ( 0.001, (innerCone - outerCone) );
+    half lightAngleOffset = -outerCone * lightAngleScale;
+    Falloff *= AngleFalloff(LightDir, coneDir, lightAngleScale, lightAngleOffset);
 
-    // lightColor is the outgoing luminance of the light time the user light color
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
     half3 luminance = Falloff * NoL * ( lightColor * GetLumianceIntensity(lumiance) );
     return luminance;
 }
-
 
 
 //////Area Energy

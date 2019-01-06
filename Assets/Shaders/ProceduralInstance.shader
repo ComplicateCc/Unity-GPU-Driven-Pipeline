@@ -206,6 +206,7 @@ ENDCG
 		Pass
 		{
 			ZTest less
+			Cull back
 			Tags {"LightMode" = "DirectionalLight"}
 			CGPROGRAM
 			#pragma vertex vert
@@ -252,6 +253,7 @@ ENDCG
         {
 			Tags {"LightMode"="PointLightPass"}
 			ZTest less
+			Cull front
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -283,6 +285,47 @@ ENDCG
             } 
             ENDCG
         }
+
+		Pass
+		{
+			Tags {"LightMode"="SpotLightPass"}
+			ZTest less
+			Cull Front
+			CGPROGRAM
+			#pragma vertex vert
+			#pragma fragment frag
+			// Upgrade NOTE: excluded shader from OpenGL ES 2.0 because it uses non-square matrices
+			#pragma exclude_renderers gles
+			#include "UnityCG.cginc"
+			#include "CGINC/Procedural.cginc"
+			float4x4 _ShadowMapVP;
+			float3 _LightPos;
+			float _LightRadius;
+			struct v2f
+			{
+				float4 vertex : SV_POSITION;
+                float3 worldPos : TEXCOORD0;
+			};
+			struct appdata_shadow
+			{
+				float4 vertex : POSITION;
+			};
+
+			v2f vert (appdata_shadow v)
+			{
+				float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
+				v2f o;
+				o.vertex = mul(_ShadowMapVP, worldPos);
+				o.worldPos = worldPos.xyz;
+				return o;
+			}
+			float frag (v2f i) : SV_Target
+			{
+				return distance(_LightPos, i.worldPos) / _LightRadius;
+			}
+
+			ENDCG
+		}
 }
 CustomEditor "SpecularShaderEditor"
 }

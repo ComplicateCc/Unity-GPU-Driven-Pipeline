@@ -192,6 +192,11 @@ namespace MPipeline
             worldToCameraMatrix = localToWorldMatrix.inverse;
             worldToCameraMatrix.SetRow(2, -worldToCameraMatrix.GetRow(2));
         }
+        public void UpdateViewMatrix(Matrix4x4 localToWorld)
+        {
+            worldToCameraMatrix = localToWorld.inverse;
+            worldToCameraMatrix.SetRow(2, -worldToCameraMatrix.GetRow(2));
+        }
         public void UpdateProjectionMatrix()
         {
             projectionMatrix = Matrix4x4.Perspective(fov, aspect, nearClipPlane, farClipPlane);
