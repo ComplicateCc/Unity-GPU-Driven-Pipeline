@@ -113,7 +113,9 @@ namespace MPipeline
             buffer.SetGlobalVector(ShaderIDs._NearFarClip, new Vector4(cam.cam.farClipPlane / availableDistance, cam.cam.nearClipPlane / availableDistance, cam.cam.nearClipPlane));
             buffer.SetGlobalVector(ShaderIDs._Screen_TexelSize, new Vector4(1f / cam.cam.pixelWidth, 1f / cam.cam.pixelHeight, cam.cam.pixelWidth, cam.cam.pixelHeight));
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
-            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelTileLightList, cbdr.froxelTileLightList);
+            buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
+            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelPointTileLightList, cbdr.froxelpointTileLightList);
+            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelSpotTileLightList, cbdr.froxelSpotTileLightList);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._RandomBuffer, randomBuffer);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
             buffer.SetComputeTextureParam(scatter, scatterPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);

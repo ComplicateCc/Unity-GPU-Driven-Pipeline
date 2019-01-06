@@ -2,24 +2,27 @@
 #pragma kernel SetXYPlane
 #pragma kernel SetZPlane
 #pragma kernel CBDR
-#pragma kernel TBDR
-#pragma kernel TBDR USE_FROXEL
+#pragma kernel TBDRSphere
+#pragma kernel TBDRSphere USE_FROXEL
 #pragma kernel Clear 
 #pragma kernel Clear USE_FROXEL
+#pragma kernel TBDRSpot
+#pragma kernel TBDRSpot USE_FROXEL
 #include "UnityCG.cginc"
-#include "CGINC/Plane.cginc"
 #include "CGINC/VoxelLight.cginc"
 float4x4 _InvVP;
 float4 _FroxelPlane;
 
 RWTexture3D<float4> _XYPlaneTexture;
 RWTexture2D<float4> _ZPlaneTexture;
-RWTexture3D<int> _TileLightList;
-RWTexture3D<int> _FroxelTileLightList;
-RWTexture3D<int> _FroxelTileCubeList;
+RWTexture3D<int> _TilePointLightList;
+RWTexture3D<int> _TileSpotLightList;
+RWTexture3D<int> _FroxelPointTileLightList;
+RWTexture3D<int> _FroxelSpotTileLightList;
 StructuredBuffer<PointLight> _AllPointLight;
+StructuredBuffer<SpotLight> _AllSpotLight;
 RWStructuredBuffer<uint> _PointLightIndexBuffer;
-
+RWStructuredBuffer<uint> _SpotLightIndexBuffer;
 
 
 [numthreads(XRES, YRES, 1)]
@@ -65,38 +68,49 @@ void CBDR(uint3 id : SV_DISPATCHTHREADID)
     //
     uint clusterCount = 0;
     uint sBufferIndex = GetIndex(id, VOXELSIZE,  (MAXLIGHTPERCLUSTER + 1)) + 1;
-    uint len = min(_TileLightList[uint3(id.xy, 0)], MAXLIGHTPERTILE + 1);
+    uint len = min(_TilePointLightList[uint3(id.xy, 0)], MAXPOINTLIGHTPERTILE + 1);
     for(i = 1; i < len && clusterCount < MAXLIGHTPERCLUSTER; ++i){
-        int lightIndex = _TileLightList[uint3(id.xy, i)];
+        int lightIndex = _TilePointLightList[uint3(id.xy, i)];
         PointLight lit = _AllPointLight[lightIndex];
         if(SphereIntersect(lit.sphere, planes) > 0.5){
             _PointLightIndexBuffer[sBufferIndex + clusterCount] = lightIndex;
             clusterCount++;
         }
     }
-    
     _PointLightIndexBuffer[sBufferIndex - 1] = clusterCount + sBufferIndex;
+
+    clusterCount = 0;
+    len = min(_TileSpotLightList[uint3(id.xy, 0)], MAXSPOTLIGHTPERTILE + 1);
+    for(i = 1; i < len && clusterCount < MAXLIGHTPERCLUSTER; ++i){
+        int lightIndex = _TileSpotLightList[uint3(id.xy, i)];
+        Cone lit = _AllSpotLight[lightIndex].lightCone;
+        if(ConeIntersect(lit, planes) > 0.5){
+            _SpotLightIndexBuffer[sBufferIndex + clusterCount] = lightIndex;
+            clusterCount++;
+        }
+    }
+    _SpotLightIndexBuffer[sBufferIndex - 1] = clusterCount + sBufferIndex;
 }
 
 [numthreads(XRES, YRES, 1)]
-void TBDR(uint3 id : SV_DISPATCHTHREADID)
+void TBDRSphere(uint3 id : SV_DISPATCHTHREADID)
 {
     uint i;
     PointLight lit = _AllPointLight[id.z];
     if(SphereIntersect(lit.sphere, _XYPlaneTexture, id.xy, 4) > 0.5){
         int currentValue;
-        InterlockedAdd(_TileLightList[uint3(id.xy, 0)], 1, currentValue);
-        if(currentValue <= MAXLIGHTPERTILE)
+        InterlockedAdd(_TilePointLightList[uint3(id.xy, 0)], 1, currentValue);
+        if(currentValue <= MAXPOINTLIGHTPERTILE)
         {
-            _TileLightList[uint3(id.xy, currentValue)] = id.z;
+            _TilePointLightList[uint3(id.xy, currentValue)] = id.z;
         }
         #if USE_FROXEL
         if(GetDistanceToPlane(_FroxelPlane, lit.sphere.xyz) < lit.sphere.w)
         {
-            InterlockedAdd(_FroxelTileLightList[uint3(id.xy, 0)], 1, currentValue);
-            if(currentValue <= FROXELMAXLIGHTPERTILE)
+            InterlockedAdd(_FroxelPointTileLightList[uint3(id.xy, 0)], 1, currentValue);
+            if(currentValue <= FROXELMAXPOINTLIGHTPERTILE)
             {
-                _FroxelTileLightList[uint3(id.xy, currentValue)] = id.z;
+                _FroxelPointTileLightList[uint3(id.xy, currentValue)] = id.z;
             }
         }
         #endif
@@ -107,8 +121,35 @@ void TBDR(uint3 id : SV_DISPATCHTHREADID)
 void Clear(uint3 id : SV_DISPATCHTHREADID)
 {
     #if USE_FROXEL
-    _FroxelTileLightList[uint3(id.xy, 0)] = 1;
+    _FroxelPointTileLightList[uint3(id.xy, 0)] = 1;
+    _FroxelSpotTileLightList[uint3(id.xy, 0)] = 1;
     #endif
-    _TileLightList[uint3(id.xy, 0)] = 1;
+    _TilePointLightList[uint3(id.xy, 0)] = 1;
+    _TileSpotLightList[uint3(id.xy, 0)] = 1;
+}
+
+[numthreads(XRES, YRES, 1)]
+void TBDRSpot(uint3 id : SV_DISPATCHTHREADID)
+{
+    uint i;
+    SpotLight lit = _AllSpotLight[id.z];
+    if(ConeIntersect(lit.lightCone, _XYPlaneTexture, id.xy, 4) > 0.5){
+        int currentValue;
+        InterlockedAdd(_TileSpotLightList[uint3(id.xy, 0)], 1, currentValue);
+        if(currentValue <= MAXSPOTLIGHTPERTILE)
+        {
+            _TileSpotLightList[uint3(id.xy, currentValue)] = id.z;
+        }
+        #if USE_FROXEL
+        if(ConeInsidePlane(lit.lightCone, _FroxelPlane) > 0.5)
+        {
+            InterlockedAdd(_FroxelSpotTileLightList[uint3(id.xy, 0)], 1, currentValue);
+            if(currentValue <= FROXELMAXSPOTLIGHTPERTILE)
+            {
+                _FroxelSpotTileLightList[uint3(id.xy, currentValue)] = id.z;
+            }
+        }
+        #endif
+    }
 }
 

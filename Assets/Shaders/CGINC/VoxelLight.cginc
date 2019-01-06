@@ -3,14 +3,16 @@
 
 #define XRES 32
 #define YRES 16
-#define ZRES 32
+#define ZRES 64
 #define VOXELZ 64
 #define MAXLIGHTPERCLUSTER 16
-#define MAXLIGHTPERTILE 128
-#define FROXELMAXLIGHTPERTILE 32
+#define MAXPOINTLIGHTPERTILE 64
+#define MAXSPOTLIGHTPERTILE 64
+#define FROXELMAXPOINTLIGHTPERTILE 32
+#define FROXELMAXSPOTLIGHTPERTILE 32
 
 static const uint3 _ScreenSize = uint3(160, 90, 256);
-
+#include "CGINC/Plane.cginc"
 
 #define VOXELSIZE uint3(XRES, YRES, ZRES)
 
@@ -20,6 +22,13 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
                 float lightIntensity;
                 float4 sphere;
                 int shadowIndex;
+            };
+            struct SpotLight
+            {
+                float3 lightColor;
+                float lightIntensity;
+                Cone lightCone;
+                float angle;
             };
 float3 _CameraForward;
 float3 _CameraNearPos;

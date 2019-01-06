@@ -75,7 +75,9 @@ public static partial class ShaderIDs
     public static readonly int _ZPlaneTexture = Shader.PropertyToID("_ZPlaneTexture");
     public static readonly int _PointLightTexture = Shader.PropertyToID("_PointLightTexture");
     public static readonly int _AllPointLight = Shader.PropertyToID("_AllPointLight");
+    public static readonly int _AllSpotLight = Shader.PropertyToID("_AllSpotLight");
     public static readonly int _PointLightIndexBuffer = Shader.PropertyToID("_PointLightIndexBuffer");
+    public static readonly int _SpotLightIndexBuffer = Shader.PropertyToID("_SpotLightIndexBuffer");
     public static readonly int _FrameCount = Shader.PropertyToID("_FrameCount");
 
     public static readonly int heightMapBuffer = Shader.PropertyToID("heightMapBuffer");
@@ -93,6 +95,8 @@ public static partial class ShaderIDs
     public static readonly int _CameraClipDistance = Shader.PropertyToID("_CameraClipDistance");
     public static readonly int _Screen_TexelSize = Shader.PropertyToID("_Screen_TexelSize");
     public static readonly int _FroxelPlane = Shader.PropertyToID("_FroxelPlane");
-    public static readonly int _TileLightList = Shader.PropertyToID("_TileLightList");
-    public static readonly int _FroxelTileLightList = Shader.PropertyToID("_FroxelTileLightList");
+    public static readonly int _TilePointLightList = Shader.PropertyToID("_TilePointLightList");
+    public static readonly int _TileSpotLightList = Shader.PropertyToID("_TileSpotLightList");
+    public static readonly int _FroxelPointTileLightList = Shader.PropertyToID("_FroxelPointTileLightList");
+    public static readonly int _FroxelSpotTileLightList = Shader.PropertyToID("_FroxelSpotTileLightList");
 }

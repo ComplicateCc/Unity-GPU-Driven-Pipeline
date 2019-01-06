@@ -26,9 +26,11 @@ namespace MPipeline
         private Material pointLightMaterial;
         private Material cubeDepthMaterial;
         private ComputeBuffer sphereBuffer;
-        private NativeArray<PointLightStruct> indicesArray;
+        private NativeArray<PointLightStruct> pointLightArray;
+        private NativeArray<SpotLight> spotLightArray;
         private CubeCullingBuffer cubeBuffer;
-        private int lightCount = 0;
+        private int pointLightCount = 0;
+        private int spotLightCount = 0;
         private List<MPointLight> shadowList;
         private NativeList<int> shadowIndicesForJobs;
         private NativeArray<CubemapViewProjMatrix> vpMatrices;
@@ -74,17 +76,20 @@ namespace MPipeline
         {
             shadowList.Clear();
             List<VisibleLight> allLight = data.cullResults.visibleLights;
-            indicesArray = new NativeArray<PointLightStruct>(allLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            pointLightArray = new NativeArray<PointLightStruct>(allLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            spotLightArray = new NativeArray<SpotLight>(allLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             shadowIndicesForJobs = new NativeList<int>(allLight.Count, Allocator.Temp);
-            PointLightStruct* indStr = indicesArray.Ptr();
-            lightCount = 0;
+            PointLightStruct* indStr = pointLightArray.Ptr();
+            SpotLight* spotStr = spotLightArray.Ptr();
+            pointLightCount = 0;
+            spotLightCount = 0;
             foreach (var i in allLight)
             {
                 Light lit = i.light;
                 switch (i.lightType)
                 {
                     case LightType.Point:
-                        PointLightStruct* currentPtr = indStr + lightCount;
+                        PointLightStruct* currentPtr = indStr + pointLightCount;
                         Color col = lit.color;
                         currentPtr->lightColor = new float3(col.r, col.g, col.b);
                         currentPtr->lightIntensity = lit.intensity;
@@ -92,7 +97,7 @@ namespace MPipeline
                         currentPtr->sphere.w = i.range;
                         if (lit.shadows != LightShadows.None)
                         {
-                            shadowIndicesForJobs.Add(lightCount);
+                            shadowIndicesForJobs.Add(pointLightCount);
                             currentPtr->shadowIndex = shadowList.Count;
                             shadowList.Add(MPointLight.GetPointLight(lit));
                         }
@@ -100,14 +105,25 @@ namespace MPipeline
                         {
                             currentPtr->shadowIndex = -1;
                         }
-                        lightCount++;
+                        pointLightCount++;
+                        break;
+                    case LightType.Spot:
+                        SpotLight* currentSpot = spotStr + spotLightCount;
+                        Color spotCol = lit.color;
+                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b);
+                        currentSpot->lightIntensity = lit.intensity;
+                        float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
+                        currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, (Vector3)i.localToWorld.GetColumn(2), deg);
+                        currentSpot->angle = deg;
+                        //TODO: add shadow here
+                        spotLightCount++;
                         break;
                 }
             }
             vpMatrices = new NativeArray<CubemapViewProjMatrix>(shadowIndicesForJobs.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             vpMatricesJobHandle = new GetCubeMapMatrix
             {
-                allLights = indicesArray.Ptr(),
+                allLights = pointLightArray.Ptr(),
                 allMatrix = vpMatrices.Ptr(),
                 shadowIndex = shadowIndicesForJobs.unsafePtr
             }.Schedule(vpMatrices.Length, 1);
@@ -169,7 +185,8 @@ namespace MPipeline
             UnsafeUtility.ReleaseGCObject(gcHandler);
             pointLightMaterial.SetBuffer(ShaderIDs.verticesBuffer, sphereBuffer);
             VoxelLightCommonData(buffer, cam.cam);
-            if (lightCount > 0)
+            ClearDispatch(buffer);
+            if (pointLightCount > 0)
             {
                 if (shadowList.Count > 0)
                 {
@@ -209,24 +226,40 @@ namespace MPipeline
                     for (int i = 0; i < shadowList.Count; ++i)
                     {
                         MPointLight light = shadowList[i];
-                        if (light.frameCount < 0)
-                        {
-                            SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data, baseBuffer);
-                            light.frameCount = 10000;
-                        }
-                        else
-                        {
-                            SceneController.current.CopyToCubeMap(shadowArray, light.shadowMap, buffer, i);
-                        }
+                        //     if (light.frameCount < 0)
+                        //   {
+                        SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data, baseBuffer);
+                        light.frameCount = 10000;
+                        // }
+                        //else
+                        // {
+                        //   SceneController.current.CopyToCubeMap(shadowArray, light.shadowMap, buffer, i);
+                        //}
 
                         //TODO
                         //Multi frame shadowmap
                     }
                 }
-                VoxelLightCalculate(indicesArray, lightCount, buffer, cam.cam);
-                buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 2);
+                SetPointLightBuffer(pointLightArray, pointLightCount, buffer);
+                buffer.EnableShaderKeyword("POINTLIGHT");
                 cbdr.lightFlag |= 1;
             }
+            else
+            {
+                buffer.DisableShaderKeyword("POINTLIGHT");
+            }
+            if (spotLightCount > 0)
+            {
+                SetSpotLightBuffer(spotLightArray, spotLightCount, buffer);
+                buffer.EnableShaderKeyword("SPOTLIGHT");
+                cbdr.lightFlag |= 0b1000;
+            }
+            else
+            {
+                buffer.DisableShaderKeyword("SPOTLIGHT");
+            }
+            VoxelLightCalculate(buffer, cam.cam);
+            buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 0);
         }
         private void VoxelLightCommonData(CommandBuffer buffer, Camera cam)
         {
@@ -242,23 +275,56 @@ namespace MPipeline
             buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetZPlaneKernel, 1, 1, 1);
         }
 
-        private void VoxelLightCalculate(NativeArray<PointLightStruct> arr, int length, CommandBuffer buffer, Camera cam)
+        private void SetPointLightBuffer(NativeArray<PointLightStruct> pointLightArray, int pointLightLength, CommandBuffer buffer)
         {
-            CBDRSharedData.ResizeBuffer(ref cbdr.allPointLightBuffer, length);
+            CBDRSharedData.ResizeBuffer(ref cbdr.allPointLightBuffer, pointLightLength);
+            cbdr.allPointLightBuffer.SetData(pointLightArray, 0, 0, pointLightLength);
+            int tbdrPointKernel = cbdr.TBDRPointKernel;
             ComputeShader cbdrShader = cbdr.cbdrShader;
-            int tbdrKernel = cbdr.TBDRKernel;
-            int clearKernel = cbdr.ClearKernel;
-            cbdr.allPointLightBuffer.SetData(arr, 0, 0, length);
-            //TBDR
+            buffer.SetComputeTextureParam(cbdrShader, tbdrPointKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
+            buffer.SetComputeBufferParam(cbdrShader, tbdrPointKernel, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
+            buffer.SetComputeTextureParam(cbdrShader, tbdrPointKernel, ShaderIDs._TilePointLightList, cbdr.pointTileLightList);
+            if (cbdr.useFroxel) buffer.SetComputeTextureParam(cbdrShader, tbdrPointKernel, ShaderIDs._FroxelPointTileLightList, cbdr.froxelpointTileLightList);
+            buffer.DispatchCompute(cbdr.cbdrShader, tbdrPointKernel, 1, 1, pointLightLength);
+        }
 
-            buffer.SetComputeTextureParam(cbdrShader, tbdrKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
-            buffer.SetComputeBufferParam(cbdrShader, tbdrKernel, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
-            buffer.SetComputeTextureParam(cbdrShader, tbdrKernel, ShaderIDs._TileLightList, cbdr.tileLightList);
+        private void SetSpotLightBuffer(NativeArray<SpotLight> spotLightArray, int spotLightLength, CommandBuffer buffer)
+        {
+            CBDRSharedData.ResizeBuffer(ref cbdr.allSpotLightBuffer, spotLightLength);
+            ComputeShader cbdrShader = cbdr.cbdrShader;
+            int tbdrSpotKernel = cbdr.TBDRSpotKernel;
+            cbdr.allSpotLightBuffer.SetData(spotLightArray, 0, 0, spotLightLength);
+            buffer.SetComputeTextureParam(cbdrShader, tbdrSpotKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
+            buffer.SetComputeBufferParam(cbdrShader, tbdrSpotKernel, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
+            buffer.SetComputeTextureParam(cbdrShader, tbdrSpotKernel, ShaderIDs._TileSpotLightList, cbdr.spotTileLightList);
+            if (cbdr.useFroxel) buffer.SetComputeTextureParam(cbdrShader, tbdrSpotKernel, ShaderIDs._FroxelSpotTileLightList, cbdr.froxelSpotTileLightList);
+            buffer.DispatchCompute(cbdr.cbdrShader, tbdrSpotKernel, 1, 1, spotLightLength);
+        }
+
+        private void ClearDispatch(CommandBuffer buffer)
+        {
+            int clearKernel = cbdr.ClearKernel;
+            ComputeShader cbdrShader = cbdr.cbdrShader;
+            buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._TilePointLightList, cbdr.pointTileLightList);
+            buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._TileSpotLightList, cbdr.spotTileLightList);
+            if (cbdr.useFroxel)
+            {
+                buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._FroxelPointTileLightList, cbdr.froxelpointTileLightList);
+                buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._FroxelSpotTileLightList, cbdr.froxelSpotTileLightList);
+            }
+            buffer.DispatchCompute(cbdrShader, clearKernel, 1, 1, 1);
+        }
+
+        private void VoxelLightCalculate(CommandBuffer buffer, Camera cam)
+        {
+            ComputeShader cbdrShader = cbdr.cbdrShader;
             buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
-            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._TileLightList, cbdr.tileLightList);
+            buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
+            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._TilePointLightList, cbdr.pointTileLightList);
+            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._TileSpotLightList, cbdr.spotTileLightList);
             buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._ZPlaneTexture, cbdr.zPlaneTexture);
             buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
-            buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._TileLightList, cbdr.tileLightList);
+            buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._SpotLightIndexBuffer, cbdr.spotlightIndexBuffer);
             if (cbdr.useFroxel)
             {
                 Transform camTrans = cam.transform;
@@ -266,16 +332,14 @@ namespace MPipeline
                 float3 normal = camTrans.forward;
                 float4 plane = new float4(normal, -math.dot(normal, inPoint));
                 buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._FroxelPlane, plane);
-                buffer.SetComputeTextureParam(cbdrShader, tbdrKernel, ShaderIDs._FroxelTileLightList, cbdr.froxelTileLightList);
-                buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._FroxelTileLightList, cbdr.froxelTileLightList);
             }
-            buffer.DispatchCompute(cbdrShader, clearKernel, 1, 1, 1);
-            buffer.DispatchCompute(cbdrShader, tbdrKernel, 1, 1, length);
             buffer.DispatchCompute(cbdrShader, CBDRSharedData.DeferredCBDR, 1, 1, CBDRSharedData.ZRES);
             buffer.SetGlobalBuffer(ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
+            buffer.SetGlobalBuffer(ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
             buffer.SetGlobalBuffer(ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
-
+            buffer.SetGlobalBuffer(ShaderIDs._SpotLightIndexBuffer, cbdr.spotlightIndexBuffer);
         }
+
         public unsafe struct GetCubeMapMatrix : IJobParallelFor
         {
             [NativeDisableUnsafePtrRestriction]

@@ -20,11 +20,12 @@ float _TemporalWeight;
 
 TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
 StructuredBuffer<PointLight> _AllPointLight;
-StructuredBuffer<uint> _PointLightIndexBuffer;
+StructuredBuffer<SpotLight> _AllSpotLight;
 Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
 RWTexture3D<half4> _VolumeTex;
 Texture3D<half4> _LastVolume; SamplerState sampler_LastVolume;
-Texture3D<int> _FroxelTileLightList;
+Texture3D<int> _FroxelPointTileLightList;
+Texture3D<int> _FroxelSpotTileLightList;
 
             inline float EyeDepthToProj(float lin)
             {
@@ -59,12 +60,12 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             color.rgb += _DirLightFinalColor;
         #endif
     }
+    uint2 tileIndex = uv * uint2(XRES, YRES);
     if(_LightFlag & 1){
-        uint2 tileIndex = uv * uint2(XRES, YRES);
-        uint len = min(_FroxelTileLightList[uint3(tileIndex, 0)], FROXELMAXLIGHTPERTILE + 1);
+        uint len = min(_FroxelPointTileLightList[uint3(tileIndex, 0)], FROXELMAXPOINTLIGHTPERTILE + 1);
         for(uint c = 1; c < len; c++)
         {
-            PointLight pt = _AllPointLight[_FroxelTileLightList[uint3(tileIndex, c)]];
+            PointLight pt = _AllPointLight[_FroxelPointTileLightList[uint3(tileIndex, c)]];
             float3 lightDir = pt.sphere.xyz - targetWorldPos;
             float lenOfLightDir = length(lightDir);
             if(lenOfLightDir > pt.sphere.w) continue;
@@ -80,6 +81,21 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             }
             #endif
             color.rgb += currentCol;
+        }
+    }
+    if(_LightFlag & 8)
+    {
+        uint len = min(_FroxelSpotTileLightList[uint3(tileIndex, 0)], FROXELMAXSPOTLIGHTPERTILE + 1);
+        for(uint c = 1; c < len; c++)
+        {
+            SpotLight Light = _AllSpotLight[_FroxelSpotTileLightList[uint3(tileIndex, c)]];
+            Cone lightCone = Light.lightCone;
+            float3 un_lightDir = targetWorldPos - lightCone.vertex;
+            float lightDirLength = length(un_lightDir);
+            float3 lightDir = un_lightDir / lightDirLength;
+            float3 spotDir = lightCone.direction;
+            float angle = acos(dot(lightDir, spotDir));
+            color.rgb += (angle < Light.angle) ? Light.lightIntensity * Light.lightColor * saturate(1 - lightDirLength / lightCone.radius) : 0;
         }
     }
     color.a = 1;//TODO

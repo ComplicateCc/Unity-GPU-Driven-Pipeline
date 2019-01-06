@@ -203,8 +203,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330718099}
-  m_LocalRotation: {x: 0.17111681, y: -0.07881229, z: 0.013733006, w: 0.9819975}
-  m_LocalPosition: {x: 12.971488, y: 5.0858183, z: -37.966877}
+  m_LocalRotation: {x: -0.6626233, y: -0.2699694, z: 0.2793761, w: -0.6403093}
+  m_LocalPosition: {x: 1.1403515, y: 9.1903, z: -1.6134722}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -266,11 +266,11 @@ Light:
   m_GameObject: {fileID: 419409875}
   m_Enabled: 1
   serializedVersion: 8
-  m_Type: 2
+  m_Type: 0
   m_Color: {r: 0, g: 0.8948567, b: 1, a: 1}
   m_Intensity: 500
-  m_Range: 50
-  m_SpotAngle: 30
+  m_Range: 5.01
+  m_SpotAngle: 90
   m_CookieSize: 10
   m_Shadows:
     m_Type: 2
@@ -302,13 +302,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 419409875}
-  m_LocalRotation: {x: 0.021840865, y: 0.9609688, z: -0.07947457, w: 0.26409423}
-  m_LocalPosition: {x: 11.5, y: 2.71, z: -32.9}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 12
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &942175703
 GameObject:
   m_ObjectHideFlags: 0
@@ -715,8 +715,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1568886975}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.6038647, y: -0.1, z: -3.6642969}
-  m_LocalScale: {x: 6.3355, y: 1, z: 6.439}
+  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalScale: {x: 33.331696, y: 1, z: 31.636095}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 10
@@ -1080,8 +1080,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_renderPath: 2
-  m_enabledInPipeline: 0
-  m_enableBeforePipeline: 0
+  m_enabledInPipeline: 1
+  m_enableBeforePipeline: 1
   layer: 2100
   availableDistance: 32
 --- !u!114 &5974951340317444174
