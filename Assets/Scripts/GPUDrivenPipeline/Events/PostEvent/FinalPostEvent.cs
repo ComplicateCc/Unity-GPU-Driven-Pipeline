@@ -48,7 +48,7 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            Destroy(sharedData.uberMaterial);
+            DestroyImmediate(sharedData.uberMaterial);
             finalizerAction();
             allSettings.Clear();
         }

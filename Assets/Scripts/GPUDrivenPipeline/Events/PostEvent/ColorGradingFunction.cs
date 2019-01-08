@@ -53,10 +53,10 @@ namespace MPipeline
             if (data.m_InternalLogLut)
             {
                 data.m_InternalLogLut.Release();
-                UnityEngine.Object.Destroy(data.m_InternalLogLut);
+                UnityEngine.Object.DestroyImmediate(data.m_InternalLogLut);
             }
             if (data.m_GradingCurves)
-                UnityEngine.Object.Destroy(data.m_GradingCurves);
+                UnityEngine.Object.DestroyImmediate(data.m_GradingCurves);
         }
         public static void PrepareRender(ref ColorGradingData data, ref PostSharedData sharedData)
         {

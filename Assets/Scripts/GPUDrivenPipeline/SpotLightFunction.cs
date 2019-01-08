@@ -24,7 +24,7 @@ namespace MPipeline
         }
         public void Dispose()
         {
-            Object.Destroy(clusterShadowMaterial);
+            Object.DestroyImmediate(clusterShadowMaterial);
             frustumPlanes = null;
         }
     }

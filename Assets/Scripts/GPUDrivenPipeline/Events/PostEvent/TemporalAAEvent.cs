@@ -47,7 +47,7 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            Destroy(taaMat);
+            DestroyImmediate(taaMat);
         }
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
@@ -136,7 +136,7 @@ namespace MPipeline
         public override void DisposeProperty()
         {
             historyTex.Release();
-            Object.Destroy(historyTex);
+            Object.DestroyImmediate(historyTex);
         }
         public void UpdateProperty(PipelineCamera camera)
         {
@@ -145,7 +145,7 @@ namespace MPipeline
             if (historyTex.width != camWidth || historyTex.height != camHeight)
             {
                 historyTex.Release();
-                Object.Destroy(historyTex);
+                Object.DestroyImmediate(historyTex);
                 historyTex = new RenderTexture(camWidth, camHeight, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             }
         }

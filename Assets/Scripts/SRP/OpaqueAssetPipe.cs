@@ -16,22 +16,12 @@ public class OpaqueAssetPipe : RenderPipelineAsset
         var instance = CreateInstance<OpaqueAssetPipe>();
         UnityEditor.AssetDatabase.CreateAsset(instance, "Assets/OpaqueDeferred.asset");
     }
+
 #endif
+    public GameObject pipelinePrefab;
+    public PipelineResources pipelineResources;
     protected override IRenderPipeline InternalCreatePipeline()
     {
-        return new OpaqueAssetPipeInstance();
-    }
-}
-public class OpaqueAssetPipeInstance : RenderPipeline
-{
-    public override void Render(ScriptableRenderContext context, Camera[] cameras)
-    {
-        if (!MPipeline.RenderPipeline.current) return;
-        foreach (var camera in cameras)
-        {
-            PipelineCamera cam = camera.GetComponent<PipelineCamera>();
-            if (!cam) continue;
-            cam.RenderSRP(BuiltinRenderTextureType.CameraTarget, ref context);
-        }
+        return new MPipeline.RenderPipeline(pipelinePrefab, pipelineResources);
     }
 }

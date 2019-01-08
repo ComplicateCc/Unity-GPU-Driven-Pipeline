@@ -40,19 +40,21 @@ namespace MPipeline
         };
         ClusterProperty property;
         private List<TextureInfos> allTextureDatas;
-        public SceneStreaming(ClusterProperty property)
+        private SceneControllerWithGPURPEnabled controller;
+        public SceneStreaming(ClusterProperty property, SceneControllerWithGPURPEnabled controller)
         {
+            this.controller = controller;
             state = State.Unloaded;
             this.property = property;
             allTextureDatas = new List<TextureInfos>();
         }
         static string[] allStrings = new string[3];
-        public void GenerateAsync()
+        public void GenerateAsync(bool listCommand = true)
         {
             clusterBuffer = new NativeArray<CullBox>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             pointsBuffer = new NativeArray<Point>(property.clusterCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             indicesBuffer = new NativeArray<int>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-            NativeList<ulong> pointerContainer = SceneController.current.pointerContainer;
+            NativeList<ulong> pointerContainer = controller.pointerContainer;
             pointerContainer.AddCapacityTo(pointerContainer.Length + indicesBuffer.Length);
             CullBox* clusterData = clusterBuffer.Ptr();
             Point* verticesData = pointsBuffer.Ptr();
@@ -82,7 +84,7 @@ namespace MPipeline
                 }
             }
             int* indicesPtr = indicesBuffer.Ptr();
-            LoadingCommandQueue commandQueue = SceneController.current.commandQueue;
+            LoadingCommandQueue commandQueue = controller.commandQueue;
             for (int i = 0; i < indicesBuffer.Length; ++i)
             {
                 indicesPtr[i] = pointerContainer.Length;
@@ -95,9 +97,12 @@ namespace MPipeline
             {
                 verticesData[i].objIndex = poolPtr[verticesData[i].objIndex];
             }
-            lock (commandQueue)
+            if (listCommand)
             {
-                commandQueue.Queue(GenerateRun());
+                lock (commandQueue)
+                {
+                    commandQueue.Queue(GenerateRun());
+                }
             }
         }
         static readonly int PROPERTYVALUESIZE = sizeof(PropertyValue);
@@ -153,7 +158,8 @@ namespace MPipeline
                         using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
                         {
                             byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
-                            NativeArray<Color32> allColors = new NativeArray<Color32>(SceneController.current.resolution * SceneController.current.resolution, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                            int res = controller.resolution;
+                            NativeArray<Color32> allColors = new NativeArray<Color32>(res * res, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                             fixed (byte* source = bytes)
                             {
                                 UnsafeUtility.MemCpy(allColors.GetUnsafePtr(), source, Mathf.Min(allColors.Length * sizeof(Color32), bytes.Length));
@@ -196,9 +202,25 @@ namespace MPipeline
             }
         }
 
-        public void DeleteAsync()
+        public void DeleteInEditor()
         {
-            ref NativeList<ulong> pointerContainer = ref SceneController.current.pointerContainer;
+            results = new NativeArray<Vector2Int>(indicesBuffer.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            resultLength = 0;
+            DeleteAsync(false);
+            IEnumerator syncFunc = DeleteRun();
+            while (syncFunc.MoveNext()) ;
+        }
+
+        public void GenerateInEditor()
+        {
+            GenerateAsync(false);
+            IEnumerator syncFunc = GenerateRun();
+            while (syncFunc.MoveNext());
+        }
+
+        public void DeleteAsync(bool listCommand = true)
+        {
+            ref NativeList<ulong> pointerContainer = ref controller.pointerContainer;
             int targetListLength = pointerContainer.Length - indicesBuffer.Length;
             int* indicesPtr = indicesBuffer.Ptr();
             int currentIndex = pointerContainer.Length - 1;
@@ -222,7 +244,7 @@ namespace MPipeline
                         if (currentIndex < 0)
                             goto FINALIZE;
                     }
-                    
+
                     Vector2Int value = new Vector2Int(index, currentIndex);
                     currentIndex--;
                     results[resultLength] = value;
@@ -233,11 +255,14 @@ namespace MPipeline
             }
             FINALIZE:
             pointerContainer.RemoveLast(indicesBuffer.Length);
-            LoadingCommandQueue commandQueue = SceneController.current.commandQueue;
+            LoadingCommandQueue commandQueue = controller.commandQueue;
             SceneController.commonData.RemoveProperty(propertiesPool);
-            lock (commandQueue)
+            if (listCommand)
             {
-                commandQueue.Queue(DeleteRun());
+                lock (commandQueue)
+                {
+                    commandQueue.Queue(DeleteRun());
+                }
             }
         }
 
@@ -248,7 +273,7 @@ namespace MPipeline
         private IEnumerator DeleteRun()
         {
             PipelineResources resources = RenderPipeline.current.resources;
-            PipelineBaseBuffer baseBuffer = SceneController.current.baseBuffer;
+            PipelineBaseBuffer baseBuffer = controller.baseBuffer;
             ComputeBuffer indexBuffer = new ComputeBuffer(results.Length, 8);//sizeof(Vector2Int)
             int currentCount = 0;
             int targetCount;
@@ -281,7 +306,7 @@ namespace MPipeline
         private IEnumerator GenerateRun()
         {
             PipelineResources resources = RenderPipeline.current.resources;
-            PipelineBaseBuffer baseBuffer = SceneController.current.baseBuffer;
+            PipelineBaseBuffer baseBuffer = controller.baseBuffer;
             int targetCount;
             int currentCount = 0;
             while ((targetCount = currentCount + MAXIMUMVERTCOUNT) < clusterBuffer.Length)
@@ -308,7 +333,9 @@ namespace MPipeline
                     RenderTexture rt = SceneController.commonData.texArray;
                     Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
                     int pass = i.texType == "_MainTex" ? 0 : 1;
+                    controller.UpdateCopyMat();
                     SceneController.commonData.copyTextureMat.SetPass(pass);
+
                     Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
                     i.array.Dispose();
                     yield return null;

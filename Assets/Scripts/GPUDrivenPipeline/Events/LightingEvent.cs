@@ -67,9 +67,9 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            Destroy(shadMaskMaterial);
-            Destroy(pointLightMaterial);
-            Destroy(cubeDepthMaterial);
+            DestroyImmediate(shadMaskMaterial);
+            DestroyImmediate(pointLightMaterial);
+            DestroyImmediate(cubeDepthMaterial);
             sphereBuffer.Dispose();
             cubeBuffer.Dispose();
             spotBuffer.Dispose();
@@ -154,8 +154,7 @@ namespace MPipeline
         }
         private void DirLight(PipelineCamera cam, ref PipelineCommandData data)
         {
-            PipelineBaseBuffer baseBuffer;
-            if (SunLight.current == null || !SunLight.current.enabled || !SceneController.GetBaseBuffer(out baseBuffer))
+            if (SunLight.current == null || !SunLight.current.enabled)
             {
                 return;
             }
@@ -194,11 +193,6 @@ namespace MPipeline
         }
         private void PointLight(PipelineCamera cam, ref PipelineCommandData data)
         {
-            PipelineBaseBuffer baseBuffer;
-            if (!SceneController.GetBaseBuffer(out baseBuffer))
-            {
-                return;
-            }
             CommandBuffer buffer = data.buffer;
             UnsafeUtility.ReleaseGCObject(gcHandler);
             pointLightMaterial.SetBuffer(ShaderIDs.verticesBuffer, sphereBuffer);
@@ -217,11 +211,11 @@ namespace MPipeline
                         dimension = TextureDimension.CubeArray,
                         volumeDepth = pointLightIndices.Length * 6,
                         enableRandomWrite = false,
-                        height = 1024,
-                        width = 1024,
+                        height = MLight.cubemapShadowResolution,
+                        width = MLight.cubemapShadowResolution,
                         memoryless = RenderTextureMemoryless.None,
                         msaaSamples = 1,
-                        shadowSamplingMode = ShadowSamplingMode.None,
+                        shadowSamplingMode = ShadowSamplingMode.CompareDepths,
                         sRGB = false,
                         useMipMap = false,
                         vrUsage = VRTextureUsage.None
@@ -244,10 +238,12 @@ namespace MPipeline
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
                     for (int i = 0; i < pointLightIndices.Length; ++i)
                     {
-                        MPointLight light = MPointLight.GetPointLight(allLights[pointLightIndices[i].y].light);
+                        Light lt = allLights[pointLightIndices[i].y].light;
+                        MLight light = MLight.GetPointLight(lt);
                         //     if (light.frameCount < 0)
                         //   {
-                        SceneController.current.DrawCubeMap(light, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data, baseBuffer);
+                        light.UpdateShadowCacheType(true);
+                        SceneController.current.DrawCubeMap(light, lt, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data);
                         light.frameCount = 10000;
                         // }
                         //else
@@ -279,15 +275,15 @@ namespace MPipeline
                         depthBufferBits = 16,
                         dimension = TextureDimension.Tex2DArray,
                         enableRandomWrite = false,
-                        height = 1024,
+                        height = MLight.perspShadowResolution,
                         memoryless = RenderTextureMemoryless.None,
                         msaaSamples = 1,
-                        shadowSamplingMode = ShadowSamplingMode.None,
+                        shadowSamplingMode = ShadowSamplingMode.CompareDepths,
                         sRGB = false,
                         useMipMap = false,
                         volumeDepth = spotLightIndices.Length,
                         vrUsage = VRTextureUsage.None,
-                        width = 1024
+                        width = MLight.perspShadowResolution
                     });
                     cbdr.spotShadowArray = spotArray;
                     buffer.SetGlobalTexture(ShaderIDs._SpotMapArray, spotArray);
@@ -298,18 +294,19 @@ namespace MPipeline
                         command = buffer,
                         frustumPlanes = null,
                         isOrtho = false,
-                        isClusterEnabled = true,
-                        isTerrainEnabled = false
                     };
                     spotLightJobHandle.Complete();
                     SpotLight* allSpotLightPtr = spotLightArray.Ptr();
                     spotBuffer.renderTarget = spotArray;
                     spotBuffer.shadowMatrices = spotLightMatrices.Ptr();
+                    List<VisibleLight> allLights = data.cullResults.visibleLights;
                     for (int i = 0; i < spotLightIndices.Length; ++i)
                     {
                         int2 index = spotLightIndices[i];
+                        MLight mlight = MLight.GetPointLight(allLights[spotLightIndices[i].y].light);
+                        mlight.UpdateShadowCacheType(true);
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
-                        SceneController.current.DrawSpotLight(ref opts, ref data, cam.cam, ref spot, ref spotBuffer);
+                        SceneController.current.DrawSpotLight(ref opts, ref data, cam.cam, ref spot, ref spotBuffer, mlight.shadowMap);
                     }
                 }
                 SetSpotLightBuffer(spotLightArray, spotLightCount, buffer);

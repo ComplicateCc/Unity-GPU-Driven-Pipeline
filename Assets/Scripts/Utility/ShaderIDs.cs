@@ -37,6 +37,8 @@ public static partial class ShaderIDs
     public static readonly int _FinalBlendParameters = Shader.PropertyToID("_FinalBlendParameters");
     public static readonly int _HistoryTex = Shader.PropertyToID("_HistoryTex");
     public static readonly int _CullingPlaneCount = Shader.PropertyToID("_CullingPlaneCount");
+    public static readonly int _TextureSize = Shader.PropertyToID("_TextureSize");
+    public static readonly int _TextureBuffer = Shader.PropertyToID("_TextureBuffer");
 
     public static readonly int _ShadowMapResolution = Shader.PropertyToID("_ShadowMapResolution");
     public static readonly int _LightDir = Shader.PropertyToID("_LightDir");

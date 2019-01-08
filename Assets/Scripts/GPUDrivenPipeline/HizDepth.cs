@@ -36,7 +36,7 @@ namespace MPipeline
         public void DisposeHiZ()
         { 
             backupMip.Release();
-            Object.Destroy(backupMip);
+            Object.DestroyImmediate(backupMip);
         }
     }
 }

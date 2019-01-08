@@ -126,7 +126,7 @@ static const half2 DirPoissonDisks[64] =
 				float zAxisUV = dot(eyeRange, half4(0, 1, 2, 3));
 				float4x4 vpMat = _ShadowMapVPs[zAxisUV];
 				float4 shadowPos = mul(vpMat, worldPos);
-				half2 shadowUV = shadowPos.xy / shadowPos.w;
+				half2 shadowUV = shadowPos.xy;
 				shadowUV = shadowUV * 0.5 + 0.5;
 				half softValue = dot(_SoftParam, eyeRange);
 

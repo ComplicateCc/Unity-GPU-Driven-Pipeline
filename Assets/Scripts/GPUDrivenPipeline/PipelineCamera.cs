@@ -23,26 +23,24 @@ namespace MPipeline
         }
         private List<RenderTexture> temporaryTextures = new List<RenderTexture>(15);
         public Dictionary<Type, IPerCameraData> postDatas = new Dictionary<Type, IPerCameraData>(47);
-        void Awake()
+        public void EnableThis()
         {
-            cam = GetComponent<Camera>();
-            targets = RenderTargets.Init();
+            if (!targets.initialized)
+                targets = RenderTargets.Init();
         }
 
-        private void OnDisable()
+        private void OnDestroy()
+        {
+            DisableThis();
+        }
+
+        public void DisableThis()
         {
             foreach (var i in postDatas.Values)
             {
                 i.DisposeProperty();
             }
             postDatas.Clear();
-        }
-
-        public void RenderSRP(RenderTargetIdentifier destination, ref ScriptableRenderContext context)
-        {
-            RenderPipeline.current.Render(renderingPath, this, destination, ref context);
-            context.Submit();
-            PipelineFunctions.ReleaseRenderTarget(temporaryTextures);
         }
     }
 }

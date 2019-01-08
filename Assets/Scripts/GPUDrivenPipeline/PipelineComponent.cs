@@ -245,6 +245,7 @@ namespace MPipeline
         public RenderTargetIdentifier backupIdentifier;
         public RenderTargetIdentifier depthIdentifier;
         public int[] gbufferIndex;
+        public bool initialized;
         public static RenderTargets Init()
         {
             RenderTargets rt;
@@ -262,6 +263,7 @@ namespace MPipeline
             rt.backupIdentifier = default;
             rt.depthIdentifier = default;
             rt.renderTargetIdentifier = default;
+            rt.initialized = true;
             return rt;
         }
         public RenderTargetIdentifier depthTexture

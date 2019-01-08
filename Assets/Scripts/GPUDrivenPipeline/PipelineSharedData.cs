@@ -12,7 +12,7 @@ namespace MPipeline
             {
                 i.value.Dispose();
             }
-            allEvents = null;
+            allEvents.Clear();
         }
 
         private static List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>> allEvents = new List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>>(10);

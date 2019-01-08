@@ -43,7 +43,7 @@ Texture3D<int> _FroxelSpotTileLightList;
 				float zAxisUV = dot(eyeRange, float4(0, 1, 2, 3));
 				float4x4 vpMat = _ShadowMapVPs[zAxisUV];
 				float4 shadowPos = mul(vpMat, float4(worldPos, 1));
-				half2 shadowUV = shadowPos.xy / shadowPos.w;
+				half2 shadowUV = shadowPos.xy;
 				shadowUV = shadowUV * 0.5 + 0.5;
 				#if UNITY_REVERSED_Z
 				float dist = 1 - shadowPos.z;

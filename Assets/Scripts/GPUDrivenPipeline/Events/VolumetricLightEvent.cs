@@ -27,8 +27,7 @@ namespace MPipeline
             rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
             for (int i = 0; i < randomArray.Length; ++i)
             {
-                randPtr[i] = (uint)System.Guid.NewGuid().GetHashCode();
-                
+                randPtr[i] = (uint)System.Guid.NewGuid().GetHashCode();   
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();
@@ -141,7 +140,7 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            Destroy(volumeMat);
+            DestroyImmediate(volumeMat);
             randomBuffer.Dispose();
 
         }

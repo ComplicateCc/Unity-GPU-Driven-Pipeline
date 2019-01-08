@@ -3,72 +3,75 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Threading;
 using System;
-public class LoadingThread : MonoBehaviour
+namespace MPipeline
 {
-    private struct Command
+    public class LoadingThread
     {
-        public object obj;
-        public Action<object> func;
-    }
-    public static LoadingThread current { get; private set; }
-    private static List<Command> commands = new List<Command>();
-    private List<Command> localCommands = new List<Command>();
-    private AutoResetEvent resetEvent;
-    private Thread thread;
-    private bool isRunning;
-    void Awake()
-    {
-        if (current == this) return;
-        if (current != null)
+        private struct Command
         {
-            Destroy(gameObject);
-            return;
+            public object obj;
+            public Action<object> func;
         }
-        DontDestroyOnLoad(this);
-        current = this;
-        isRunning = true;
-        resetEvent = new AutoResetEvent(false);
-        thread = new Thread(Run);
-        thread.Start();
-    }
+        public static LoadingThread current { get; private set; }
+        private static List<Command> commands = new List<Command>();
+        private List<Command> localCommands = new List<Command>();
+        private AutoResetEvent resetEvent;
+        private Thread thread;
+        private bool isRunning;
+        public LoadingThread()
+        {
+            current = this;
+            isRunning = true;
+            resetEvent = new AutoResetEvent(false);
+            thread = new Thread(Run);
+            thread.Start();
+        }
 
-    public static void AddCommand(Action<object> act, object obj)
-    {
-        lock (commands)
+        public static void AddCommand(Action<object> act, object obj)
         {
-            commands.Add(new Command
+            lock (commands)
             {
-                obj = obj,
-                func = act
-            });
-            current.resetEvent.Set();
+                commands.Add(new Command
+                {
+                    obj = obj,
+                    func = act
+                });
+                current.resetEvent.Set();
+            }
         }
-    }
-    private void Run()
-    {
-        while (isRunning)
+        private void Run()
         {
-            resetEvent.WaitOne();
-            lock(commands)
+            while (isRunning)
             {
-                localCommands.AddRange(commands);
-                commands.Clear();
+                resetEvent.WaitOne();
+                lock (commands)
+                {
+                    localCommands.AddRange(commands);
+                    commands.Clear();
+                }
+                foreach (var i in localCommands)
+                {
+                    i.func(i.obj);
+                }
+                localCommands.Clear();
             }
-            foreach(var i in localCommands)
-            {
-                i.func(i.obj);   
-            }
-            localCommands.Clear();
         }
-    }
 
-    private void OnDestroy()
-    {
-        if (current != this) return;
-        current = null;
-        isRunning = false;
-        resetEvent.Set();
-        thread.Join();
-        resetEvent.Dispose();
+        public void Update(LoadingCommandQueue commandQueue)
+        {
+            lock (commandQueue)
+            {
+                commandQueue.Run();
+            }
+        }
+
+        public void Dispose()
+        {
+            current = null;
+            isRunning = false;
+            resetEvent.Set();
+            thread.Join();
+            resetEvent.Dispose();
+        }
     }
 }

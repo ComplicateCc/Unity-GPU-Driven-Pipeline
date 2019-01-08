@@ -167,10 +167,10 @@ namespace MPipeline
             allPointLightBuffer.Dispose();
             allSpotLightBuffer.Dispose();
             spotlightIndexBuffer.Dispose();
-            Object.Destroy(froxelpointTileLightList);
-            Object.Destroy(froxelSpotTileLightList);
-            Object.Destroy(pointTileLightList);
-            Object.Destroy(spotTileLightList);
+            Object.DestroyImmediate(froxelpointTileLightList);
+            Object.DestroyImmediate(froxelSpotTileLightList);
+            Object.DestroyImmediate(pointTileLightList);
+            Object.DestroyImmediate(spotTileLightList);
         }
     }
 }

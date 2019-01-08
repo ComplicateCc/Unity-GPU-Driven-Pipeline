@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
-
+using RenderPipeline = MPipeline.RenderPipeline;
 namespace MPipeline
 {
-    public unsafe class RenderPipeline : MonoBehaviour
+    public unsafe class RenderPipeline : UnityEngine.Experimental.Rendering.RenderPipeline
     {
         #region STATIC_AREA
         public enum CameraRenderingPath
@@ -17,59 +17,64 @@ namespace MPipeline
         public static PipelineCommandData data;
         public static Dictionary<CameraRenderingPath, DrawEvent> allDrawEvents = new Dictionary<CameraRenderingPath, DrawEvent>();
         #endregion
-        public GameObject pipelinePrefab;
+        private GameObject pipelinePrefab;
         private PipelineEvent[] allEvents;
         public PipelineResources resources;
-        public SceneController sceneController;
-        private void Awake()
+        public RenderPipeline(GameObject pipelinePrefab, PipelineResources resources)
         {
-            if (current == this) return;
-            if (current)
-            {
-                Debug.LogError("Render Pipeline should be Singleton!");
-                DestroyImmediate(gameObject);
-                return;
-            }
-            data.buffer = new CommandBuffer();
-            DontDestroyOnLoad(this);
+            allDrawEvents.Clear();
+            MLight.ClearLightDict();
+            this.pipelinePrefab = pipelinePrefab;
+            this.resources = resources;
             current = this;
+            data.buffer = new CommandBuffer();
             data.frustumPlanes = new Vector4[6];
             allEvents = pipelinePrefab.GetComponentsInChildren<PipelineEvent>();
             foreach (var i in allEvents)
                 i.InitEvent(resources);
-            sceneController.Awake(this);
         }
 
-        private void Update()
-        {
-            lock (SceneController.current.commandQueue)
-            {
-                SceneController.current.commandQueue.Run();
-            }
-            sceneController.Update();
-        }
-
-        private void OnDestroy()
+        public override void Dispose()
         {
             if (current != this) return;
             current = null;
+
             foreach (var i in allEvents)
                 i.DisposeEvent();
             allEvents = null;
             data.buffer.Dispose();
-            sceneController.OnDestroy();
             PipelineSharedData.DisposeAll();
         }
 
-        public void Render(CameraRenderingPath path, PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context)
+        public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
-            Camera cam = pipelineCam.cam;
+            SceneController.SetSingleton();
+            foreach (var cam in cameras)
+            {
+                PipelineCamera pipelineCam = cam.GetComponent<PipelineCamera>();
+                if (!pipelineCam)
+                {
+                    pipelineCam = Camera.main.GetComponent<PipelineCamera>();
+                    if (!pipelineCam) continue;
+                }
+                Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam);
+                renderContext.Submit();
+                PipelineFunctions.ReleaseRenderTarget(pipelineCam.temporalRT);
+            }
+        }
+
+        private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam)
+        {
+            CameraRenderingPath path = pipelineCam.renderingPath;
+            pipelineCam.cam = cam;
+            pipelineCam.EnableThis();
             if (!CullResults.GetCullingParameters(cam, out data.cullParams)) return;
             context.SetupCameraProperties(cam);
             //Set Global Data
             data.defaultDrawSettings = new DrawRendererSettings(cam, new ShaderPassName(""));
             data.context = context;
             data.cullResults = CullResults.Cull(ref data.cullParams, context);
+
             PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, pipelineCam.temporalRT, data.buffer);
             data.resources = resources;
             PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);

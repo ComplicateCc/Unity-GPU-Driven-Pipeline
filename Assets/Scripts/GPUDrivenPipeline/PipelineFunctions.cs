@@ -490,4 +490,13 @@ public unsafe static class PipelineFunctions
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.OcclusionRecheck, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
         buffer.DispatchCompute(coreShader, OcclusionBuffers.OcclusionRecheck, baseBuffer.dispatchBuffer, 0);
     }
+
+    public static void CopyToCubeMap(RenderTexture cubemapArray, RenderTexture texArray, CommandBuffer buffer, int offset)
+    {
+        offset *= 6;
+        for (int i = 0; i < 6; ++i)
+        {
+            buffer.CopyTexture(texArray, i, cubemapArray, offset + i);
+        }
+    }
 }

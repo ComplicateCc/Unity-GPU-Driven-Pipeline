@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 using MPipeline;
+[ExecuteInEditMode]
 [RequireComponent(typeof(Light))]
 public class SunLight : MonoBehaviour
 {
@@ -15,18 +16,37 @@ public class SunLight : MonoBehaviour
         var light = GetComponent<Light>();
         if (current)
         {
-            Debug.Log("Sun Light Should be Singleton!");
-            Destroy(light);
-            Destroy(this);
-            return;
+            if (current != this)
+            {
+                Debug.Log("Sun Light Should be Singleton!");
+                Destroy(light);
+                Destroy(this);
+                return;
+            }
+            else
+                OnDestroy();
         }
         current = this;
         shadMap.light = light;
         light.enabled = false;
-        shadMap.shadowmapTexture = new RenderTexture(settings.resolution, settings.resolution, 16, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
-        shadMap.shadowmapTexture.useMipMap = false;
-        shadMap.shadowmapTexture.dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray;
-        shadMap.shadowmapTexture.volumeDepth = 4;
+        shadMap.shadowmapTexture = new RenderTexture(new RenderTextureDescriptor
+        {
+            width = settings.resolution,
+            height = settings.resolution,
+            depthBufferBits = 16,
+            colorFormat = RenderTextureFormat.RFloat,
+            autoGenerateMips = false,
+            bindMS = false,
+            dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray,
+            enableRandomWrite = false,
+            memoryless = RenderTextureMemoryless.None,
+            shadowSamplingMode = UnityEngine.Rendering.ShadowSamplingMode.None,
+            msaaSamples = 1,
+            sRGB = false,
+            useMipMap = false,
+            volumeDepth = 4,
+            vrUsage = VRTextureUsage.None
+        });
         shadMap.shadowmapTexture.filterMode = FilterMode.Point;
         shadMap.frustumCorners = new NativeArray<Vector3>(8, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         shadMap.shadowDepthMaterial = new Material(Shader.Find("Hidden/ShadowDepth"));

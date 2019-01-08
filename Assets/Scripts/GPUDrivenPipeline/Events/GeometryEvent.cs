@@ -33,8 +33,6 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthIdentifier);
             buffer.ClearRenderTarget(true, true, Color.black);
-            PipelineBaseBuffer baseBuffer;
-            bool isClusterEnabled = SceneController.GetBaseBuffer(out baseBuffer);
             HizOcclusionData hizData = IPerCameraData.GetProperty(cam, () => new HizOcclusionData());
             RenderClusterOptions options = new RenderClusterOptions
             {
@@ -42,9 +40,7 @@ namespace MPipeline
                 frustumPlanes = data.frustumPlanes,
                 isOrtho = cam.cam.orthographic,
                 cullingShader = data.resources.gpuFrustumCulling,
-                terrainCompute = data.resources.terrainCompute,
-                isClusterEnabled = isClusterEnabled,
-                isTerrainEnabled = true
+                terrainCompute = data.resources.terrainCompute
             };
             HizOptions hizOptions;
             switch (occCullingMod)

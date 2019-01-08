@@ -12,3 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ca4bdc6dbf22684e80c7c5220e5c76c, type: 3}
   m_Name: OpaqueDeferred
   m_EditorClassIdentifier: 
+  pipelinePrefab: {fileID: 8525019081660873867, guid: 8bb42215dffb9434a81e7c6d891cb956,
+    type: 3}
+  pipelineResources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
