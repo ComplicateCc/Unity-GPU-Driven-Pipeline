@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using Unity.Jobs;
+using System;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using RenderPipeline = MPipeline.RenderPipeline;
@@ -17,9 +18,32 @@ namespace MPipeline
         public static PipelineCommandData data;
         public static Dictionary<CameraRenderingPath, DrawEvent> allDrawEvents = new Dictionary<CameraRenderingPath, DrawEvent>();
         #endregion
+        private struct Command
+        {
+            public object obj;
+            public Action<object> func;
+        }
         private GameObject pipelinePrefab;
         private PipelineEvent[] allEvents;
         public PipelineResources resources;
+        private static List<Command> afterRenderFrame = new List<Command>(10);
+        private static List<Command> beforeRenderFrame = new List<Command>(10);
+        public static void AddCommandAfterFrame(object arg, Action<object> func)
+        {
+            afterRenderFrame.Add(new Command
+            {
+                func = func,
+                obj = arg
+            });
+        }
+        public static void AddCommandBeforeFrame(object arg, Action<object> func)
+        {
+            beforeRenderFrame.Add(new Command
+            {
+                func = func,
+                obj = arg
+            });
+        }
         public RenderPipeline(GameObject pipelinePrefab, PipelineResources resources)
         {
             allDrawEvents.Clear();
@@ -48,6 +72,11 @@ namespace MPipeline
 
         public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
+            foreach(var i in beforeRenderFrame)
+            {
+                i.func(i.obj);
+            }
+            beforeRenderFrame.Clear();
             SceneController.SetSingleton();
             foreach (var cam in cameras)
             {
@@ -61,6 +90,11 @@ namespace MPipeline
                 renderContext.Submit();
                 PipelineFunctions.ReleaseRenderTarget(pipelineCam.temporalRT);
             }
+            foreach (var i in afterRenderFrame)
+            {
+                i.func(i.obj);
+            }
+            afterRenderFrame.Clear();
         }
 
         private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam)

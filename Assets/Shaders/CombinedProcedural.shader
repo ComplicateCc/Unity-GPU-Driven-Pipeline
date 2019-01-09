@@ -61,7 +61,7 @@ half4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, floa
 }
 float4x4 _LastVp;
 float4x4 _NonJitterVP;
-inline half2 CalculateMotionVector(float4x4 lastvp, half3 worldPos, half2 screenUV)
+inline half2 CalculateMotionVector(float4x4 lastvp, float3 worldPos, half2 screenUV)
 {
 	half4 lastScreenPos = mul(lastvp, half4(worldPos, 1));
 	half2 lastScreenUV = GetScreenPos(lastScreenPos);
@@ -93,6 +93,7 @@ v2f_surf vert_surf (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
   	return o;
 }
 float4 unity_Ambient;
+float3 _SceneOffset;
 
 // fragment shader
 void frag_surf (v2f_surf IN,
@@ -116,7 +117,7 @@ void frag_surf (v2f_surf IN,
   //Calculate Motion Vector
   half4 screenPos = mul(_NonJitterVP, float4(worldPos, 1));
   half2 screenUV = GetScreenPos(screenPos);
-  outMotionVector = CalculateMotionVector(_LastVp, worldPos, screenUV);
+  outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);
 }
 
 ENDCG

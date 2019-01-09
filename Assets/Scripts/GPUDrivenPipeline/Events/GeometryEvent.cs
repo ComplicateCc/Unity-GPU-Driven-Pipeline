@@ -11,11 +11,7 @@ namespace MPipeline
     {
         HizDepth hizDepth;
         Material linearMat;
-        public enum OcclusionCullingMode
-        {
-            None, SingleCheck, DoubleCheck
-        }
-        public OcclusionCullingMode occCullingMod = OcclusionCullingMode.None;
+        public bool enableOcclusionCulling;
         protected override void Init(PipelineResources resources)
         {
             hizDepth = new HizDepth();
@@ -43,33 +39,22 @@ namespace MPipeline
                 terrainCompute = data.resources.terrainCompute
             };
             HizOptions hizOptions;
-            switch (occCullingMod)
+            if(enableOcclusionCulling)
             {
-                case OcclusionCullingMode.None:
-                    SceneController.current.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
-                    break;
-                case OcclusionCullingMode.SingleCheck:
-                    hizOptions = new HizOptions
-                    {
-                        currentCameraUpVec = cam.cam.transform.up,
-                        hizData = hizData,
-                        hizDepth = hizDepth,
-                        linearLODMaterial = linearMat,
-                        currentDepthTex = cam.targets.depthTexture
-                    };
-                    SceneController.current.DrawClusterOccSingleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
-                    break;
-                case OcclusionCullingMode.DoubleCheck:
-                    hizOptions = new HizOptions
-                    {
-                        currentCameraUpVec = cam.cam.transform.up,
-                        hizData = hizData,
-                        hizDepth = hizDepth,
-                        linearLODMaterial = linearMat,
-                        currentDepthTex = cam.targets.depthTexture
-                    };
-                    SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
-                    break;
+                SceneController.current.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
+            }
+            else
+            {
+                hizOptions = new HizOptions
+                {
+                    currentCameraUpVec = cam.cam.transform.up,
+                    hizData = hizData,
+                    hizDepth = hizDepth,
+                    linearLODMaterial = linearMat,
+                    currentDepthTex = cam.targets.depthTexture
+                };
+                SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
+
             }
         }
     }

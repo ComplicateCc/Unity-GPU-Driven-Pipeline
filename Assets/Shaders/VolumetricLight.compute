@@ -20,15 +20,16 @@ float4 _ShadowDisableDistance;
 float3 _DirLightFinalColor;
 uint _LightFlag;
 float4x4 _LastVp;
+float4 _SceneOffset;
 float _TemporalWeight;
 
-TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
-Texture2DArray<half> _SpotMapArray; SamplerState sampler_SpotMapArray;
+TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
+Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
 Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
-RWTexture3D<half4> _VolumeTex;
-Texture3D<half4> _LastVolume; SamplerState sampler_LastVolume;
+RWTexture3D<float4> _VolumeTex;
+Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 Texture3D<int> _FroxelPointTileLightList;
 Texture3D<int> _FroxelSpotTileLightList;
 
@@ -43,14 +44,14 @@ Texture3D<int> _FroxelSpotTileLightList;
 				float zAxisUV = dot(eyeRange, float4(0, 1, 2, 3));
 				float4x4 vpMat = _ShadowMapVPs[zAxisUV];
 				float4 shadowPos = mul(vpMat, float4(worldPos, 1));
-				half2 shadowUV = shadowPos.xy;
+				float2 shadowUV = shadowPos.xy;
 				shadowUV = shadowUV * 0.5 + 0.5;
 				#if UNITY_REVERSED_Z
 				float dist = 1 - shadowPos.z;
 				#else
 				float dist = shadowPos.z;
 				#endif
-				float atten = dist < _DirShadowMap.SampleLevel(sampler_DirShadowMap, half3(shadowUV, zAxisUV), 0);
+				float atten = dist < _DirShadowMap.SampleLevel(sampler_DirShadowMap, float3(shadowUV, zAxisUV), 0);
 				return atten;
 			}
 
@@ -95,19 +96,18 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
         {
             SpotLight Light = _AllSpotLight[_FroxelSpotTileLightList[uint3(tileIndex, c)]];
             Cone SpotCone = Light.lightCone;
-
             float LumianceIntensity = Light.lightIntensity;
             float LightRange = SpotCone.radius;
             float3 LightPos = SpotCone.vertex;
             float3 LightColor = Light.lightColor;
-            half LightAngle = Light.angle;
+            float LightAngle = Light.angle;
             float3 LightForward = SpotCone.direction;
             float3 Un_LightDir = LightPos - targetWorldPos;
 
-            half2 SpotConeAngle = half2( cos(LightAngle), cos(LightAngle * 0.75) );
-            half lightAngleScale = 1 / max ( 0.001, (SpotConeAngle.y - SpotConeAngle.x) );
-            half lightAngleOffset = -SpotConeAngle.x * lightAngleScale;
-            half SpotFalloff = AngleFalloff(normalize(-Un_LightDir), LightForward, lightAngleScale, lightAngleOffset);
+            float2 SpotConeAngle = float2( cos(LightAngle), cos(LightAngle * 0.75) );
+            float lightAngleScale = 1 / max ( 0.001, (SpotConeAngle.y - SpotConeAngle.x) );
+            float lightAngleOffset = -SpotConeAngle.x * lightAngleScale;
+            float SpotFalloff = AngleFalloff(normalize(-Un_LightDir), LightForward, lightAngleScale, lightAngleOffset);
             float ShadowTrem = 1;
             #ifdef SPOTMAP
             if(Light.shadowIndex >= 0)
@@ -115,7 +115,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         float4 clipPos = mul(Light.vpMatrix, float4(targetWorldPos, 1));
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
-                        half shadowDist = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0);
+                        float shadowDist = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0);
                         ShadowTrem = length(Un_LightDir) / SpotCone.height < shadowDist;
             }
             #endif
@@ -150,22 +150,25 @@ inline uint From3DTo1D(uint3 id, const uint3 size){
     const uint3 multiValue = uint3(1, size.x, size.x * size.y);
     return dot(id, multiValue);
 }
+
 [numthreads(8, 2, VOXELZ)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
-    half2 projCoord = uv * 2 - 1;
+    float2 projCoord = uv * 2 - 1;
     const float step = 1.0 / _ScreenSize.z;
-    float lerpPos = id.z / ((half)_ScreenSize.z) + step * jitterCoord.z;
-    half linearDepth = lerp(_NearFarClip.z, _MaxDistance, lerpPos);
+    float lerpPos = id.z / ((float)_ScreenSize.z) + step * jitterCoord.z;
+    float linearDepth = lerp(_NearFarClip.z, _MaxDistance, lerpPos);
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
-    float4 lastFrameClip = mul(_LastVp, targetWorldPos);
+    targetWorldPos /= targetWorldPos.w;
+    float4 lastWorldPos = float4(targetWorldPos.xyz - _SceneOffset.xyz, 1);
+    float4 lastFrameClip = mul(_LastVp, lastWorldPos);
     lastFrameClip /= lastFrameClip.w;
     float3 lastFrameUV = float3(lastFrameClip.xy * 0.5 + 0.5, LinearEyeDepth(lastFrameClip.z) / _MaxDistance);
-    half4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
-    targetWorldPos /= targetWorldPos.w;
-    float reprojectionValid = _TemporalWeight * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
+    float4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
+    
+    float reprojectionValid = lerp(_TemporalWeight, 0.999, _SceneOffset.w) * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
     _VolumeTex[id] = lerp(GetColor(targetWorldPos.xyz, linearDepth, uv), lastFrameColor, reprojectionValid);
 }
 

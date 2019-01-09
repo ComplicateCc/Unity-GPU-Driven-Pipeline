@@ -11,41 +11,16 @@ using MPipeline;
 
 public unsafe static class PipelineFunctions
 {
-    public static void GetCullingPlanes(ref Matrix4x4 invVp, Vector4* cullingPlanes)
+    public static void GetCullingPlanes(float4* cullingPlanes, float size, float nearClip, float farClip, float3 up, float3 right, float3 forward, float3 position)
     {
-        Vector3 nearLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 1));
-        Vector3 nearLeftTop = invVp.MultiplyPoint(new Vector3(-1, 1, 1));
-        Vector3 nearRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 1));
-        Vector3 nearRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 1));
-        Vector3 farLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 0));
-        Vector3 farRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 0));
-        Vector3 farRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 0));
-        Plane plane;
-        //Far
-        plane = new Plane(farLeftButtom, farRightButtom, farRightTop);
-        cullingPlanes[0] = plane.normal;
-        cullingPlanes[0].w = plane.distance;
-        //Up
-        plane = new Plane(nearLeftTop, farRightTop, nearRightTop);
-        cullingPlanes[1] = plane.normal;
-        cullingPlanes[1].w = plane.distance;
-        //Down
-        plane = new Plane(nearRightButtom, farLeftButtom, nearLeftButtom);
-        cullingPlanes[2] = plane.normal;
-        cullingPlanes[2].w = plane.distance;
-        //Left
-        plane = new Plane(farLeftButtom, nearLeftTop, nearLeftButtom);
-        cullingPlanes[3] = plane.normal;
-        cullingPlanes[3].w = plane.distance;
-        //Right
-        plane = new Plane(farRightTop, nearRightButtom, nearRightTop);
-        cullingPlanes[4] = plane.normal;
-        cullingPlanes[4].w = plane.distance;
-        //Near
-        plane = new Plane(nearRightTop, nearRightButtom, nearLeftButtom);
-        cullingPlanes[5] = plane.normal;
-        cullingPlanes[5].w = plane.distance;
-
+        float3 rightSize = size * right;
+        float3 upSize = size * up;
+        cullingPlanes[0] = VectorUtility.GetPlane(-forward, position + nearClip * forward);
+        cullingPlanes[1] = VectorUtility.GetPlane(forward, position + farClip * forward);
+        cullingPlanes[2] = VectorUtility.GetPlane(-right, position - rightSize);
+        cullingPlanes[3] = VectorUtility.GetPlane(right, position + rightSize);
+        cullingPlanes[4] = VectorUtility.GetPlane(up, position + upSize);
+        cullingPlanes[5] = VectorUtility.GetPlane(-up, position - upSize);
     }
 
     public static void GetCullingPlanes(ref Matrix4x4 invVp, Vector4* cullingPlanes, float nearClip, float farClip, Vector3 cameraPosition, Vector3 cameraForward)
@@ -85,7 +60,7 @@ public unsafe static class PipelineFunctions
     }
     public static void GetCullingPlanesForSRP(Vector4* planes, int count = 6)
     {
-        for(int i = 0; i < count; ++i)
+        for (int i = 0; i < count; ++i)
         {
             planes[i] = -planes[i];
         }
@@ -209,55 +184,56 @@ public unsafe static class PipelineFunctions
         return true;
     }
 
-    public static void SetShadowCameraPositionStaticFit(ref StaticFit fit, ref OrthoCam shadCam, int pass, Matrix4x4[] vpMatrices, out Matrix4x4 invShadowVP)
+    public static void SetShadowCameraPositionStaticFit(ref StaticFit fit, ref OrthoCam shadCam, int pass, float4x4* vpMatrices)
     {
         float range = 0;
-        Vector3 averagePos = Vector3.zero;
+        double3 averagePos = double3.zero;
         foreach (var i in fit.frustumCorners)
         {
-            averagePos += i;
+            averagePos += (float3)i;
         }
         averagePos /= fit.frustumCorners.Length;
         foreach (var i in fit.frustumCorners)
         {
-            float dist = Vector3.Distance(averagePos, i);
+            double dist = math.distance(averagePos, (float3)i);
             if (range < dist)
             {
-                range = dist;
+                range = (float)dist;
             }
         }
         shadCam.size = range;
         float farClipPlane = fit.mainCamTrans.farClipPlane;
-        Vector3 targetPosition = averagePos - shadCam.forward * farClipPlane * 0.5f;
+        float3 targetPosition = (float3)averagePos - shadCam.forward * farClipPlane * 0.5f;
         shadCam.nearClipPlane = 0;
         shadCam.farClipPlane = farClipPlane;
-        ref Matrix4x4 shadowVP = ref vpMatrices[pass];
-        invShadowVP = shadowVP.inverse;
-        Vector3 ndcPos = shadowVP.MultiplyPoint(targetPosition);
-        Vector2 uv = new Vector2(ndcPos.x, ndcPos.y) * 0.5f + new Vector2(0.5f, 0.5f);
+        ref float4x4 shadowVP = ref vpMatrices[pass];
+        float4x4 invShadowVP = math.inverse(shadowVP);
+
+        float4 ndcPos = math.mul(shadowVP, new float4(targetPosition, 1));
+        ndcPos /= ndcPos.w;
+        float2 uv = new float2(ndcPos.x, ndcPos.y) * 0.5f + new float2(0.5f, 0.5f);
         uv.x = (int)(uv.x * fit.resolution + 0.5);
         uv.y = (int)(uv.y * fit.resolution + 0.5);
         uv /= fit.resolution;
-        uv = uv * 2f - Vector2.one;
-        ndcPos = new Vector3(uv.x, uv.y, ndcPos.z);
-        targetPosition = invShadowVP.MultiplyPoint(ndcPos);
+        uv = uv * 2f - 1;
+        ndcPos = new float4(uv.x, uv.y, ndcPos.z, 1);
+        float4 targetPos_4 = math.mul(invShadowVP, ndcPos);
+        targetPosition = targetPos_4.xyz / targetPos_4.w;
         shadCam.position = targetPosition;
         shadCam.UpdateProjectionMatrix();
         shadCam.UpdateTRSMatrix();
-        shadowVP = GL.GetGPUProjectionMatrix(shadCam.projectionMatrix, false) * shadCam.worldToCameraMatrix;
-        invShadowVP = shadowVP.inverse;
+        shadowVP = GL.GetGPUProjectionMatrix(shadCam.projectionMatrix, false) * (Matrix4x4)shadCam.worldToCameraMatrix;
     }
     /// <summary>
     /// Initialize per cascade shadowmap buffers
     /// </summary>
     public static void UpdateCascadeState(ref ShadowMapComponent comp, CommandBuffer buffer, float bias, int pass, out Matrix4x4 rtVp)
     {
-        Vector4 shadowcamDir = comp.shadCam.forward;
-        shadowcamDir.w = bias;
+        float4 shadowcamDir = new float4(comp.shadCam.forward, bias);
         buffer.SetRenderTarget(comp.shadowmapTexture, 0, CubemapFace.Unknown, depthSlice: pass);
         buffer.ClearRenderTarget(true, true, Color.white);
         buffer.SetGlobalVector(ShaderIDs._ShadowCamDirection, shadowcamDir);
-        rtVp = GL.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true) * comp.shadCam.worldToCameraMatrix;
+        rtVp = GL.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true) * (Matrix4x4)comp.shadCam.worldToCameraMatrix;
         buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, rtVp);
     }
     /// <summary>

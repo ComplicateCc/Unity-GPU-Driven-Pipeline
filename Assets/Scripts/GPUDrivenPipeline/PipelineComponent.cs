@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using Unity.Collections;
+using Unity.Mathematics;
 namespace MPipeline
 {
     public struct Vector4Int
@@ -48,6 +49,8 @@ namespace MPipeline
         /// </summary>
         public const int ClusterCullOccKernel = 2;
         public const int VertexIndexKernel = 6;
+        public const int MoveVertex = 7;
+        public const int MoveCluster = 8;
     }
 
     public struct OcclusionBuffers
@@ -141,6 +144,7 @@ namespace MPipeline
 
     public struct ShadowMapComponent
     {
+        public Camera cameraComponent;
         public OrthoCam shadCam;
         public Material shadowDepthMaterial;
         public RenderTexture shadowmapTexture;
@@ -205,25 +209,27 @@ namespace MPipeline
 
     public struct OrthoCam
     {
-        public Matrix4x4 worldToCameraMatrix;
-        public Matrix4x4 localToWorldMatrix;
-        public Vector3 right;
-        public Vector3 up;
-        public Vector3 forward;
-        public Vector3 position;
+        public float4x4 worldToCameraMatrix;
+        public float4x4 localToWorldMatrix;
+        public float3 right;
+        public float3 up;
+        public float3 forward;
+        public float3 position;
         public float size;
         public float nearClipPlane;
         public float farClipPlane;
-        public Matrix4x4 projectionMatrix;
+        public float4x4 projectionMatrix;
         public void UpdateTRSMatrix()
         {
-            localToWorldMatrix.SetColumn(0, right);
-            localToWorldMatrix.SetColumn(1, up);
-            localToWorldMatrix.SetColumn(2, forward);
-            localToWorldMatrix.SetColumn(3, position);
-            localToWorldMatrix.m33 = 1;
-            worldToCameraMatrix = localToWorldMatrix.inverse;
-            worldToCameraMatrix.SetRow(2, -worldToCameraMatrix.GetRow(2));
+            localToWorldMatrix.c0 = new float4(right, 0);
+            localToWorldMatrix.c1 = new float4(up, 0);
+            localToWorldMatrix.c2 = new float4(forward, 0);
+            localToWorldMatrix.c3 = new float4(position, 1);
+            worldToCameraMatrix = math.inverse(localToWorldMatrix);
+            worldToCameraMatrix.c0.z = -worldToCameraMatrix.c0.z;
+            worldToCameraMatrix.c1.z = -worldToCameraMatrix.c1.z;
+            worldToCameraMatrix.c2.z = -worldToCameraMatrix.c2.z;
+            worldToCameraMatrix.c3.z = -worldToCameraMatrix.c3.z;
         }
         public void UpdateProjectionMatrix()
         {

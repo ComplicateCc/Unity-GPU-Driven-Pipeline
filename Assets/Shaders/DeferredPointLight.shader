@@ -24,6 +24,7 @@ CGINCLUDE
             
             float4 _LightPos;
             float3  _LightColor;
+            
             float _LightIntensity;
             float2 _CameraClipDistance; //X: Near Y: Far - Near
 

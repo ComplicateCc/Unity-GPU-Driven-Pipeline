@@ -69,7 +69,7 @@ MonoBehaviour:
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 0
   layer: 2000
-  occCullingMod: 0
+  enableOcclusionCulling: 1
 --- !u!114 &2084661033390156276
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -119,7 +119,7 @@ MonoBehaviour:
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 1
   layer: 2100
-  availableDistance: 32
+  availableDistance: 50
 --- !u!114 &2084661033390156267
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -159,7 +159,7 @@ MonoBehaviour:
   stationaryBlending: 0.95
   motionBlending: 0.87
   stationaryAABBScale: 4
-  motionAABBScale: 1.5
+  motionAABBScale: 1.25
 --- !u!1 &8525019081660873867
 GameObject:
   m_ObjectHideFlags: 0

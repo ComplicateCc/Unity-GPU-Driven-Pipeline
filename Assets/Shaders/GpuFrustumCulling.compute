@@ -6,6 +6,8 @@
 #pragma kernel ClearOcclusionData
 #pragma kernel UnsafeCull
 #pragma kernel LoadProperty
+#pragma kernel MoveVertex
+#pragma kernel MoveCluster
 #define COMPUTESHADER
 #include "UnityCG.cginc"
 #include "CGINC/Procedural.cginc"
@@ -162,4 +164,19 @@ void LoadProperty(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
     _PropertiesBuffer[_IndexBuffer[id]] = _TempPropBuffer[id];
+}
+RWStructuredBuffer<Point> verticesBuffer;
+float3 _SceneOffset;
+uint _OffsetIndex;
+[numthreads(1, CLUSTERCLIPCOUNT, 1)]
+void MoveVertex(uint2 id : SV_DISPATCHTHREADID)
+{
+    verticesBuffer[(id.x + _OffsetIndex) * CLUSTERCLIPCOUNT + id.y].vertex += _SceneOffset;
+}
+
+[numthreads(64, 1, 1)]
+void MoveCluster(uint id : SV_DISPATCHTHREADID)
+{
+    if(id >= _Count) return; 
+    clusterBuffer[id + _OffsetIndex].position += _SceneOffset;
 }

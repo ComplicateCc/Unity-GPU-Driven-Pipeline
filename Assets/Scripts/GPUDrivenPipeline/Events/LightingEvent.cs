@@ -187,7 +187,7 @@ namespace MPipeline
                 pass = 1;
             }
             buffer.SetGlobalVector(ShaderIDs._DirLightFinalColor, SunLight.shadMap.light.color * SunLight.shadMap.light.intensity);
-            buffer.SetGlobalVector(ShaderIDs._DirLightPos, -SunLight.shadMap.shadCam.forward);
+            buffer.SetGlobalVector(ShaderIDs._DirLightPos, -(Vector3)SunLight.shadMap.shadCam.forward);
             buffer.SetRenderTarget(cam.targets.renderTargetIdentifier, cam.targets.depthIdentifier);
             buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, shadMaskMaterial, 0, pass);
         }
@@ -306,7 +306,7 @@ namespace MPipeline
                         MLight mlight = MLight.GetPointLight(allLights[spotLightIndices[i].y].light);
                         mlight.UpdateShadowCacheType(true);
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
-                        SceneController.current.DrawSpotLight(ref opts, ref data, cam.cam, ref spot, ref spotBuffer, mlight.shadowMap);
+                        SceneController.current.DrawSpotLight(ref opts, ref data, mlight.shadowCam, ref spot, ref spotBuffer, mlight.shadowMap);
                     }
                 }
                 SetSpotLightBuffer(spotLightArray, spotLightCount, buffer);

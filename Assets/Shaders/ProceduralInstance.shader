@@ -47,7 +47,16 @@ CGINCLUDE
 		sampler2D _BumpMap;
 		sampler2D _SpecularMap;
 		sampler2D _MainTex;
-		
+CBUFFER_START(UnityVelocityPass)
+    float4x4 unity_MatrixNonJitteredVP;
+    float4x4 unity_MatrixPreviousVP;
+    float4x4 unity_MatrixPreviousM;
+	float4x4 unity_MatrixPreviousMI;
+    //X : Use last frame positions (right now skinned meshes are the only objects that use this
+    //Y : Force No Motion
+    //Z : Z bias value
+    float4 unity_MotionVectorsParams;
+CBUFFER_END
 
 
 		float _Glossiness;
@@ -90,6 +99,7 @@ half4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, floa
 }
 float4x4 _LastVp;
 float4x4 _NonJitterVP;
+float3 _SceneOffset;
 inline half2 CalculateMotionVector(float4x4 lastvp, half3 worldPos, half2 screenUV)
 {
 	half4 lastScreenPos = mul(lastvp, half4(worldPos, 1));
@@ -105,19 +115,6 @@ struct v2f_surf {
   float4 worldNormal : TEXCOORD3;
   float3 worldViewDir : TEXCOORD4;
 };
-float4 _MainTex_ST;
-v2f_surf vert_gpurp (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID) 
-{
-  	Point v = getVertex(vertexID, instanceID);
-  	v2f_surf o;
-  	o.pack0 = v.texcoord;
-  	o.pos = mul(UNITY_MATRIX_VP, float4(v.vertex, 1));
-  	o.worldTangent = float4( v.tangent.xyz, v.vertex.x);
-	o.worldNormal =float4(v.normal, v.vertex.z);
-  	o.worldBinormal = float4(cross(v.normal, o.worldTangent.xyz) * v.tangent.w, v.vertex.y);
-  	o.worldViewDir = UnityWorldSpaceViewDir(v.vertex);
-  	return o;
-}
 struct appdata
 {
 	float4 vertex : POSITION;
@@ -163,29 +160,12 @@ void frag_surf (v2f_surf IN,
   float3 n = o.Normal;
   outEmission = ProceduralStandardSpecular_Deferred (o, worldViewDir, outGBuffer0, outGBuffer1, outGBuffer2); //GI neccessary here!
   outDepth = IN.pos.z;
-  //Calculate Motion Vector
   half4 screenPos = mul(_NonJitterVP, float4(worldPos, 1));
   half2 screenUV = GetScreenPos(screenPos);
-  outMotionVector = CalculateMotionVector(_LastVp, worldPos, screenUV);
+  outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);
 }
 
 ENDCG
-
-//Pass 0 deferred
-Pass {
-stencil{
-  Ref 1
-  comp always
-  pass replace
-}
-ZTest Less
-CGPROGRAM
-
-#pragma vertex vert_gpurp
-#pragma fragment frag_surf
-#pragma exclude_renderers nomrt
-ENDCG
-}
 
 pass
 {

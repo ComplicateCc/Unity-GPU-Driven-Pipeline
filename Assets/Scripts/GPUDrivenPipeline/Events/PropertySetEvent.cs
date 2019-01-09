@@ -21,6 +21,7 @@ namespace MPipeline
             buffer.SetGlobalMatrix(ShaderIDs._VP, data.vp);
             buffer.SetGlobalMatrix(ShaderIDs._InvLastVP, lastVp.inverse);
             lastVp = nonJitterVP;
+            
         }
     }
 

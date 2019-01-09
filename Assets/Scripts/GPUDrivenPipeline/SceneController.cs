@@ -129,7 +129,6 @@ namespace MPipeline
         }
         public abstract void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam);
         public abstract void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand, Texture shadowCache);
-        public abstract void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets targets, ref PipelineCommandData data, Camera cam);
         public abstract void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam);
         public abstract void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP);
         public abstract void DrawCubeMap(MLight lit, Light light, Material depthMaterial, ref RenderClusterOptions opts, ref CubeCullingBuffer buffer, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data);
@@ -137,7 +136,7 @@ namespace MPipeline
     [Serializable]
     public unsafe class SceneControllerWithGPURPEnabled : SceneController
     {
-        public PipelineResources resources;
+        private PipelineResources resources;
         public PipelineBaseBuffer baseBuffer { get; private set; }
         public string mapResources = "SceneManager";
         private ClusterMatResources clusterResources;
@@ -148,8 +147,9 @@ namespace MPipeline
         public int resolution = 1024;
         public int texArrayCapacity = 50;
         public int propertyCapacity = 500;
-        public void Awake()
+        public void Awake(PipelineResources resources)
         {
+            this.resources = resources;
             gpurp = this;
             addList = new NativeList<ulong>(10, Allocator.Persistent);
             baseBuffer = new PipelineBaseBuffer();
@@ -227,6 +227,15 @@ namespace MPipeline
             commonData.copyTextureMat.SetVector(ShaderIDs._TextureSize, new Vector4(resolution, resolution));
             commonData.copyTextureMat.SetBuffer(ShaderIDs._TextureBuffer, commonData.texCopyBuffer);
         }
+        public void TransformMapPosition(int startPos)
+        {
+            if (baseBuffer.clusterCount - startPos <= 0) return;
+            resources.gpuFrustumCulling.SetInt(ShaderIDs._OffsetIndex, startPos);
+            resources.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveVertex, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            resources.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveCluster, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+            resources.gpuFrustumCulling.Dispatch(PipelineBaseBuffer.MoveVertex, baseBuffer.clusterCount - startPos, 1, 1);
+            ComputeShaderUtility.Dispatch(resources.gpuFrustumCulling, PipelineBaseBuffer.MoveCluster, baseBuffer.clusterCount - startPos, 64);
+        }
         public void Dispose()
         {
             gpurp = null;
@@ -291,7 +300,7 @@ namespace MPipeline
                         behavior.StartCoroutine(str.Generate());
                 }
             }
-            
+
         }
         private bool GetBaseBuffer(out PipelineBaseBuffer result)
         {
@@ -320,6 +329,7 @@ namespace MPipeline
                 sortMode = DrawRendererSortMode.Perspective,
                 cameraPosition = cam.transform.position
             };
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.PerObjectMotionVectors;
             data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
 
             //TODO
@@ -353,52 +363,14 @@ namespace MPipeline
                 sortMode = DrawRendererSortMode.Perspective,
                 cameraPosition = spotLights.lightCone.vertex
             };
-            for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
-            {
-                Vector4 v = spotcommand.frustumPlanes[i];
-                data.cullParams.SetCullingPlane(i, new Plane(-v, -v.w));
-            }
-            data.cullParams.cullingFlags = CullFlag.None;
+            CullResults.GetCullingParameters(currentCam, out data.cullParams);
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-        }
-        public override void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
-        {
-            CommandBuffer buffer = options.command;
 
-            buffer.SetComputeVectorParam(options.cullingShader, ShaderIDs._CameraUpVector, hizOpts.hizData.lastFrameCameraUp);
-            buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-            buffer.SetComputeTextureParam(options.cullingShader, 5, ShaderIDs._HizDepthTex, hizOpts.hizData.historyDepth);
-            buffer.SetComputeVectorArrayParam(options.cullingShader, ShaderIDs.planes, options.frustumPlanes);
-            buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-            buffer.SetComputeBufferParam(options.cullingShader, 5, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-            buffer.SetComputeBufferParam(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
-            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
-            buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-            buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, buffer);
-            buffer.DispatchCompute(options.cullingShader, PipelineBaseBuffer.ClearClusterKernel, 1, 1, 1);
-
-            //TODO 绘制其他物体
-            data.ExecuteCommandBuffer();
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
-            {
-                renderQueueRange = RenderQueueRange.opaque,
-                layerMask = cam.cullingMask
-            };
-            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("GBuffer"));
-            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-            {
-                flags = SortFlags.CommonOpaque,
-                sortMode = DrawRendererSortMode.Perspective,
-                cameraPosition = cam.transform.position
-            };
-            data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            //TODO
-            buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
-            hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
+
         public override void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
         {
             CommandBuffer buffer = options.command;
@@ -415,7 +387,6 @@ options.isOrtho);
             //更新Vector，Depth Mip Map
             hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
             PipelineFunctions.ClearOcclusionData(baseBuffer, buffer, gpuFrustumShader);
-
             //TODO 绘制其他物体
             data.ExecuteCommandBuffer();
             FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
@@ -430,6 +401,7 @@ options.isOrtho);
                 sortMode = DrawRendererSortMode.Perspective,
                 cameraPosition = cam.transform.position
             };
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.PerObjectMotionVectors;
             data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             //TODO
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
@@ -467,10 +439,10 @@ options.isOrtho);
                 Vector2 farClipDistance = new Vector2(clipDistances[pass], clipDistances[pass + 1]);
                 PipelineFunctions.GetfrustumCorners(farClipDistance, ref shadMap, currentCam);
                 // PipelineFunctions.SetShadowCameraPositionCloseFit(ref shadMap, ref settings);
-                Matrix4x4 invpVPMatrix;
-                PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref shadMap.shadCam, pass, cascadeShadowMapVP, out invpVPMatrix);
+                PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref shadMap.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
                 Vector4* vec = opts.frustumPlanes.Ptr();
-                PipelineFunctions.GetCullingPlanes(ref invpVPMatrix, vec);
+                PipelineFunctions.GetCullingPlanes((float4*)vec, shadMap.shadCam.size, shadMap.shadCam.nearClipPlane, shadMap.shadCam.farClipPlane,
+                                                    shadMap.shadCam.up, shadMap.shadCam.right, shadMap.shadCam.forward, shadMap.shadCam.position);
                 PipelineFunctions.SetBaseBuffer(baseBuffer, gpuFrustumShader, opts.frustumPlanes, opts.command);
                 PipelineFunctions.RunCullDispatching(baseBuffer, gpuFrustumShader, true, opts.command);
                 float* biasList = (float*)UnsafeUtility.AddressOf(ref settings.bias);
@@ -489,16 +461,16 @@ options.isOrtho);
                 data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
                 data.defaultDrawSettings.sorting = new DrawRendererSortSettings
                 {
-                    flags = SortFlags.None,
+                    flags = SortFlags.CommonOpaque,
+                    worldToCameraMatrix = shadMap.shadCam.worldToCameraMatrix,
+                    sortMode = DrawRendererSortMode.Orthographic
                 };
-
-                for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
-                {
-                    Vector4 v = vec[i];
-                    data.cullParams.SetCullingPlane(i, new Plane(-v, -v.w));
-                }
-                data.cullParams.cullingFlags = CullFlag.None;
+                shadMap.cameraComponent.worldToCameraMatrix = shadMap.shadCam.worldToCameraMatrix;
+                shadMap.cameraComponent.projectionMatrix = shadMap.shadCam.projectionMatrix;
+                CullResults.GetCullingParameters(shadMap.cameraComponent, out data.cullParams);
+                data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
                 CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+                data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
                 data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             }
         }
@@ -513,6 +485,10 @@ options.isOrtho);
             cb.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             ref CubemapViewProjMatrix vpMatrices = ref buffer.vpMatrices[offset];
             buffer.StartCull(baseBuffer, cb, vpMatrices.frustumPlanes);
+            Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
+            lit.shadowCam.projectionMatrix = projMat;
+            lit.shadowCam.worldToCameraMatrix = vpMatrices.forwardView;
+            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
             {
                 ref float4 vec = ref vpMatrices.frustumPlanes[i];
@@ -529,13 +505,13 @@ options.isOrtho);
             {
                 flags = SortFlags.None,
             };
-            data.cullParams.cullingFlags = CullFlag.None;
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             //Forward
             int depthSlice = offset * 6;
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
             cb.ClearRenderTarget(true, true, Color.white);
-            Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.forwardView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
@@ -600,6 +576,7 @@ options.isOrtho);
                 sortMode = DrawRendererSortMode.Perspective,
                 cameraPosition = cam.transform.position
             };
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.PerObjectMotionVectors;
             data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
         }
         public override void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand, Texture shadowCache)
@@ -625,23 +602,17 @@ options.isOrtho);
                 sortMode = DrawRendererSortMode.Perspective,
                 cameraPosition = spotLights.lightCone.vertex
             };
-            for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
-            {
-                Vector4 v = spotcommand.frustumPlanes[i];
-                data.cullParams.SetCullingPlane(i, new Plane(-v, -v.w));
-            }
-            data.cullParams.cullingFlags = CullFlag.None;
+
+            CullResults.GetCullingParameters(currentCam, out data.cullParams);
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
 
         }
         public override void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
         {
             DrawCluster(ref options, ref rendTargets, ref data, cam);
-        }
-        public override void DrawClusterOccSingleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
-        {
-            DrawCluster(ref options, ref targets, ref data, cam);
         }
         public override void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, ref ShadowmapSettings settings, ref ShadowMapComponent shadMap, Matrix4x4[] cascadeShadowMapVP)
         {
@@ -663,10 +634,10 @@ options.isOrtho);
                 Vector2 farClipDistance = new Vector2(clipDistances[pass], clipDistances[pass + 1]);
                 PipelineFunctions.GetfrustumCorners(farClipDistance, ref shadMap, currentCam);
                 // PipelineFunctions.SetShadowCameraPositionCloseFit(ref shadMap, ref settings);
-                Matrix4x4 invpVPMatrix;
-                PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref shadMap.shadCam, pass, cascadeShadowMapVP, out invpVPMatrix);
+                PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref shadMap.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
                 Vector4* vec = opts.frustumPlanes.Ptr();
-                PipelineFunctions.GetCullingPlanes(ref invpVPMatrix, vec);
+                PipelineFunctions.GetCullingPlanes((float4*)vec, shadMap.shadCam.size, shadMap.shadCam.nearClipPlane, shadMap.shadCam.farClipPlane,
+                                                    shadMap.shadCam.up, shadMap.shadCam.right, shadMap.shadCam.forward, shadMap.shadCam.position);
                 float* biasList = (float*)UnsafeUtility.AddressOf(ref settings.bias);
                 Matrix4x4 vpMatrix;
                 PipelineFunctions.UpdateCascadeState(ref shadMap, opts.command, biasList[pass] / currentCam.farClipPlane, pass, out vpMatrix);
@@ -681,16 +652,17 @@ options.isOrtho);
                 data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
                 data.defaultDrawSettings.sorting = new DrawRendererSortSettings
                 {
-                    flags = SortFlags.None,
+                    flags = SortFlags.CommonOpaque,
+                    worldToCameraMatrix = shadMap.shadCam.worldToCameraMatrix,
+                    sortMode = DrawRendererSortMode.Orthographic
                 };
 
-                for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
-                {
-                    Vector4 v = vec[i];
-                    data.cullParams.SetCullingPlane(i, new Plane(-v, -v.w));
-                }
-                data.cullParams.cullingFlags = CullFlag.None;
+                shadMap.cameraComponent.worldToCameraMatrix = shadMap.shadCam.worldToCameraMatrix;
+                shadMap.cameraComponent.projectionMatrix = shadMap.shadCam.projectionMatrix;
+                CullResults.GetCullingParameters(shadMap.cameraComponent, out data.cullParams);
+                data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
                 CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+                data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
                 data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             }
         }
@@ -700,6 +672,11 @@ options.isOrtho);
             Vector3 position = lit.transform.position;
             cb.SetGlobalVector(ShaderIDs._LightPos, new Vector4(position.x, position.y, position.z, light.range));
             ref CubemapViewProjMatrix vpMatrices = ref buffer.vpMatrices[offset];
+
+            Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
+            lit.shadowCam.projectionMatrix = projMat;
+            lit.shadowCam.worldToCameraMatrix = vpMatrices.forwardView;
+            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             for (int i = 0; i < data.cullParams.cullingPlaneCount; ++i)
             {
                 ref float4 vec = ref vpMatrices.frustumPlanes[i];
@@ -714,15 +691,17 @@ options.isOrtho);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.defaultDrawSettings.sorting = new DrawRendererSortSettings
             {
-                flags = SortFlags.None,
+                flags = SortFlags.None
             };
-            data.cullParams.cullingFlags = CullFlag.None;
+
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             //Forward
             int depthSlice = offset * 6;
             cb.SetRenderTarget(buffer.renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
             cb.ClearRenderTarget(true, true, Color.white);
-            Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
+
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.forwardView);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);

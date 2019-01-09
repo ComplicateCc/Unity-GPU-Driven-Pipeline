@@ -11,7 +11,8 @@ public class SunLight : MonoBehaviour
     public bool enableShadow = true;
     public ShadowmapSettings settings;
     public static ShadowMapComponent shadMap;
-    private void Awake()
+    public static Camera shadowCam;
+    private void OnEnable()
     {
         var light = GetComponent<Light>();
         if (current)
@@ -24,11 +25,22 @@ public class SunLight : MonoBehaviour
                 return;
             }
             else
-                OnDestroy();
+                OnDisable();
         }
         current = this;
         shadMap.light = light;
         light.enabled = false;
+        if(!shadowCam)
+        {
+            shadowCam = GetComponent<Camera>();
+            if(!shadowCam)
+            {
+                shadowCam = gameObject.AddComponent<Camera>();
+            }
+            shadowCam.enabled = false;
+            shadowCam.aspect = 1;
+            
+        }
         shadMap.shadowmapTexture = new RenderTexture(new RenderTextureDescriptor
         {
             width = settings.resolution,
@@ -47,6 +59,7 @@ public class SunLight : MonoBehaviour
             volumeDepth = 4,
             vrUsage = VRTextureUsage.None
         });
+        shadMap.cameraComponent = shadowCam;
         shadMap.shadowmapTexture.filterMode = FilterMode.Point;
         shadMap.frustumCorners = new NativeArray<Vector3>(8, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         shadMap.shadowDepthMaterial = new Material(Shader.Find("Hidden/ShadowDepth"));
@@ -60,14 +73,14 @@ public class SunLight : MonoBehaviour
         shadMap.shadCam.right = transform.right;
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         if (current != this) return;
         current = null;
         shadMap.frustumCorners.Dispose();
         shadMap.shadowmapTexture.Release();
-        Destroy(shadMap.shadowmapTexture);
-        Destroy(shadMap.shadowDepthMaterial);
+        DestroyImmediate(shadMap.shadowmapTexture);
+        DestroyImmediate(shadMap.shadowDepthMaterial);
         shadMap.shadowFrustumPlanes.Dispose();
     }
 }

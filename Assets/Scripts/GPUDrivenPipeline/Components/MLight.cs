@@ -18,6 +18,7 @@ public unsafe class MLight : MonoBehaviour
     private static Dictionary<Light, MLight> lightDict = new Dictionary<Light, MLight>(47);
     [System.NonSerialized]
     public bool useCubemap;
+    public Camera shadowCam { get; private set; }
     public static void ClearLightDict()
     {
         lightDict.Clear();
@@ -91,7 +92,17 @@ public unsafe class MLight : MonoBehaviour
     {
         light = GetComponent<Light>();
         lightDict.Add(light, this);
+        if(!shadowCam)
+        {
+            shadowCam = GetComponent<Camera>();
+            if(!shadowCam)
+            {
+                shadowCam = gameObject.AddComponent<Camera>();
+            }
+            shadowCam.enabled = false;
+        }
         useCubemap = light.type == LightType.Point;
+        shadowCam.orthographic = false;
         if (useCubemap)
         {
             shadowMap = new RenderTexture(new RenderTextureDescriptor
