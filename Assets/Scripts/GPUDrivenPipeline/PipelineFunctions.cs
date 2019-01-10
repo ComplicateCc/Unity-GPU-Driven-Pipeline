@@ -7,6 +7,7 @@ using System;
 using System.Text;
 using System.Runtime.CompilerServices;
 using Unity.Mathematics;
+using static Unity.Mathematics.math;
 using MPipeline;
 
 public unsafe static class PipelineFunctions
@@ -70,16 +71,16 @@ public unsafe static class PipelineFunctions
     {
         float4 GetPlane(float3 a, float3 b, float3 c)
         {
-            float3 normal = math.normalize(math.cross(b - a, c - a));
-            return new float4(normal, -math.dot(normal, a));
+            float3 normal = normalize(cross(b - a, c - a));
+            return new float4(normal, -dot(normal, a));
         }
         float3 right = (Vector3)localToWorld.GetColumn(0);
         float3 up = (Vector3)localToWorld.GetColumn(1);
         float3 forward = (Vector3)localToWorld.GetColumn(2);
         float3 position = (Vector3)localToWorld.GetColumn(3);
         float3 farPos = position + forward * farClip;
-        cullingPlanes[0] = new float4(forward, -math.dot(forward, farPos));   //Far Plane
-        cullingPlanes[5] = new float4(-forward, -math.dot(-forward, position + forward * nearClip)); //Near Plane
+        cullingPlanes[0] = new float4(forward, -dot(forward, farPos));   //Far Plane
+        cullingPlanes[5] = new float4(-forward, -dot(-forward, position + forward * nearClip)); //Near Plane
         float screenSize = Mathf.Tan(halfFovInRag * Mathf.Deg2Rad * 0.5f) * farClip;
         float3 upDir = screenSize * up;
         float3 rightDir = screenSize * right;
@@ -127,26 +128,42 @@ public unsafe static class PipelineFunctions
     /// <param name="distance"></param> target distance range
     /// <param name="shadMap"></param> shadowmap component
     /// <param name="mask"></param> shadowmask component
-    public static void GetfrustumCorners(Vector2 distance, ref ShadowMapComponent shadMap, Camera targetCamera)
-    {
-        //bottom left
-        shadMap.frustumCorners[0] = targetCamera.ViewportToWorldPoint(new Vector3(0, 0, distance.x));
-        // bottom right
-        shadMap.frustumCorners[1] = targetCamera.ViewportToWorldPoint(new Vector3(1, 0, distance.x));
-        // top left
-        shadMap.frustumCorners[2] = targetCamera.ViewportToWorldPoint(new Vector3(0, 1, distance.x));
-        // top right
-        shadMap.frustumCorners[3] = targetCamera.ViewportToWorldPoint(new Vector3(1, 1, distance.x));
-        //bottom left
-        shadMap.frustumCorners[4] = targetCamera.ViewportToWorldPoint(new Vector3(0, 0, distance.y));
-        // bottom right
-        shadMap.frustumCorners[5] = targetCamera.ViewportToWorldPoint(new Vector3(1, 0, distance.y));
-        // top left
-        shadMap.frustumCorners[6] = targetCamera.ViewportToWorldPoint(new Vector3(0, 1, distance.y));
-        // top right
-        shadMap.frustumCorners[7] = targetCamera.ViewportToWorldPoint(new Vector3(1, 1, distance.y));
 
+    public static void GetfrustumCorners(float2 nearFarPlane, float3* frustumCorners, float aspect, float relativeFov, float3 right, float3 up, float3 forward, float3 position)
+    {
+        //x: near width, y: near height z: far width w: far height
+        float2 tanValue = tan(relativeFov) / float2(1, aspect);
+        float4 screenDistanceNear = nearFarPlane.xxyy * tanValue.xyxy;
+        float3 nearPlane = position + forward * nearFarPlane.x;
+        float3 farPlane = position + forward * nearFarPlane.y;
+        float3 upDir = screenDistanceNear.y * up;
+        float3 rightDir = screenDistanceNear.x * right;
+        frustumCorners[0] = nearPlane + rightDir + upDir;
+        frustumCorners[1] = nearPlane - rightDir + upDir;
+        frustumCorners[2] = nearPlane + rightDir - upDir;
+        frustumCorners[3] = nearPlane - rightDir - upDir;
+        upDir = screenDistanceNear.w * up;
+        rightDir = screenDistanceNear.z * right;
+        frustumCorners[4] = farPlane + rightDir + upDir;
+        frustumCorners[5] = farPlane - rightDir + upDir;
+        frustumCorners[6] = farPlane + rightDir - upDir;
+        frustumCorners[7] = farPlane - rightDir - upDir;
     }
+
+
+    public static void GetfrustumCorners(float* planes, int planesCount, Camera cam, float3* frustumCorners)
+    {
+        for (int i = 0; i < planesCount; ++i)
+        {
+            int index = i * 4;
+            float p = planes[i];
+            frustumCorners[index] = cam.ViewportToWorldPoint(new Vector3(0, 0, p));
+            frustumCorners[1 + index] = cam.ViewportToWorldPoint(new Vector3(0, 1, p));
+            frustumCorners[2 + index] = cam.ViewportToWorldPoint(new Vector3(1, 1, p));
+            frustumCorners[3 + index] = cam.ViewportToWorldPoint(new Vector3(1, 0, p));
+        }
+    }
+
 
     public static bool FrustumCulling(ref Matrix4x4 ObjectToWorld, Vector3 extent, Vector4* frustumPlanes)
     {
@@ -187,15 +204,16 @@ public unsafe static class PipelineFunctions
     public static void SetShadowCameraPositionStaticFit(ref StaticFit fit, ref OrthoCam shadCam, int pass, float4x4* vpMatrices)
     {
         float range = 0;
-        double3 averagePos = double3.zero;
-        foreach (var i in fit.frustumCorners)
+        double3 averagePos = double3(0, 0, 0);
+        int frustumStartPos = pass * 4;
+        for (int i = 0; i < 8; ++i)
         {
-            averagePos += (float3)i;
+            averagePos += fit.frustumCorners[i + frustumStartPos];
         }
-        averagePos /= fit.frustumCorners.Length;
-        foreach (var i in fit.frustumCorners)
+        averagePos /= 8;
+        for (int i = 0; i < 8; ++i)
         {
-            double dist = math.distance(averagePos, (float3)i);
+            double dist = distance(averagePos, fit.frustumCorners[i + frustumStartPos]);
             if (range < dist)
             {
                 range = (float)dist;
@@ -207,9 +225,9 @@ public unsafe static class PipelineFunctions
         shadCam.nearClipPlane = 0;
         shadCam.farClipPlane = farClipPlane;
         ref float4x4 shadowVP = ref vpMatrices[pass];
-        float4x4 invShadowVP = math.inverse(shadowVP);
+        float4x4 invShadowVP = inverse(shadowVP);
 
-        float4 ndcPos = math.mul(shadowVP, new float4(targetPosition, 1));
+        float4 ndcPos = mul(shadowVP, new float4(targetPosition, 1));
         ndcPos /= ndcPos.w;
         float2 uv = new float2(ndcPos.x, ndcPos.y) * 0.5f + new float2(0.5f, 0.5f);
         uv.x = (int)(uv.x * fit.resolution + 0.5);
@@ -217,7 +235,7 @@ public unsafe static class PipelineFunctions
         uv /= fit.resolution;
         uv = uv * 2f - 1;
         ndcPos = new float4(uv.x, uv.y, ndcPos.z, 1);
-        float4 targetPos_4 = math.mul(invShadowVP, ndcPos);
+        float4 targetPos_4 = mul(invShadowVP, ndcPos);
         targetPosition = targetPos_4.xyz / targetPos_4.w;
         shadCam.position = targetPosition;
         shadCam.UpdateProjectionMatrix();
@@ -227,7 +245,7 @@ public unsafe static class PipelineFunctions
     /// <summary>
     /// Initialize per cascade shadowmap buffers
     /// </summary>
-    public static void UpdateCascadeState(ref ShadowMapComponent comp, CommandBuffer buffer, float bias, int pass, out Matrix4x4 rtVp)
+    public static void UpdateCascadeState(ref SunLight comp, CommandBuffer buffer, float bias, int pass, out Matrix4x4 rtVp)
     {
         float4 shadowcamDir = new float4(comp.shadCam.forward, bias);
         buffer.SetRenderTarget(comp.shadowmapTexture, 0, CubemapFace.Unknown, depthSlice: pass);
@@ -265,6 +283,20 @@ public unsafe static class PipelineFunctions
         buffer.SetComputeBufferParam(compute, 0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
         buffer.SetComputeBufferParam(compute, 0, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
         buffer.SetComputeBufferParam(compute, 1, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.DispatchCompute(compute, 1, 1, 1, 1);
+        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+    }
+    private static Vector4[] backupFrustumArray = new Vector4[6];
+
+    public static void SetBaseBuffer(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, float4* frustumCullingPlanes, CommandBuffer buffer)
+    {
+        var compute = gpuFrustumShader;
+        UnsafeUtility.MemCpy(backupFrustumArray.Ptr(), frustumCullingPlanes, sizeof(float4) * 6);
+        buffer.SetComputeVectorArrayParam(compute, ShaderIDs.planes, backupFrustumArray);
+        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.SetComputeBufferParam(compute, 1, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.DispatchCompute(compute, 1, 1, 1, 1);
         buffer.SetComputeBufferParam(compute, 0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
     }
 
@@ -376,7 +408,7 @@ public unsafe static class PipelineFunctions
                 targetArray.Add(value);
                 return;
             }
-            else if (Math.Abs(range.x - range.y) == 1)
+            else if (abs(range.x - range.y) == 1)
             {
                 int compareX = compareResult(targetArray[range.x], value);
                 if (compareX < 0)
@@ -447,10 +479,10 @@ public unsafe static class PipelineFunctions
         PipelineBaseBuffer baseBuffer, CommandBuffer buffer
         , ComputeShader coreShader)
     {
-        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.dispatchBuffer, baseBuffer.dispatchBuffer);
+      buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.dispatchBuffer, baseBuffer.dispatchBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.reCheckCount, baseBuffer.reCheckCount);
-        buffer.DispatchCompute(coreShader, OcclusionBuffers.ClearOcclusionData, 1, 1, 1);
+        buffer.DispatchCompute(coreShader, OcclusionBuffers.ClearOcclusionData, 1, 1, 1);  
     }
     public static void OcclusionRecheck(
         PipelineBaseBuffer baseBuffer

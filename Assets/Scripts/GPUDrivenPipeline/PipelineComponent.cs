@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using Unity.Collections;
 using Unity.Mathematics;
+using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
     public struct Vector4Int
@@ -21,6 +22,20 @@ namespace MPipeline
             this.w = w;
         }
     }
+
+    public unsafe struct CubemapViewProjMatrix
+    {
+        public Matrix4x4 forwardView;
+        public Matrix4x4 backView;
+        public Matrix4x4 upView;
+        public Matrix4x4 downView;
+        public Matrix4x4 rightView;
+        public Matrix4x4 leftView;
+        public Matrix4x4 projMat;
+        [NativeDisableUnsafePtrRestriction]
+        public float4* frustumPlanes;
+    }
+
     public class PipelineBaseBuffer
     {
         public ComputeBuffer reCheckCount;
@@ -130,29 +145,6 @@ namespace MPipeline
         public float size;
     }
     [System.Serializable]
-    public struct ShadowmapSettings
-    {
-        public int resolution;
-        public float firstLevelDistance;
-        public float secondLevelDistance;
-        public float thirdLevelDistance;
-        public float farestDistance;
-        public Vector4 bias;
-        public Vector4 normalBias;
-        public Vector4 cascadeSoftValue;
-    }
-
-    public struct ShadowMapComponent
-    {
-        public Camera cameraComponent;
-        public OrthoCam shadCam;
-        public Material shadowDepthMaterial;
-        public RenderTexture shadowmapTexture;
-        public NativeArray<Vector3> frustumCorners;
-        public NativeArray<AspectInfo> shadowFrustumPlanes;
-        public Light light;
-    }
-    [System.Serializable]
     public struct Point
     {
         public Vector3 vertex;
@@ -241,7 +233,7 @@ namespace MPipeline
     {
         public int resolution;
         public Camera mainCamTrans;
-        public NativeArray<Vector3> frustumCorners;
+        public NativeArray<float3> frustumCorners;
     }
     public struct RenderTargets
     {

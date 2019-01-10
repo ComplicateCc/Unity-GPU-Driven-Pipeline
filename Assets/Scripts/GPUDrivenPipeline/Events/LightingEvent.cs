@@ -26,7 +26,6 @@ namespace MPipeline
         private Material pointLightMaterial;
         private Material cubeDepthMaterial;
         private ComputeBuffer sphereBuffer;
-        private CubeCullingBuffer cubeBuffer;
         private RenderSpotShadowCommand spotBuffer;
         private int pointLightCount = 0;
         private int spotLightCount = 0;
@@ -47,8 +46,6 @@ namespace MPipeline
             {
                 cascadeShadowMapVP[i] = Matrix4x4.identity;
             }
-            cubeBuffer = new CubeCullingBuffer();
-            cubeBuffer.Init(resources.pointLightFrustumCulling);
             pointLightMaterial = new Material(resources.pointLightShader);
             cubeDepthMaterial = new Material(resources.cubeDepthShader);
             Vector3[] vertices = resources.sphereMesh.vertices;
@@ -71,7 +68,6 @@ namespace MPipeline
             DestroyImmediate(pointLightMaterial);
             DestroyImmediate(cubeDepthMaterial);
             sphereBuffer.Dispose();
-            cubeBuffer.Dispose();
             spotBuffer.Dispose();
         }
 
@@ -172,22 +168,24 @@ namespace MPipeline
                     cullingShader = data.resources.gpuFrustumCulling,
                     isOrtho = true
                 };
-                ref ShadowmapSettings settings = ref SunLight.current.settings;
-                buffer.SetGlobalVector(ShaderIDs._NormalBiases, settings.normalBias);   //Only Depth
-                buffer.SetGlobalVector(ShaderIDs._ShadowDisableDistance, new Vector4(settings.firstLevelDistance, settings.secondLevelDistance, settings.thirdLevelDistance, settings.farestDistance));//Only Mask
-                buffer.SetGlobalVector(ShaderIDs._SoftParam, settings.cascadeSoftValue / settings.resolution);
-                SceneController.current.DrawDirectionalShadow(cam.cam, ref data, ref opts, ref SunLight.current.settings, ref SunLight.shadMap, cascadeShadowMapVP);
+                buffer.SetGlobalVector(ShaderIDs._NormalBiases, SunLight.current.normalBias);   //Only Depth
+                buffer.SetGlobalVector(ShaderIDs._ShadowDisableDistance, new Vector4(SunLight.current.firstLevelDistance,
+                    SunLight.current.secondLevelDistance,
+                    SunLight.current.thirdLevelDistance, 
+                    SunLight.current.farestDistance));//Only Mask
+                buffer.SetGlobalVector(ShaderIDs._SoftParam, SunLight.current.cascadeSoftValue / SunLight.current.resolution);
+                SceneController.current.DrawDirectionalShadow(cam.cam, ref data, ref opts, SunLight.current, cascadeShadowMapVP);
                 buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
-                buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.shadMap.shadowmapTexture);
-                cbdr.dirLightShadowmap = SunLight.shadMap.shadowmapTexture;
+                buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.current.shadowmapTexture);
+                cbdr.dirLightShadowmap = SunLight.current.shadowmapTexture;
                 pass = 0;
             }
             else
             {
                 pass = 1;
             }
-            buffer.SetGlobalVector(ShaderIDs._DirLightFinalColor, SunLight.shadMap.light.color * SunLight.shadMap.light.intensity);
-            buffer.SetGlobalVector(ShaderIDs._DirLightPos, -(Vector3)SunLight.shadMap.shadCam.forward);
+            buffer.SetGlobalVector(ShaderIDs._DirLightFinalColor, SunLight.current.light.color * SunLight.current.light.intensity);
+            buffer.SetGlobalVector(ShaderIDs._DirLightPos, -(Vector3)SunLight.current.shadCam.forward);
             buffer.SetRenderTarget(cam.targets.renderTargetIdentifier, cam.targets.depthIdentifier);
             buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, shadMaskMaterial, 0, pass);
         }
@@ -223,7 +221,7 @@ namespace MPipeline
                     shadowArray.filterMode = FilterMode.Point;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, shadowArray);
                     cam.temporalRT.Add(shadowArray);
-                    var cullShader = data.resources.pointLightFrustumCulling;
+                    var cullShader = data.resources.gpuFrustumCulling;
                     RenderClusterOptions opts = new RenderClusterOptions
                     {
                         cullingShader = cullShader,
@@ -232,8 +230,6 @@ namespace MPipeline
                         isOrtho = false
                     };
                     vpMatricesJobHandle.Complete();
-                    cubeBuffer.vpMatrices = cubemapVPMatrices.Ptr();
-                    cubeBuffer.renderTarget = shadowArray;
                     cbdr.cubemapShadowArray = shadowArray;
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
                     for (int i = 0; i < pointLightIndices.Length; ++i)
@@ -243,7 +239,7 @@ namespace MPipeline
                         //     if (light.frameCount < 0)
                         //   {
                         light.UpdateShadowCacheType(true);
-                        SceneController.current.DrawCubeMap(light, lt, cubeDepthMaterial, ref opts, ref cubeBuffer, i, light.shadowMap, ref data);
+                        SceneController.current.DrawCubeMap(light, lt, cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.Ptr(), shadowArray);
                         light.frameCount = 10000;
                         // }
                         //else

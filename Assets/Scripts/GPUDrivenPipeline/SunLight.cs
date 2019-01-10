@@ -9,12 +9,23 @@ public class SunLight : MonoBehaviour
 {
     public static SunLight current = null;
     public bool enableShadow = true;
-    public ShadowmapSettings settings;
-    public static ShadowMapComponent shadMap;
+    public int resolution;
+    public float firstLevelDistance = 10;
+    public float secondLevelDistance = 25;
+    public float thirdLevelDistance = 55;
+    public float farestDistance = 100;
+    public Vector4 bias = new Vector4(0.01f, 0.02f, 0.04f, 0.08f);
+    public Vector4 normalBias = new Vector4(0.001f, 0.002f, 0.003f, 0.005f);
+    public Vector4 cascadeSoftValue = new Vector4(1.5f, 1.2f, 0.9f, 0.7f);
+    [System.NonSerialized] public Camera cameraComponent;
+    [System.NonSerialized] public OrthoCam shadCam;
+    [System.NonSerialized] public Material shadowDepthMaterial;
+    [System.NonSerialized] public RenderTexture shadowmapTexture;
+    [System.NonSerialized] public NativeArray<AspectInfo> shadowFrustumPlanes;
+    [System.NonSerialized] public Light light;
     public static Camera shadowCam;
     private void OnEnable()
     {
-        var light = GetComponent<Light>();
         if (current)
         {
             if (current != this)
@@ -27,8 +38,8 @@ public class SunLight : MonoBehaviour
             else
                 OnDisable();
         }
+        light = GetComponent<Light>();
         current = this;
-        shadMap.light = light;
         light.enabled = false;
         if(!shadowCam)
         {
@@ -41,10 +52,10 @@ public class SunLight : MonoBehaviour
             shadowCam.aspect = 1;
             
         }
-        shadMap.shadowmapTexture = new RenderTexture(new RenderTextureDescriptor
+        shadowmapTexture = new RenderTexture(new RenderTextureDescriptor
         {
-            width = settings.resolution,
-            height = settings.resolution,
+            width = resolution,
+            height = resolution,
             depthBufferBits = 16,
             colorFormat = RenderTextureFormat.RFloat,
             autoGenerateMips = false,
@@ -59,28 +70,31 @@ public class SunLight : MonoBehaviour
             volumeDepth = 4,
             vrUsage = VRTextureUsage.None
         });
-        shadMap.cameraComponent = shadowCam;
-        shadMap.shadowmapTexture.filterMode = FilterMode.Point;
-        shadMap.frustumCorners = new NativeArray<Vector3>(8, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-        shadMap.shadowDepthMaterial = new Material(Shader.Find("Hidden/ShadowDepth"));
-        shadMap.shadowFrustumPlanes = new NativeArray<AspectInfo>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        cameraComponent = shadowCam;
+        shadowmapTexture.filterMode = FilterMode.Point;
+        shadowDepthMaterial = new Material(Shader.Find("Hidden/ShadowDepth"));
+        shadowFrustumPlanes = new NativeArray<AspectInfo>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
     }
 
     private void Update()
     {
-        shadMap.shadCam.forward = transform.forward;
-        shadMap.shadCam.up = transform.up;
-        shadMap.shadCam.right = transform.right;
+        shadCam.forward = transform.forward;
+        shadCam.up = transform.up;
+        shadCam.right = transform.right;
     }
 
     private void OnDisable()
     {
         if (current != this) return;
         current = null;
-        shadMap.frustumCorners.Dispose();
-        shadMap.shadowmapTexture.Release();
-        DestroyImmediate(shadMap.shadowmapTexture);
-        DestroyImmediate(shadMap.shadowDepthMaterial);
-        shadMap.shadowFrustumPlanes.Dispose();
+        if (shadowmapTexture)
+        {
+            shadowmapTexture.Release();
+            DestroyImmediate(shadowmapTexture);
+        }
+        if(shadowDepthMaterial)
+            DestroyImmediate(shadowDepthMaterial);
+        if(shadowFrustumPlanes.IsCreated)
+            shadowFrustumPlanes.Dispose();
     }
 }

@@ -38,13 +38,10 @@ namespace MPipeline
                 cullingShader = data.resources.gpuFrustumCulling,
                 terrainCompute = data.resources.terrainCompute
             };
-            HizOptions hizOptions;
-            if(enableOcclusionCulling)
+
+            if (enableOcclusionCulling)
             {
-                SceneController.current.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
-            }
-            else
-            {
+                HizOptions hizOptions;
                 hizOptions = new HizOptions
                 {
                     currentCameraUpVec = cam.cam.transform.up,
@@ -54,7 +51,10 @@ namespace MPipeline
                     currentDepthTex = cam.targets.depthTexture
                 };
                 SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
-
+            }
+            else
+            {
+                SceneController.current.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
             }
         }
     }
