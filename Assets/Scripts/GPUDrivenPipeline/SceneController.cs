@@ -322,6 +322,7 @@ namespace MPipeline
                 renderQueueRange = RenderQueueRange.opaque,
                 layerMask = cam.cullingMask
             };
+           
             data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("GBuffer"));
             data.defaultDrawSettings.sorting = new DrawRendererSortSettings
             {

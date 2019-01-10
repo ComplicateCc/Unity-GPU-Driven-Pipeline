@@ -66,6 +66,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             color.rgb += _DirLightFinalColor;
         #endif
     }
+    float3 viewDir = normalize(_WorldSpaceCameraPos.rgb - targetWorldPos);
     uint2 tileIndex = uv * uint2(XRES, YRES);
     if(_LightFlag & 1){
         uint len = min(_FroxelPointTileLightList[uint3(tileIndex, 0)], FROXELMAXPOINTLIGHTPERTILE + 1);
@@ -77,7 +78,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             if(lenOfLightDir > pt.sphere.w) continue;
 
             //float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
-            float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * GetLumianceIntensity(pt.lightIntensity) * PhaseFunction(0.36, dot(normalize(pt.sphere.xyz - targetWorldPos), normalize(_WorldSpaceCameraPos.rgb - targetWorldPos))) * pt.lightColor * 50;
+            float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * GetLumianceIntensity(pt.lightIntensity) * PhaseFunction(0.36, dot(lightDir / lenOfLightDir, viewDir)) * pt.lightColor * 50;
 
             #ifdef CUBEMAP
             if(pt.shadowIndex >= 0){
@@ -99,15 +100,17 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             float LumianceIntensity = Light.lightIntensity;
             float LightRange = SpotCone.radius;
             float3 LightPos = SpotCone.vertex;
-            float3 LightColor = Light.lightColor;
             float LightAngle = Light.angle;
             float3 LightForward = SpotCone.direction;
             float3 Un_LightDir = LightPos - targetWorldPos;
-
-            float2 SpotConeAngle = float2( cos(LightAngle), cos(LightAngle * 0.75) );
+            float lightDirLength = length(Un_LightDir);
+            float3 lightDir = Un_LightDir / lightDirLength;
+            float ldf = -dot(lightDir, LightForward);
+            float2 SpotConeAngle = float2(cos(LightAngle), cos(LightAngle * 0.75));
+            if(ldf < SpotConeAngle.x || SpotCone.height / ldf < lightDirLength) continue;
             float lightAngleScale = 1 / max ( 0.001, (SpotConeAngle.y - SpotConeAngle.x) );
             float lightAngleOffset = -SpotConeAngle.x * lightAngleScale;
-            float SpotFalloff = AngleFalloff(normalize(-Un_LightDir), LightForward, lightAngleScale, lightAngleOffset);
+            float SpotFalloff = AngleFalloff(ldf, lightAngleScale, lightAngleOffset);
             float ShadowTrem = 1;
             #ifdef SPOTMAP
             if(Light.shadowIndex >= 0)
@@ -116,10 +119,10 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
                         float shadowDist = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0);
-                        ShadowTrem = length(Un_LightDir) / SpotCone.height < shadowDist;
+                        ShadowTrem = lightDirLength / SpotCone.height < shadowDist;
             }
             #endif
-            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * GetLumianceIntensity(LumianceIntensity) * PhaseFunction(0.6, dot(normalize(LightPos - targetWorldPos), normalize(_WorldSpaceCameraPos.rgb - targetWorldPos))) * LightColor * 50;
+            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * GetLumianceIntensity(LumianceIntensity) * PhaseFunction(0.6, dot(lightDir, viewDir)) * Light.lightColor * 50;
             
 
         }

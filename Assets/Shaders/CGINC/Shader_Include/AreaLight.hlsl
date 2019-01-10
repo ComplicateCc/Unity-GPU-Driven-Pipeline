@@ -162,6 +162,14 @@ half DistanceFalloff(half3 unLightDir, half invSqrAttRadius)
     return attenuation;
 }
 
+half DistanceFalloff(half sqrDist, half invSqrAttRadius)
+{
+    half attenuation = 1 / (max(sqrDist, 0.01 * 0.01));
+    attenuation *= SmoothFalloff(sqrDist, invSqrAttRadius);
+    return attenuation;
+}
+
+
 half AngleFalloff(half3 lightDir, half3 coneDir, half lightAngleScale, half lightAngleOffset)
 {
     // On the CPU
@@ -169,6 +177,16 @@ half AngleFalloff(half3 lightDir, half3 coneDir, half lightAngleScale, half ligh
     // half lightAngleOffset = -cosOuter * lightAngleScale ;
 
     half cd = dot(coneDir, lightDir);
+    half attenuation = saturate(cd * lightAngleScale + lightAngleOffset);
+    attenuation *= attenuation;
+    return attenuation;
+}
+
+half AngleFalloff(half cd, half lightAngleScale, half lightAngleOffset)
+{
+    // On the CPU
+    // half lightAngleScale = 1 / max ( 0.001, (cosInner - cosOuter) );
+    // half lightAngleOffset = -cosOuter * lightAngleScale ;
     half attenuation = saturate(cd * lightAngleScale + lightAngleOffset);
     attenuation *= attenuation;
     return attenuation;
@@ -193,9 +211,9 @@ half IESFalloff(half3 L)
 /////////////////////////////////////////////////////////////////////////***Energy***/////////////////////////////////////////////////////////////////////////
 
 //////Punctual Energy
-half3 Point_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half range, half NoL)
+
+half3 Point_Energy(half3 Un_LightDir,half3 lightColor, half lumiance, half range, half NoL)
 {
-    half3 L = normalize(Un_LightDir);
     half Falloff = DistanceFalloff(Un_LightDir, range);
 
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
@@ -203,14 +221,13 @@ half3 Point_Energy(half3 Un_LightDir, half3 lightColor, half lumiance, half rang
     return luminance;
 }
 
-half3 Spot_Energy(half3 Un_LightDir, half3 lightColor, half3 coneDir, half innerCone, half outerCone, half lumiance, half range, half NoL)
+half3 Spot_Energy(half ldh, half lightDist, half3 lightColor, half innerCone, half outerCone, half lumiance, half range, half NoL)
 {
-    half3 LightDir = normalize(Un_LightDir);
-    half Falloff = DistanceFalloff(Un_LightDir, range);
+    half Falloff = DistanceFalloff(lightDist * lightDist, range);
 
     half lightAngleScale = 1 / max ( 0.001, (innerCone - outerCone) );
     half lightAngleOffset = -outerCone * lightAngleScale;
-    Falloff *= AngleFalloff(LightDir, coneDir, lightAngleScale, lightAngleOffset);
+    Falloff *= AngleFalloff(ldh, lightAngleScale, lightAngleOffset);
 
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
     half3 luminance = Falloff * NoL * ( lightColor * GetLumianceIntensity(lumiance) );

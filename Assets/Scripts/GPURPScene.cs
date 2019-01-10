@@ -18,9 +18,9 @@ namespace MPipeline
         private TransformAccessArray transformArray;
         private static void Count(Transform trans, ref int length)
         {
-            if(trans.childCount > 0)
+            if (trans.childCount > 0)
             {
-                for(int i = 0; i < trans.childCount; ++i)
+                for (int i = 0; i < trans.childCount; ++i)
                 {
                     Count(trans.GetChild(i), ref length);
                 }
@@ -48,7 +48,7 @@ namespace MPipeline
         public float3 offset;
         private void Awake()
         {
-            if(current != null)
+            if (current != null)
             {
                 Debug.LogError("GPU RP Scene should be singleton!");
                 Destroy(this);

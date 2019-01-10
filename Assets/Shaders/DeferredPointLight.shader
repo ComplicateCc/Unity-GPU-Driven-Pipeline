@@ -102,23 +102,24 @@ ENDCG
                         half LightAngle = Light.angle;
                         float3 LightForward = SpotCone.direction;
                         float3 Un_LightDir = LightPos - WorldPos.xyz;
-                        float3 LightDir = normalize(Un_LightDir);
+                        float lightDirLen = length(Un_LightDir);
+                        float3 LightDir = Un_LightDir / lightDirLen;
                         float3 HalfDir = normalize(ViewDir + LightDir);
-
+                        float ldh = -dot(LightDir, SpotCone.direction);
                         //////BSDF Variable
                         BSDFContext LightData;
                         Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
 
                         //////Shading
                         ShadowTrem = 1;
-                        float3 Energy = Spot_Energy(-Un_LightDir, LightColor, LightForward, cos(LightAngle * 0.5), cos(LightAngle), LumianceIntensity, 1.0 / LightRange, LightData.NoL);
+                        float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(LightAngle * 0.5), cos(LightAngle), LumianceIntensity, 1.0 / LightRange, LightData.NoL);
                         if(Light.shadowIndex >= 0)
                     {
                         float4 clipPos = mul(Light.vpMatrix, WorldPos);
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
                         half shadowDist = _SpotMapArray.Sample(sampler_SpotMapArray, float3(uv, Light.shadowIndex));
-                        ShadowTrem = (length(Un_LightDir) - 0.25) / SpotCone.height < shadowDist;
+                        ShadowTrem = (lightDirLen - 0.25) / SpotCone.height < shadowDist;
                     }
                         ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1) * ShadowTrem);
                     
@@ -140,12 +141,13 @@ ENDCG
                     float3 LightColor = Light.lightColor;
                     
                     float3 Un_LightDir = LightPos - WorldPos.xyz;
-                    float3 LightDir = normalize(Un_LightDir);
+                    float Length_LightDir = length(Un_LightDir);
+                    float3 LightDir = Un_LightDir / Length_LightDir;
                     float3 HalfDir = normalize(ViewDir + LightDir);
                     
                     //////Shadow
                     if(Light.shadowIndex >= 0){
-                        float Length_LightDir = length(Un_LightDir);
+                        
                         float DepthMap = (Length_LightDir - 0.25) / LightRange;
                         float ShadowMap = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(Un_LightDir * float3(-1, -1, 1), Light.shadowIndex));
                        // ShadingColor += ShadowMap;
