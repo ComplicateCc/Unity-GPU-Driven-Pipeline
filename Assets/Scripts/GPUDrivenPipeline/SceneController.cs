@@ -170,7 +170,7 @@ namespace MPipeline
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
             options.command.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
             options.command.CopyTexture(spotcommand.renderTarget, spotLights.shadowIndex, shadowCache, 0);
-            options.command.ClearRenderTarget(true, true, new Color(5, 1, 1, 1));
+            options.command.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
             options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
             options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
@@ -513,7 +513,7 @@ namespace MPipeline
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
             options.command.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
             options.command.CopyTexture(spotcommand.renderTarget, spotLights.shadowIndex, shadowCache, 0);
-            options.command.ClearRenderTarget(true, true, new Color(5, 1, 1, 1));
+            options.command.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
             options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
             options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
