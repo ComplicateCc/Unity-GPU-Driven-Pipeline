@@ -47,9 +47,9 @@ namespace MPipeline
     public unsafe class CBDRSharedData : PipelineSharedData
     {
         public ComputeShader cbdrShader;
+        public RenderTexture spotArrayMap;
+        public RenderTexture cubeArrayMap;
         public RenderTexture dirLightShadowmap;
-        public RenderTexture cubemapShadowArray;
-        public RenderTexture spotShadowArray;
         public RenderTexture xyPlaneTexture;
         public RenderTexture zPlaneTexture;
         public RenderTexture pointTileLightList;
@@ -73,7 +73,8 @@ namespace MPipeline
         public uint lightFlag = 0;
         public bool useFroxel = false;
         public float availiableDistance;
-
+        public const int MAXIMUMPOINTLIGHTCOUNT = 4;
+        public const int MAXIMUMSPOTLIGHTCOUNT = 8;
         public CBDRSharedData(PipelineResources res)
         {
             cbdrShader = res.cbdrShader;
@@ -95,6 +96,47 @@ namespace MPipeline
                 useMipMap = false,
                 vrUsage = VRTextureUsage.None
             };
+            cubeArrayMap = new RenderTexture(new RenderTextureDescriptor
+            {
+                autoGenerateMips = false,
+                bindMS = false,
+                colorFormat = RenderTextureFormat.RHalf,
+                depthBufferBits = 16,
+                dimension = TextureDimension.CubeArray,
+                volumeDepth = 6 * MAXIMUMPOINTLIGHTCOUNT,
+                enableRandomWrite = false,
+                height = MLight.cubemapShadowResolution,
+                width = MLight.cubemapShadowResolution,
+                memoryless = RenderTextureMemoryless.None,
+                msaaSamples = 1,
+                shadowSamplingMode = ShadowSamplingMode.None,
+                sRGB = false,
+                useMipMap = false,
+                vrUsage = VRTextureUsage.None
+            });
+            cubeArrayMap.filterMode = FilterMode.Point;
+            cubeArrayMap.Create();
+            spotArrayMap = new RenderTexture(new RenderTextureDescriptor
+            {
+                autoGenerateMips = false,
+                bindMS = false,
+                colorFormat = RenderTextureFormat.RHalf,
+                depthBufferBits = 16,
+                dimension = TextureDimension.Tex2DArray,
+                enableRandomWrite = false,
+                height = MLight.perspShadowResolution,
+                memoryless = RenderTextureMemoryless.None,
+                msaaSamples = 1,
+                shadowSamplingMode = ShadowSamplingMode.None,
+                sRGB = false,
+                useMipMap = false,
+                volumeDepth = MAXIMUMSPOTLIGHTCOUNT,
+                vrUsage = VRTextureUsage.None,
+                width = MLight.perspShadowResolution
+            });
+            spotArrayMap.filterMode = FilterMode.Point;
+            spotArrayMap.Create();
+
             xyPlaneTexture = new RenderTexture(desc);
             xyPlaneTexture.filterMode = FilterMode.Point;
             xyPlaneTexture.Create();
@@ -171,6 +213,8 @@ namespace MPipeline
             Object.DestroyImmediate(froxelSpotTileLightList);
             Object.DestroyImmediate(pointTileLightList);
             Object.DestroyImmediate(spotTileLightList);
+            Object.DestroyImmediate(cubeArrayMap);
+            Object.DestroyImmediate(spotArrayMap);
         }
     }
 }

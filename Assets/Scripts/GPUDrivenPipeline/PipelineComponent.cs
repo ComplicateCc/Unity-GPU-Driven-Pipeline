@@ -237,12 +237,11 @@ namespace MPipeline
     }
     public struct RenderTargets
     {
-        public RenderTexture backupTarget;
-        public RenderTargetIdentifier[] gbufferIdentifier;
-        public RenderTargetIdentifier renderTargetIdentifier;
-        public RenderTargetIdentifier backupIdentifier;
-        public RenderTargetIdentifier depthIdentifier;
+        public int renderTargetIdentifier;
+        public int backupIdentifier;
+        public int depthIdentifier;
         public int[] gbufferIndex;
+        public RenderTargetIdentifier[] gbufferIdentifier;
         public bool initialized;
         public static RenderTargets Init()
         {
@@ -257,24 +256,27 @@ namespace MPipeline
                 Shader.PropertyToID("_CameraDepthTexture")
             };
             rt.gbufferIdentifier = new RenderTargetIdentifier[6];
-            rt.backupTarget = null;
+            for(int i = 0; i < 6; ++i)
+            {
+                rt.gbufferIdentifier[i] = rt.gbufferIndex[i];
+            }
             rt.backupIdentifier = default;
             rt.depthIdentifier = default;
             rt.renderTargetIdentifier = default;
             rt.initialized = true;
             return rt;
         }
-        public RenderTargetIdentifier depthTexture
+        public int depthTexture
         {
-            get { return gbufferIdentifier[5]; }
+            get { return gbufferIndex[5]; }
         }
-        public RenderTargetIdentifier motionVectorTexture
+        public int motionVectorTexture
         {
-            get { return gbufferIdentifier[4]; }
+            get { return gbufferIndex[4]; }
         }
-        public RenderTargetIdentifier normalIdentifier
+        public int normalIdentifier
         {
-            get { return gbufferIdentifier[2]; }
+            get { return gbufferIndex[2]; }
         }
     }
 

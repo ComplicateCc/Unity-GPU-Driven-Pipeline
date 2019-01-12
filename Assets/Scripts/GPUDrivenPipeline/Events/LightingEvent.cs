@@ -83,7 +83,8 @@ namespace MPipeline
             SpotLight* spotStr = spotLightArray.Ptr();
             pointLightCount = 0;
             spotLightCount = 0;
-            for(int index = 0; index < allLight.Count; ++index) {
+            for (int index = 0; index < allLight.Count; ++index)
+            {
                 VisibleLight i = allLight[index];
                 Light lit = i.light;
                 switch (i.lightType)
@@ -95,7 +96,7 @@ namespace MPipeline
                         currentPtr->lightIntensity = lit.intensity;
                         currentPtr->sphere = i.localToWorld.GetColumn(3);
                         currentPtr->sphere.w = i.range;
-                        if (lit.shadows != LightShadows.None)
+                        if (lit.shadows != LightShadows.None && pointLightIndices.Length < CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT)
                         {
                             currentPtr->shadowIndex = pointLightIndices.Length;
                             pointLightIndices.Add(new int2(pointLightCount, index));
@@ -114,7 +115,7 @@ namespace MPipeline
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
                         currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, (Vector3)i.localToWorld.GetColumn(2), deg);
                         currentSpot->angle = deg;
-                        if(lit.shadows != LightShadows.None)
+                        if (lit.shadows != LightShadows.None && spotLightIndices.Length < CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT)
                         {
                             currentSpot->shadowIndex = spotLightIndices.Length;
                             currentSpot->vpMatrix = i.localToWorld;
@@ -172,7 +173,7 @@ namespace MPipeline
                 buffer.SetGlobalVector(ShaderIDs._NormalBiases, SunLight.current.normalBias);   //Only Depth
                 buffer.SetGlobalVector(ShaderIDs._ShadowDisableDistance, new Vector4(SunLight.current.firstLevelDistance,
                     SunLight.current.secondLevelDistance,
-                    SunLight.current.thirdLevelDistance, 
+                    SunLight.current.thirdLevelDistance,
                     SunLight.current.farestDistance));//Only Mask
                 buffer.SetGlobalVector(ShaderIDs._SoftParam, SunLight.current.cascadeSoftValue / SunLight.current.resolution);
                 SceneController.current.DrawDirectionalShadow(cam.cam, ref data, ref opts, SunLight.current, cascadeShadowMapVP);
@@ -201,28 +202,8 @@ namespace MPipeline
             {
                 if (pointLightIndices.Length > 0)
                 {
-                    RenderTexture shadowArray = RenderTexture.GetTemporary(new RenderTextureDescriptor
-                    {
-                        autoGenerateMips = false,
-                        bindMS = false,
-                        colorFormat = RenderTextureFormat.RHalf,
-                        depthBufferBits = 16,
-                        dimension = TextureDimension.CubeArray,
-                        volumeDepth = pointLightIndices.Length * 6,
-                        enableRandomWrite = false,
-                        height = MLight.cubemapShadowResolution,
-                        width = MLight.cubemapShadowResolution,
-                        memoryless = RenderTextureMemoryless.None,
-                        msaaSamples = 1,
-                        shadowSamplingMode = ShadowSamplingMode.CompareDepths,
-                        sRGB = false,
-                        useMipMap = false,
-                        vrUsage = VRTextureUsage.None
-                    });
-                    shadowArray.filterMode = FilterMode.Point;
-                    buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, shadowArray);
-                    cam.temporalRT.Add(shadowArray);
                     var cullShader = data.resources.gpuFrustumCulling;
+                    buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
                     RenderClusterOptions opts = new RenderClusterOptions
                     {
                         cullingShader = cullShader,
@@ -231,7 +212,6 @@ namespace MPipeline
                         isOrtho = false
                     };
                     vpMatricesJobHandle.Complete();
-                    cbdr.cubemapShadowArray = shadowArray;
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
                     PointLightStruct* pointLightPtr = pointLightArray.Ptr();
                     for (int i = 0; i < pointLightIndices.Length; ++i)
@@ -239,16 +219,15 @@ namespace MPipeline
                         int2 lightIndex = pointLightIndices[i];
                         Light lt = allLights[lightIndex.y].light;
                         MLight light = MLight.GetPointLight(lt);
-                        //     if (light.frameCount < 0)
-                        //   {
-                        light.UpdateShadowCacheType(true);
-                        SceneController.current.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.Ptr(), shadowArray);
-                        light.frameCount = 10000;
-                        // }
-                        //else
-                        // {
-                        //   SceneController.current.CopyToCubeMap(shadowArray, light.shadowMap, buffer, i);
-                        //}
+                        if (light.updateShadowmap)
+                        {
+                            light.UpdateShadowCacheType(true);
+                            SceneController.current.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.Ptr(), cbdr.cubeArrayMap);
+                        }
+                        else
+                        {
+                            PipelineFunctions.CopyToCubeMap(cbdr.cubeArrayMap, light.shadowMap, buffer, i);
+                        }
 
                         //TODO
                         //Multi frame shadowmap
@@ -264,29 +243,8 @@ namespace MPipeline
             }
             if (spotLightCount > 0)
             {
-                if(spotLightIndices.Length > 0)
+                if (spotLightIndices.Length > 0)
                 {
-                    RenderTexture spotArray = RenderTexture.GetTemporary(new RenderTextureDescriptor
-                    {
-                        autoGenerateMips = false,
-                        bindMS = false,
-                        colorFormat = RenderTextureFormat.RHalf,
-                        depthBufferBits = 16,
-                        dimension = TextureDimension.Tex2DArray,
-                        enableRandomWrite = false,
-                        height = MLight.perspShadowResolution,
-                        memoryless = RenderTextureMemoryless.None,
-                        msaaSamples = 1,
-                        shadowSamplingMode = ShadowSamplingMode.CompareDepths,
-                        sRGB = false,
-                        useMipMap = false,
-                        volumeDepth = spotLightIndices.Length,
-                        vrUsage = VRTextureUsage.None,
-                        width = MLight.perspShadowResolution
-                    });
-                    cbdr.spotShadowArray = spotArray;
-                    buffer.SetGlobalTexture(ShaderIDs._SpotMapArray, spotArray);
-                    cam.temporalRT.Add(spotArray);
                     RenderClusterOptions opts = new RenderClusterOptions
                     {
                         cullingShader = data.resources.gpuFrustumCulling,
@@ -296,16 +254,27 @@ namespace MPipeline
                     };
                     spotLightJobHandle.Complete();
                     SpotLight* allSpotLightPtr = spotLightArray.Ptr();
-                    spotBuffer.renderTarget = spotArray;
+                    buffer.SetGlobalTexture(ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
+                    spotBuffer.renderTarget = cbdr.spotArrayMap;
                     spotBuffer.shadowMatrices = spotLightMatrices.Ptr();
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
                     for (int i = 0; i < spotLightIndices.Length; ++i)
                     {
                         int2 index = spotLightIndices[i];
                         MLight mlight = MLight.GetPointLight(allLights[spotLightIndices[i].y].light);
-                        mlight.UpdateShadowCacheType(true);
+                        mlight.UpdateShadowCacheType(false);
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
-                        SceneController.current.DrawSpotLight(ref opts, ref data, mlight.shadowCam, ref spot, ref spotBuffer, mlight.shadowMap);
+                        if (mlight.updateShadowmap)
+                        {
+                            SceneController.current.DrawSpotLight(ref opts, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
+                            buffer.CopyTexture(cbdr.spotArrayMap, spot.shadowIndex, mlight.shadowMap, 0);
+                        }
+                        else
+                        {
+                            ref SpotLightMatrix spotLightMatrix = ref spotBuffer.shadowMatrices[spot.shadowIndex];
+                            spot.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
+                            buffer.CopyTexture(mlight.shadowMap, 0, cbdr.spotArrayMap, spot.shadowIndex);
+                        }
                     }
                 }
                 SetSpotLightBuffer(spotLightArray, spotLightCount, buffer);
@@ -388,7 +357,7 @@ namespace MPipeline
                 Transform camTrans = cam.transform;
                 float3 inPoint = camTrans.position + camTrans.forward * cbdr.availiableDistance;
                 float3 normal = camTrans.forward;
-                float4 plane = new float4(normal, -math.dot(normal, inPoint));
+                float4 plane = new float4(normal, -dot(normal, inPoint));
                 buffer.SetComputeVectorParam(cbdrShader, ShaderIDs._FroxelPlane, plane);
             }
             buffer.DispatchCompute(cbdrShader, CBDRSharedData.DeferredCBDR, 1, 1, CBDRSharedData.ZRES);

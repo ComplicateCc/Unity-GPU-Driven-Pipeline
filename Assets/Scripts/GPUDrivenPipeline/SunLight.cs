@@ -49,6 +49,7 @@ public class SunLight : MonoBehaviour
                 shadowCam = gameObject.AddComponent<Camera>();
             }
             shadowCam.enabled = false;
+            shadowCam.hideFlags = HideFlags.HideInInspector;
             shadowCam.aspect = 1;
             
         }

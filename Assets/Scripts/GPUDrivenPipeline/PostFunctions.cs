@@ -20,7 +20,7 @@ namespace MPipeline
     {
         public static void InitSharedData(ref PostSharedData data, PostProcessResources resources)
         {
-            data = default(PostSharedData);
+            data = default;
             data.uberMaterial = new Material(Shader.Find("Hidden/PostProcessing/Uber"));
             data.resources = resources;
             data.temporalRT = new List<RenderTexture>(20);
@@ -31,7 +31,7 @@ namespace MPipeline
         public static void RunPostProcess(ref RenderTargets targets, CommandBuffer buffer, ref PipelineCommandData data, PostProcessAction renderFunc)
         {
             renderFunc(ref data, buffer, targets.renderTargetIdentifier, targets.backupIdentifier);
-            RenderTargetIdentifier back = targets.backupIdentifier;
+            int back = targets.backupIdentifier;
             targets.backupIdentifier = targets.renderTargetIdentifier;
             targets.renderTargetIdentifier = back;
         }

@@ -309,56 +309,29 @@ public unsafe static class PipelineFunctions
         invVP = vp.inverse;
     }
 
-    public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, List<RenderTexture> collectRT, CommandBuffer buffer)
+    public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, CommandBuffer buffer)
     {
-        tar.gbufferIdentifier[0] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
-        tar.gbufferIdentifier[1] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB32, FilterMode.Point, collectRT);
-        tar.gbufferIdentifier[2] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGB2101010, FilterMode.Point, collectRT);
-        tar.gbufferIdentifier[3] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 24, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear, collectRT);
-        tar.gbufferIdentifier[4] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RGHalf, FilterMode.Point, collectRT);
-        tar.gbufferIdentifier[5] = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.RFloat, FilterMode.Point, collectRT);
-        for (int i = 0; i < tar.gbufferIdentifier.Length; ++i)
-        {
-            buffer.SetGlobalTexture(tar.gbufferIndex[i], tar.gbufferIdentifier[i]);
-        }
-        RenderTargetIdentifier renderTarget = tar.gbufferIdentifier[3];
-        tar.backupTarget = GetTemporary(tarcam.pixelWidth, tarcam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear, collectRT);
-        tar.backupTarget.filterMode = FilterMode.Bilinear;
+        buffer.GetTemporaryRT(tar.gbufferIndex[0], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB32);
+        buffer.GetTemporaryRT(tar.gbufferIndex[1], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB32);
+        buffer.GetTemporaryRT(tar.gbufferIndex[2], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB2101010);
+        buffer.GetTemporaryRT(tar.gbufferIndex[3], tarcam.pixelWidth, tarcam.pixelHeight, 24, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf);
+        buffer.GetTemporaryRT(tar.gbufferIndex[4], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.RGHalf);
+        buffer.GetTemporaryRT(tar.gbufferIndex[5], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.RFloat);
+        int renderTarget = tar.gbufferIndex[3];
+        buffer.GetTemporaryRT(ShaderIDs._BackupMap, tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf);
         tar.renderTargetIdentifier = renderTarget;
-        tar.backupIdentifier = new RenderTargetIdentifier(tar.backupTarget);
+        tar.backupIdentifier = ShaderIDs._BackupMap;
         tar.depthIdentifier = renderTarget;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RenderTexture GetTemporary(RenderTextureDescriptor descriptor, List<RenderTexture> collectList)
+
+    public static void ReleaseRenderTarget(CommandBuffer buffer, ref RenderTargets targets)
     {
-        RenderTexture rt = RenderTexture.GetTemporary(descriptor);
-        collectList.Add(rt);
-        return rt;
-    }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RenderTexture GetTemporary(int width, int height, int depth, RenderTextureFormat format, FilterMode filterMode, List<RenderTexture> collectList)
-    {
-        RenderTexture rt = RenderTexture.GetTemporary(width, height, depth, format, RenderTextureReadWrite.Linear);
-        rt.filterMode = filterMode;
-        collectList.Add(rt);
-        return rt;
-    }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RenderTexture GetTemporary(int width, int height, int depth, RenderTextureFormat format, RenderTextureReadWrite readWrite, FilterMode filterMode, List<RenderTexture> collectList)
-    {
-        RenderTexture rt = RenderTexture.GetTemporary(width, height, depth, format, readWrite);
-        rt.filterMode = filterMode;
-        collectList.Add(rt);
-        return rt;
-    }
-    public static void ReleaseRenderTarget(List<RenderTexture> tar)
-    {
-        foreach (var i in tar)
+        foreach(var i in targets.gbufferIndex)
         {
-            RenderTexture.ReleaseTemporary(i);
+            buffer.ReleaseTemporaryRT(i);
         }
-        tar.Clear();
     }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ExecuteCommandBuffer(ref this PipelineCommandData data)
     {

@@ -164,14 +164,13 @@ namespace MPipeline
         {
             RenderScene(ref data, cam);
         }
-        public virtual void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand, Texture shadowCache)
+        public virtual void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
         {
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
             currentCam.worldToCameraMatrix = spotLightMatrix.worldToCamera;
             currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
             options.command.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
-            options.command.CopyTexture(spotcommand.renderTarget, spotLights.shadowIndex, shadowCache, 0);
             options.command.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
             options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
@@ -195,6 +194,7 @@ namespace MPipeline
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            
         }
         public virtual void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
         {
@@ -237,6 +237,7 @@ namespace MPipeline
                 CullResults results = CullResults.Cull(ref data.cullParams, data.context);
                 data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
                 data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+
             }
         }
         public virtual void DrawCubeMap(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
@@ -270,7 +271,6 @@ namespace MPipeline
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
             cb.CopyTexture(renderTarget, depthSlice + 5, targetCopyTex, 5);
             //Back
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
@@ -521,14 +521,14 @@ namespace MPipeline
             RenderScene(ref data, cam);
             
         }
-        public override void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand, Texture shadowCache)
+        public override void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
         {
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
+
             currentCam.worldToCameraMatrix = spotLightMatrix.worldToCamera;
             currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
             options.command.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
-            options.command.CopyTexture(spotcommand.renderTarget, spotLights.shadowIndex, shadowCache, 0);
             options.command.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
             options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);

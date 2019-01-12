@@ -11,8 +11,7 @@ public unsafe class MLight : MonoBehaviour
     public const int perspShadowResolution = 2048;
     [System.NonSerialized]
     public RenderTexture shadowMap;
-    [System.NonSerialized]
-    public int frameCount = -1;
+    public bool updateShadowmap = true;
     [System.NonSerialized]
     public Light light;
     private static Dictionary<Light, MLight> lightDict = new Dictionary<Light, MLight>(47);
@@ -36,14 +35,16 @@ public unsafe class MLight : MonoBehaviour
         mp = light.gameObject.AddComponent<MLight>();
         return mp;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void UpdateShadowCacheType(bool useCubemap)
     {
         if (useCubemap == this.useCubemap)
             return;
-        useCubemap = this.useCubemap;
+        this.useCubemap = useCubemap;
         if (shadowMap)
-        shadowMap.Release();
+        {
+            shadowMap.Release();
+            shadowMap = null;
+        }
         if (useCubemap)
         {
             shadowMap = new RenderTexture(new RenderTextureDescriptor
@@ -85,6 +86,7 @@ public unsafe class MLight : MonoBehaviour
                 useMipMap = false,
                 vrUsage = VRTextureUsage.None
             });
+
         }
         shadowMap.Create();
     }
@@ -92,13 +94,14 @@ public unsafe class MLight : MonoBehaviour
     {
         light = GetComponent<Light>();
         lightDict.Add(light, this);
-        if(!shadowCam)
+        if (!shadowCam)
         {
             shadowCam = GetComponent<Camera>();
-            if(!shadowCam)
+            if (!shadowCam)
             {
                 shadowCam = gameObject.AddComponent<Camera>();
-            }
+             }
+            shadowCam.hideFlags = HideFlags.HideInInspector;
             shadowCam.enabled = false;
         }
         useCubemap = light.type == LightType.Point;
@@ -151,9 +154,12 @@ public unsafe class MLight : MonoBehaviour
 
     private void OnDisable()
     {
-        if(shadowMap)
-        shadowMap.Release();
-        if(light)
-        lightDict.Remove(light);
+        if (shadowMap)
+        {
+            shadowMap.Release();
+            shadowMap = null;
+        }
+        if (light)
+            lightDict.Remove(light);
     }
 }

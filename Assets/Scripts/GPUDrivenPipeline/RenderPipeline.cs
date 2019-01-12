@@ -87,8 +87,8 @@ namespace MPipeline
                     if (!pipelineCam) continue;
                 }
                 Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam);
+                PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
                 renderContext.Submit();
-                PipelineFunctions.ReleaseRenderTarget(pipelineCam.temporalRT);
             }
             foreach (var i in afterRenderFrame)
             {
@@ -109,7 +109,7 @@ namespace MPipeline
             data.context = context;
             data.cullResults = CullResults.Cull(ref data.cullParams, context);
 
-            PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, pipelineCam.temporalRT, data.buffer);
+            PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, data.buffer);
             data.resources = resources;
             PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);
             for (int i = 0; i < data.frustumPlanes.Length; ++i)

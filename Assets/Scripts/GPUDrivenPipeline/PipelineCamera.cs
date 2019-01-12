@@ -14,14 +14,6 @@ namespace MPipeline
         [System.NonSerialized]
         public RenderTargets targets;
         public RenderPipeline.CameraRenderingPath renderingPath = RenderPipeline.CameraRenderingPath.GPUDeferred;
-        public List<RenderTexture> temporalRT
-        {
-            get
-            {
-                return temporaryTextures;
-            }
-        }
-        private List<RenderTexture> temporaryTextures = new List<RenderTexture>(15);
         public Dictionary<Type, IPerCameraData> postDatas = new Dictionary<Type, IPerCameraData>(47);
         public void EnableThis()
         {
