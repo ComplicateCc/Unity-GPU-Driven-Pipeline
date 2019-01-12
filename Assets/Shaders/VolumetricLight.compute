@@ -32,6 +32,7 @@ RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 Texture3D<int> _FroxelPointTileLightList;
 Texture3D<int> _FroxelSpotTileLightList;
+float3 _DirLightPos;
 
             inline float EyeDepthToProj(float lin)
             {
@@ -54,19 +55,22 @@ Texture3D<int> _FroxelSpotTileLightList;
 				float atten = dist < _DirShadowMap.SampleLevel(sampler_DirShadowMap, float3(shadowUV, zAxisUV), 0);
 				return atten;
 			}
-
+#define MieScattering(cosAngle, g) g.w * (g.x / (pow(g.y - g.z * cosAngle, 1.5)))
+// x: 1 - g^2, y: 1 + g^2, z: 2*g, w: 1/4pi   g = 0.36
+static const float4 _MieG = float4(0.8704, 1.1296,0.72,0.7853981633974483);
 float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
 {
     float4 color = 0;
+    float3 viewDir = normalize(_WorldSpaceCameraPos.rgb - targetWorldPos);
     if(_LightFlag & 4)
     {
         #ifdef DIRMAP
-            color.rgb += _DirLightFinalColor * GetHardShadow(targetWorldPos, linearDepth);
+            color.rgb += _DirLightFinalColor * GetHardShadow(targetWorldPos, linearDepth) * MieScattering(-dot(_DirLightPos, viewDir), _MieG);
         #else
-            color.rgb += _DirLightFinalColor;
+            color.rgb += _DirLightFinalColor * MieScattering(-dot(_DirLightPos, viewDir), _MieG);
         #endif
     }
-    float3 viewDir = normalize(_WorldSpaceCameraPos.rgb - targetWorldPos);
+
     uint2 tileIndex = uv * uint2(XRES, YRES);
     if(_LightFlag & 1){
         uint len = min(_FroxelPointTileLightList[uint3(tileIndex, 0)], FROXELMAXPOINTLIGHTPERTILE + 1);
@@ -78,7 +82,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             if(lenOfLightDir > pt.sphere.w) continue;
 
             //float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
-            float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * GetLumianceIntensity(pt.lightIntensity) * PhaseFunction(0.36, dot(lightDir / lenOfLightDir, viewDir)) * pt.lightColor * 50;
+            float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * GetLumianceIntensity(pt.lightIntensity) * MieScattering(dot(lightDir / lenOfLightDir, viewDir), _MieG) * pt.lightColor;
 
             #ifdef CUBEMAP
             if(pt.shadowIndex >= 0){
@@ -122,9 +126,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         ShadowTrem = lightDirLength / SpotCone.height < shadowDist;
             }
             #endif
-            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * GetLumianceIntensity(LumianceIntensity) * PhaseFunction(0.6, dot(lightDir, viewDir)) * Light.lightColor * 50;
-            
-
+            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * GetLumianceIntensity(LumianceIntensity) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor;
         }
     }
     color.a = 1;//TODO

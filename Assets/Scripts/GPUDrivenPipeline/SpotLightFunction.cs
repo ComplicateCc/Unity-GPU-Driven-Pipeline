@@ -32,6 +32,5 @@ namespace MPipeline
     {
         public Matrix4x4 projectionMatrix;
         public Matrix4x4 worldToCamera;
-        public float4* frustumPlanes;
     }
 }

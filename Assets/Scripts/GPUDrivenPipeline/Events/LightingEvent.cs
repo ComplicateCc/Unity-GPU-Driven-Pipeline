@@ -8,6 +8,7 @@ using Unity.Collections;
 using UnityEngine.Jobs;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
+using static Unity.Mathematics.math;
 using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
@@ -232,14 +233,16 @@ namespace MPipeline
                     vpMatricesJobHandle.Complete();
                     cbdr.cubemapShadowArray = shadowArray;
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
+                    PointLightStruct* pointLightPtr = pointLightArray.Ptr();
                     for (int i = 0; i < pointLightIndices.Length; ++i)
                     {
-                        Light lt = allLights[pointLightIndices[i].y].light;
+                        int2 lightIndex = pointLightIndices[i];
+                        Light lt = allLights[lightIndex.y].light;
                         MLight light = MLight.GetPointLight(lt);
                         //     if (light.frameCount < 0)
                         //   {
                         light.UpdateShadowCacheType(true);
-                        SceneController.current.DrawCubeMap(light, lt, cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.Ptr(), shadowArray);
+                        SceneController.current.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.Ptr(), shadowArray);
                         light.frameCount = 10000;
                         // }
                         //else
@@ -408,7 +411,7 @@ namespace MPipeline
             }
             public void Execute(int index)
             {
-                ref PointLightStruct str = ref allLights[shadowIndex[index].x];
+                PointLightStruct str = allLights[shadowIndex[index].x];
                 ref CubemapViewProjMatrix cube = ref allMatrix[index];
                 PerspCam cam = new PerspCam();
                 cam.aspect = 1;
@@ -456,15 +459,35 @@ namespace MPipeline
                 cam.UpdateProjectionMatrix();
                 cube.projMat = cam.projectionMatrix;
                 cube.leftView = cam.worldToCameraMatrix;
-                NativeArray<float4> vec = new NativeArray<float4>(6, Allocator.Temp);
+                NativeArray<float4> vec = new NativeArray<float4>(36, Allocator.Temp);
                 cube.frustumPlanes = vec.Ptr();
                 float3 camPos = cam.position;
-                cube.frustumPlanes[0] = GetPlane(new float3(0, 1, 0), camPos + new float3(0, str.sphere.w, 0));
-                cube.frustumPlanes[1] = GetPlane(new float3(0, -1, 0), camPos + new float3(0, -str.sphere.w, 0));
-                cube.frustumPlanes[2] = GetPlane(new float3(1, 0, 0), camPos + new float3(str.sphere.w, 0, 0));
-                cube.frustumPlanes[3] = GetPlane(new float3(-1, 0, 0), camPos + new float3(-str.sphere.w, 0, 0));
-                cube.frustumPlanes[4] = GetPlane(new float3(0, 0, 1), camPos + new float3(0, 0, str.sphere.w));
-                cube.frustumPlanes[5] = GetPlane(new float3(0, 0, -1), camPos + new float3(0, 0, -str.sphere.w));
+                float3* allEdgePos = stackalloc float3[]
+                {
+                    camPos + float3(1, 1, -1) * str.sphere.w,    //Right, up, back
+                    camPos + float3(1, 1, 1) * str.sphere.w,     //Right , up, forward
+                    camPos + float3(1, -1, -1) * str.sphere.w,   //right, down, back
+                    camPos + float3(1, -1, 1) * str.sphere.w,    //Right, down, forward
+                    camPos + float3(-1, 1, -1) * str.sphere.w,   //Left, up, back
+                    camPos + float3(-1, 1, 1) * str.sphere.w,    //Left, up, forward
+                    camPos + float3(-1, -1, -1) * str.sphere.w,  //Left, down, back
+                    camPos + float3(-1, -1, 1) * str.sphere.w   //Left, down, forward
+                };
+                void GetPlanes(int4 indices, float4* ptr, float3 dir)
+                {
+                    ptr[0] = VectorUtility.GetPlane(allEdgePos[indices.x], allEdgePos[indices.y], camPos);
+                    ptr[1] = VectorUtility.GetPlane(allEdgePos[indices.y], allEdgePos[indices.z], camPos);
+                    ptr[2] = VectorUtility.GetPlane(allEdgePos[indices.z], allEdgePos[indices.w], camPos);
+                    ptr[3] = VectorUtility.GetPlane(allEdgePos[indices.w], allEdgePos[indices.x], camPos);
+                    ptr[4] = float4(-dir, dot(camPos, dir));
+                    ptr[5] = float4(dir, -dot(camPos + dir * str.sphere.w, dir));
+                }
+                GetPlanes(new int4(7, 5, 0, 2), cube.frustumPlanes, float3(0, 0, 1));
+                GetPlanes(new int4(2, 0, 4, 6), cube.frustumPlanes + 6, float3(0, 0, -1));
+                GetPlanes(new int4(5, 4, 0, 1), cube.frustumPlanes + 12, float3(0, 1, 0));
+                GetPlanes(new int4(6, 7, 3, 2), cube.frustumPlanes + 18, float3(0, -1, 0));
+                GetPlanes(new int4(3, 1, 0, 2), cube.frustumPlanes + 24, float3(1, 0, 0));
+                GetPlanes(new int4(6, 4, 5, 7), cube.frustumPlanes + 30, float3(-1, 0, 0));
             }
         }
         public unsafe struct GetPerspMatrix : IJobParallelFor
@@ -490,9 +513,6 @@ namespace MPipeline
                 cam.UpdateProjectionMatrix();
                 matrices.projectionMatrix = cam.projectionMatrix;
                 matrices.worldToCamera = cam.worldToCameraMatrix;
-                var planes = new NativeArray<float4>(6, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                matrices.frustumPlanes = planes.Ptr();
-                PipelineFunctions.GetCullingPlanes(cam.nearClipPlane, cam.farClipPlane, cam.fov, matrices.frustumPlanes, ref lit.vpMatrix);
             }
         }
     }

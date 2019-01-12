@@ -67,33 +67,7 @@ public unsafe static class PipelineFunctions
         }
     }
 
-    public static void GetCullingPlanes(float nearClip, float farClip, float halfFovInRag, float4* cullingPlanes, ref Matrix4x4 localToWorld)
-    {
-        float4 GetPlane(float3 a, float3 b, float3 c)
-        {
-            float3 normal = normalize(cross(b - a, c - a));
-            return new float4(normal, -dot(normal, a));
-        }
-        float3 right = (Vector3)localToWorld.GetColumn(0);
-        float3 up = (Vector3)localToWorld.GetColumn(1);
-        float3 forward = (Vector3)localToWorld.GetColumn(2);
-        float3 position = (Vector3)localToWorld.GetColumn(3);
-        float3 farPos = position + forward * farClip;
-        cullingPlanes[0] = new float4(forward, -dot(forward, farPos));   //Far Plane
-        cullingPlanes[5] = new float4(-forward, -dot(-forward, position + forward * nearClip)); //Near Plane
-        float screenSize = Mathf.Tan(halfFovInRag * Mathf.Deg2Rad * 0.5f) * farClip;
-        float3 upDir = screenSize * up;
-        float3 rightDir = screenSize * right;
-        float3 leftDown = farPos - upDir - rightDir;
-        float3 leftUp = farPos + upDir - rightDir;
-        float3 rightDown = farPos + rightDir - upDir;
-        float3 rightUp = farPos + rightDir + upDir;
-        cullingPlanes[1] = GetPlane(position, leftDown, leftUp);
-        cullingPlanes[2] = GetPlane(position, leftUp, rightUp);
-        cullingPlanes[3] = GetPlane(position, rightUp, rightDown);
-        cullingPlanes[4] = GetPlane(position, rightDown, leftDown);
-    }
-    //TODO: Streaming Loading
+       //TODO: Streaming Loading
     /// <summary>
     /// Initialize pipeline buffers
     /// </summary>
