@@ -178,7 +178,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         void* dest = unsafePtr + last;
         UnsafeUtility.MemCpy(dest, array.unsafePtr, array.Length * sizeof(T));
     }
-    public bool ConcurrentAdd(T value)
+    public int ConcurrentAdd(T value)
     {
         int last = Interlocked.Increment(ref data->count);
         //Concurrent Resize
@@ -187,11 +187,11 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
             last--;
             T* ptr = (T*)data->ptr;
             *(ptr + last) = value;
-            return true;
+            return last;
         }
-        return false;
+        return -1;
     }
-    public bool ConcurrentAdd(ref T value)
+    public int ConcurrentAdd(ref T value)
     {
         int last = Interlocked.Increment(ref data->count);
         //Concurrent Resize
@@ -200,10 +200,10 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
             last--;
             T* ptr = (T*)data->ptr;
             *(ptr + last) = value;
-            return true;
+            return last;
         }
 
-        return false;
+        return -1;
     }
     public int ConcurrentAdd(T value, object lockerObj)
     {

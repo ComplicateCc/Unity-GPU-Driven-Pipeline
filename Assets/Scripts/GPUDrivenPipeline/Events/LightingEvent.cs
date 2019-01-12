@@ -374,10 +374,6 @@ namespace MPipeline
             public int2* shadowIndex;
             [NativeDisableUnsafePtrRestriction]
             public CubemapViewProjMatrix* allMatrix;
-            float4 GetPlane(float3 normal, float3 inPoint)
-            {
-                return new float4(normal, -math.dot(normal, inPoint));
-            }
             public void Execute(int index)
             {
                 PointLightStruct str = allLights[shadowIndex[index].x];

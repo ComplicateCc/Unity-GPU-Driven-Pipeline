@@ -130,6 +130,8 @@ v2f_surf vert_deferred (appdata v)
 	  float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
 	  worldPos /= worldPos.w;
   	o.worldTangent = float4( v.tangent.xyz, worldPos.x);
+	  v.normal = mul((float3x3)unity_ObjectToWorld, v.normal);
+	  v.tangent.xyz = mul((float3x3)unity_ObjectToWorld, v.tangent.xyz);
 	o.worldNormal =float4(v.normal, worldPos.z);
   	o.worldBinormal = float4(cross(v.normal, o.worldTangent.xyz) * v.tangent.w, worldPos.y);
   	o.worldViewDir = UnityWorldSpaceViewDir(worldPos);

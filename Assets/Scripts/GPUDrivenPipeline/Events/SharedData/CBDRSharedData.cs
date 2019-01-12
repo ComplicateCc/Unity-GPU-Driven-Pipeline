@@ -1,11 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Collections;
+﻿using UnityEngine;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
-using Unity.Jobs;
-using Random = UnityEngine.Random;
 namespace MPipeline
 {
     public struct PointLightStruct

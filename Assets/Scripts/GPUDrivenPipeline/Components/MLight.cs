@@ -100,7 +100,7 @@ public unsafe class MLight : MonoBehaviour
             if (!shadowCam)
             {
                 shadowCam = gameObject.AddComponent<Camera>();
-             }
+            }
             shadowCam.hideFlags = HideFlags.HideInInspector;
             shadowCam.enabled = false;
         }
