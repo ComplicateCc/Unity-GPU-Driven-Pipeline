@@ -9,14 +9,13 @@ public unsafe class MLight : MonoBehaviour
 {
     public const int cubemapShadowResolution = 1024;
     public const int perspShadowResolution = 2048;
-    [System.NonSerialized]
-    public RenderTexture shadowMap;
+    public bool useShadow = false;
     public bool updateShadowmap = true;
-    [System.NonSerialized]
-    public Light light;
+    public float intensity = 500;
     private static Dictionary<Light, MLight> lightDict = new Dictionary<Light, MLight>(47);
-    [System.NonSerialized]
-    public bool useCubemap;
+    [System.NonSerialized] public RenderTexture shadowMap;
+    [System.NonSerialized] public Light light;
+    private bool useCubemap;
     public Camera shadowCam { get; private set; }
     public static void ClearLightDict()
     {
@@ -34,6 +33,19 @@ public unsafe class MLight : MonoBehaviour
         }
         mp = light.gameObject.AddComponent<MLight>();
         return mp;
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool GetPointLight(Light light, out MLight mLight)
+    {
+        return lightDict.TryGetValue(light, out mLight);
+    }
+    public static void AddMLight(Light light)
+    {
+        MLight mp = light.GetComponent<MLight>();
+        if (mp)
+            lightDict.Add(light, mp);
+        else
+            mp = light.gameObject.AddComponent<MLight>();
     }
     public void UpdateShadowCacheType(bool useCubemap)
     {

@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using Unity.Collections;
 using Unity.Mathematics;
+using static Unity.Mathematics.math;
 using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
@@ -25,6 +26,8 @@ namespace MPipeline
 
     public unsafe struct CubemapViewProjMatrix
     {
+        public int2 index;
+        public void* mLightPtr;
         public Matrix4x4 forwardView;
         public Matrix4x4 backView;
         public Matrix4x4 upView;
@@ -167,31 +170,38 @@ namespace MPipeline
 
     public struct PerspCam
     {
-        public Vector3 right;
-        public Vector3 up;
-        public Vector3 forward;
-        public Vector3 position;
+        public float3 right;
+        public float3 up;
+        public float3 forward;
+        public float3 position;
         public float fov;
         public float nearClipPlane;
         public float farClipPlane;
         public float aspect;
-        public Matrix4x4 localToWorldMatrix;
-        public Matrix4x4 worldToCameraMatrix;
-        public Matrix4x4 projectionMatrix;
+        public float4x4 localToWorldMatrix;
+        public float4x4 worldToCameraMatrix;
+        public float4x4 projectionMatrix;
         public void UpdateTRSMatrix()
         {
-            localToWorldMatrix.SetColumn(0, right);
-            localToWorldMatrix.SetColumn(1, up);
-            localToWorldMatrix.SetColumn(2, forward);
-            localToWorldMatrix.SetColumn(3, position);
-            localToWorldMatrix.m33 = 1;
-            worldToCameraMatrix = localToWorldMatrix.inverse;
-            worldToCameraMatrix.SetRow(2, -worldToCameraMatrix.GetRow(2));
+            localToWorldMatrix.c0 = float4(right, 0);
+            localToWorldMatrix.c1 = float4(up, 0);
+            localToWorldMatrix.c2 = float4(forward, 0);
+            localToWorldMatrix.c3 = float4(position, 1);
+            worldToCameraMatrix = inverse(localToWorldMatrix);
+            float4 row2 = -float4(worldToCameraMatrix.c0.z, worldToCameraMatrix.c1.z, worldToCameraMatrix.c2.z, worldToCameraMatrix.c3.z);
+            worldToCameraMatrix.c0.z = row2.x;
+            worldToCameraMatrix.c1.z = row2.y;
+            worldToCameraMatrix.c2.z = row2.z;
+            worldToCameraMatrix.c3.z = row2.w;
         }
-        public void UpdateViewMatrix(Matrix4x4 localToWorld)
+        public void UpdateViewMatrix(float4x4 localToWorld)
         {
-            worldToCameraMatrix = localToWorld.inverse;
-            worldToCameraMatrix.SetRow(2, -worldToCameraMatrix.GetRow(2));
+            worldToCameraMatrix = inverse(localToWorld);
+            float4 row2 = -float4(worldToCameraMatrix.c0.z, worldToCameraMatrix.c1.z, worldToCameraMatrix.c2.z, worldToCameraMatrix.c3.z);
+            worldToCameraMatrix.c0.z = row2.x;
+            worldToCameraMatrix.c1.z = row2.y;
+            worldToCameraMatrix.c2.z = row2.z;
+            worldToCameraMatrix.c3.z = row2.w;
         }
         public void UpdateProjectionMatrix()
         {

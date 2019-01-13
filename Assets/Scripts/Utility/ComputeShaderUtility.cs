@@ -4,8 +4,10 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
 using System.Runtime.CompilerServices;
 using Unity.Mathematics;
+
 
 public static class ComputeShaderUtility
 {
@@ -24,14 +26,14 @@ public static class ComputeShaderUtility
         shader.Dispatch(kernal, threadPerGroup, 1, 1);
     }
 }
-public unsafe static class NativeArrayUtility
+public unsafe static class MUnsafeUtility
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Resize<T>(ref this NativeArray<T> arr, int targetLength, Allocator alloc) where T : unmanaged
     {
         if (targetLength <= arr.Length) return;
         NativeArray<T> newArr = new NativeArray<T>(targetLength, alloc);
-        UnsafeUtility.MemCpy(newArr.GetUnsafePtr(), arr.GetUnsafePtr(), sizeof(T) * arr.Length);
+        MemCpy(newArr.GetUnsafePtr(), arr.GetUnsafePtr(), sizeof(T) * arr.Length);
         arr.Dispose();
         arr = newArr;
     }
@@ -51,26 +53,44 @@ public unsafe static class NativeArrayUtility
     {
         fixed(T* dest = array)
         {
-            UnsafeUtility.MemCpy(dest, source, length * sizeof(T));
+            MemCpy(dest, source, length * sizeof(T));
         }
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T* Ptr<T>(this T[] array) where T: unmanaged
     {
-        return (T*)UnsafeUtility.AddressOf(ref array[0]);
+        return (T*)AddressOf(ref array[0]);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T* Ptr<T>(ref this T array) where T : unmanaged
     {
-        return (T*)UnsafeUtility.AddressOf(ref array);
+        return (T*)AddressOf(ref array);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void CopyTo<T>(this T[] array, T* dest, int length) where T : unmanaged
     {
         fixed (T* source = array)
         {
-            UnsafeUtility.MemCpy(dest, source, length * sizeof(T));
+            MemCpy(dest, source, length * sizeof(T));
         }
+    }
+    private struct PtrKeeper<T>
+    {
+        public T value;
+    }
+    public static void* GetManagedPtr<T>(T obj) where T : Object
+    {
+        PtrKeeper<T> keeper = new PtrKeeper<T> { value = obj };
+        void* ptr = null;
+        MemCpy(&ptr, AddressOf(ref keeper), 8);
+        return ptr;
+    }
+
+    public static T GetObject<T>(void* ptr) where T : Object
+    {
+        PtrKeeper<T> keeper = new PtrKeeper<T>();
+        MemCpy(AddressOf(ref keeper), &ptr, 8);
+        return keeper.value;
     }
 }

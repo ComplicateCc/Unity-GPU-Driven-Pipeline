@@ -184,13 +184,11 @@ namespace MPipeline
             data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("SpotLightPass"));
             data.defaultDrawSettings.sorting = new DrawRendererSortSettings
             {
-                flags = SortFlags.CommonOpaque,
-                sortMode = DrawRendererSortMode.Perspective,
-                cameraPosition = spotLights.lightCone.vertex
+                flags = SortFlags.None
             };
 
             CullResults.GetCullingParameters(currentCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
@@ -268,7 +266,7 @@ namespace MPipeline
             data.ExecuteCommandBuffer();
             lit.shadowCam.worldToCameraMatrix = vpMatrices.forwardView;
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 5, targetCopyTex, 5);
@@ -546,12 +544,10 @@ namespace MPipeline
             data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("SpotLightPass"));
             data.defaultDrawSettings.sorting = new DrawRendererSortSettings
             {
-                flags = SortFlags.CommonOpaque,
-                sortMode = DrawRendererSortMode.Perspective,
-                cameraPosition = spotLights.lightCone.vertex
+                flags = SortFlags.None
             };
             CullResults.GetCullingParameters(currentCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
@@ -663,7 +659,7 @@ options.isOrtho);
             data.ExecuteCommandBuffer();
             lit.shadowCam.worldToCameraMatrix = vpMatrices.forwardView;
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes, cb);
             PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);

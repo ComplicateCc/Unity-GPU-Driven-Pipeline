@@ -886,8 +886,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 1976386203}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6de37cc0617a28946a2629b16406cfe3, type: 3}
+  m_Script: {fileID: 11500000, guid: c3a9f108f594b8743a3a576d4c7a7638, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mat: {fileID: 2100000, guid: eaa5b7129e274f341aae7d00b1dfa37d, type: 2}
-  setColor: {fileID: 2100000, guid: 45a4e92f2e6293c42815ba6a64defff2, type: 2}

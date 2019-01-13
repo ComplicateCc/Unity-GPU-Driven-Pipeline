@@ -8,6 +8,7 @@ using Unity.Collections;
 using UnityEngine.Jobs;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
+using System.Collections.Concurrent;
 using static Unity.Mathematics.math;
 using UnityEngine.Experimental.Rendering;
 namespace MPipeline
@@ -23,21 +24,17 @@ namespace MPipeline
         private CBDRSharedData cbdr;
         #endregion
         #region POINT_LIGHT
-        private ulong gcHandler;
         private Material pointLightMaterial;
         private Material cubeDepthMaterial;
         private ComputeBuffer sphereBuffer;
         private RenderSpotShadowCommand spotBuffer;
-        private int pointLightCount = 0;
-        private int spotLightCount = 0;
-        private NativeList<int2> pointLightIndices;//int2.x: shadow index  int2.y: all visible light index
-        private NativeList<int2> spotLightIndices;
-        private NativeArray<CubemapViewProjMatrix> cubemapVPMatrices;
+        private NativeList<CubemapViewProjMatrix> cubemapVPMatrices;
         private NativeArray<PointLightStruct> pointLightArray;
         private NativeArray<SpotLight> spotLightArray;
-        public NativeArray<SpotLightMatrix> spotLightMatrices;
-        private JobHandle vpMatricesJobHandle;
-        private JobHandle spotLightJobHandle;
+        public NativeList<SpotLightMatrix> spotLightMatrices;
+        public List<Light> addMLightCommandList = new List<Light>(30);
+        public List<Light> allLights = new List<Light>(30);
+        public JobHandle lightingHandle;
         #endregion
         protected override void Init(PipelineResources resources)
         {
@@ -74,81 +71,31 @@ namespace MPipeline
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
-            List<VisibleLight> allLight = data.cullResults.visibleLights;
-            pointLightArray = new NativeArray<PointLightStruct>(allLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            spotLightArray = new NativeArray<SpotLight>(allLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            pointLightIndices = new NativeList<int2>(allLight.Count, Allocator.Temp);
-            spotLightIndices = new NativeList<int2>(allLight.Count, Allocator.Temp);
-            PointLightStruct* indStr = pointLightArray.Ptr();
-            SpotLight* spotStr = spotLightArray.Ptr();
-            pointLightCount = 0;
-            spotLightCount = 0;
-            for (int index = 0; index < allLight.Count; ++index)
+            LightFilter.allVisibleLight = data.cullResults.visibleLights;
+            allLights.Clear();
+            foreach(var i in LightFilter.allVisibleLight)
             {
-                VisibleLight i = allLight[index];
-                Light lit = i.light;
-                switch (i.lightType)
-                {
-                    case LightType.Point:
-                        PointLightStruct* currentPtr = indStr + pointLightCount;
-                        Color col = lit.color;
-                        currentPtr->lightColor = new float3(col.r, col.g, col.b);
-                        currentPtr->lightIntensity = lit.intensity;
-                        currentPtr->sphere = i.localToWorld.GetColumn(3);
-                        currentPtr->sphere.w = i.range;
-                        if (lit.shadows != LightShadows.None && pointLightIndices.Length < CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT)
-                        {
-                            currentPtr->shadowIndex = pointLightIndices.Length;
-                            pointLightIndices.Add(new int2(pointLightCount, index));
-                        }
-                        else
-                        {
-                            currentPtr->shadowIndex = -1;
-                        }
-                        pointLightCount++;
-                        break;
-                    case LightType.Spot:
-                        SpotLight* currentSpot = spotStr + spotLightCount;
-                        Color spotCol = lit.color;
-                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b);
-                        currentSpot->lightIntensity = lit.intensity;
-                        float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
-                        currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, (Vector3)i.localToWorld.GetColumn(2), deg);
-                        currentSpot->angle = deg;
-                        if (lit.shadows != LightShadows.None && spotLightIndices.Length < CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT)
-                        {
-                            currentSpot->shadowIndex = spotLightIndices.Length;
-                            currentSpot->vpMatrix = i.localToWorld;
-                            spotLightIndices.Add(new int2(spotLightCount, index));
-                        }
-                        else
-                        {
-                            currentSpot->shadowIndex = -1;
-                        }
-                        spotLightCount++;
-                        break;
-                }
+                allLights.Add(i.light);
             }
-            cubemapVPMatrices = new NativeArray<CubemapViewProjMatrix>(pointLightIndices.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            vpMatricesJobHandle = new GetCubeMapMatrix
-            {
-                allLights = pointLightArray.Ptr(),
-                allMatrix = cubemapVPMatrices.Ptr(),
-                shadowIndex = pointLightIndices.unsafePtr
-            }.Schedule(cubemapVPMatrices.Length, 1);
-            spotLightMatrices = new NativeArray<SpotLightMatrix>(spotLightIndices.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            spotLightJobHandle = new GetPerspMatrix
-            {
-                allLights = spotLightArray.Ptr(),
-                projectionMatrices = spotLightMatrices.Ptr(),
-                shadowIndex = spotLightIndices.unsafePtr
-            }.Schedule(spotLightMatrices.Length, 1);
+            addMLightCommandList.Clear();
+            LightFilter.allMLightCommandList = addMLightCommandList;
+            pointLightArray = new NativeArray<PointLightStruct>(LightFilter.allVisibleLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            spotLightArray = new NativeArray<SpotLight>(LightFilter.allVisibleLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            cubemapVPMatrices = new NativeList<CubemapViewProjMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
+            spotLightMatrices = new NativeList<SpotLightMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
+            LightFilter.allLights = allLights;
+            LightFilter.pointLightArray = pointLightArray;
+            LightFilter.spotLightArray = spotLightArray;
+            LightFilter.cubemapVPMatrices = cubemapVPMatrices;
+            LightFilter.spotLightMatrices = spotLightMatrices;
+            lightingHandle = (new LightFilter()).Schedule(allLights.Count, 1);
         }
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             DirLight(cam, ref data);
             PointLight(cam, ref data);
+            LightFilter.Clear();
         }
         private void DirLight(PipelineCamera cam, ref PipelineCommandData data)
         {
@@ -194,13 +141,18 @@ namespace MPipeline
         private void PointLight(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            UnsafeUtility.ReleaseGCObject(gcHandler);
             pointLightMaterial.SetBuffer(ShaderIDs.verticesBuffer, sphereBuffer);
             VoxelLightCommonData(buffer, cam.cam);
             ClearDispatch(buffer);
-            if (pointLightCount > 0)
+            lightingHandle.Complete();
+            foreach (var i in addMLightCommandList)
             {
-                if (pointLightIndices.Length > 0)
+                MLight.AddMLight(i);
+            }
+            addMLightCommandList.Clear();
+            if (LightFilter.pointLightCount > 0)
+            {
+                if (cubemapVPMatrices.Length > 0)
                 {
                     var cullShader = data.resources.gpuFrustumCulling;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
@@ -211,18 +163,18 @@ namespace MPipeline
                         frustumPlanes = null,
                         isOrtho = false
                     };
-                    vpMatricesJobHandle.Complete();
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
                     PointLightStruct* pointLightPtr = pointLightArray.Ptr();
-                    for (int i = 0; i < pointLightIndices.Length; ++i)
+                    for (int i = 0; i < cubemapVPMatrices.Length; ++i)
                     {
-                        int2 lightIndex = pointLightIndices[i];
+                        ref CubemapViewProjMatrix vpMatrices = ref cubemapVPMatrices[i];
+                        int2 lightIndex = vpMatrices.index;
                         Light lt = allLights[lightIndex.y].light;
-                        MLight light = MLight.GetPointLight(lt);
+                        MLight light = MUnsafeUtility.GetObject<MLight>(vpMatrices.mLightPtr);
                         if (light.updateShadowmap)
                         {
                             light.UpdateShadowCacheType(true);
-                            SceneController.current.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.Ptr(), cbdr.cubeArrayMap);
+                            SceneController.current.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
                         }
                         else
                         {
@@ -233,7 +185,7 @@ namespace MPipeline
                         //Multi frame shadowmap
                     }
                 }
-                SetPointLightBuffer(pointLightArray, pointLightCount, buffer);
+                SetPointLightBuffer(pointLightArray, LightFilter.pointLightCount, buffer);
                 buffer.EnableShaderKeyword("POINTLIGHT");
                 cbdr.lightFlag |= 1;
             }
@@ -241,9 +193,9 @@ namespace MPipeline
             {
                 buffer.DisableShaderKeyword("POINTLIGHT");
             }
-            if (spotLightCount > 0)
+            if (LightFilter.spotLightCount > 0)
             {
-                if (spotLightIndices.Length > 0)
+                if (spotLightMatrices.Length > 0)
                 {
                     RenderClusterOptions opts = new RenderClusterOptions
                     {
@@ -252,16 +204,16 @@ namespace MPipeline
                         frustumPlanes = null,
                         isOrtho = false,
                     };
-                    spotLightJobHandle.Complete();
                     SpotLight* allSpotLightPtr = spotLightArray.Ptr();
                     buffer.SetGlobalTexture(ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
                     spotBuffer.renderTarget = cbdr.spotArrayMap;
-                    spotBuffer.shadowMatrices = spotLightMatrices.Ptr();
+                    spotBuffer.shadowMatrices = spotLightMatrices.unsafePtr;
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
-                    for (int i = 0; i < spotLightIndices.Length; ++i)
+                    for (int i = 0; i < spotLightMatrices.Length; ++i)
                     {
-                        int2 index = spotLightIndices[i];
-                        MLight mlight = MLight.GetPointLight(allLights[spotLightIndices[i].y].light);
+                        ref SpotLightMatrix vpMatrices = ref spotLightMatrices[i];
+                        int2 index = vpMatrices.index;
+                        MLight mlight = MUnsafeUtility.GetObject<MLight>(vpMatrices.mLightPtr);
                         mlight.UpdateShadowCacheType(false);
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
                         if (mlight.updateShadowmap)
@@ -277,7 +229,7 @@ namespace MPipeline
                         }
                     }
                 }
-                SetSpotLightBuffer(spotLightArray, spotLightCount, buffer);
+                SetSpotLightBuffer(spotLightArray, LightFilter.spotLightCount, buffer);
                 buffer.EnableShaderKeyword("SPOTLIGHT");
                 cbdr.lightFlag |= 0b1000;
             }
@@ -366,18 +318,31 @@ namespace MPipeline
             buffer.SetGlobalBuffer(ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
             buffer.SetGlobalBuffer(ShaderIDs._SpotLightIndexBuffer, cbdr.spotlightIndexBuffer);
         }
-        public unsafe struct GetCubeMapMatrix : IJobParallelFor
+
+        public unsafe struct LightFilter : IJobParallelFor
         {
-            [NativeDisableUnsafePtrRestriction]
-            public PointLightStruct* allLights;
-            [NativeDisableUnsafePtrRestriction]
-            public int2* shadowIndex;
-            [NativeDisableUnsafePtrRestriction]
-            public CubemapViewProjMatrix* allMatrix;
-            public void Execute(int index)
+            public static List<VisibleLight> allVisibleLight;
+            public static List<Light> allLights;
+            public static List<Light> allMLightCommandList;
+            public static NativeList<CubemapViewProjMatrix> cubemapVPMatrices;
+            public static NativeArray<PointLightStruct> pointLightArray;
+            public static NativeArray<SpotLight> spotLightArray;
+            public static NativeList<SpotLightMatrix> spotLightMatrices;
+            public static int pointLightCount = 0;
+            public static int spotLightCount = 0;
+            public static void Clear()
             {
-                PointLightStruct str = allLights[shadowIndex[index].x];
+                pointLightCount = 0;
+                spotLightCount = 0;
+                allLights = null;
+                allVisibleLight = null;
+                allMLightCommandList = null;
+            }
+            public static void CalculateCubemapMatrix(PointLightStruct* allLights, CubemapViewProjMatrix* allMatrix, int index)
+            {
                 ref CubemapViewProjMatrix cube = ref allMatrix[index];
+                int2 shadowIndex = cube.index;
+                PointLightStruct str = allLights[shadowIndex.x];
                 PerspCam cam = new PerspCam();
                 cam.aspect = 1;
                 cam.farClipPlane = str.sphere.w;
@@ -454,19 +419,11 @@ namespace MPipeline
                 GetPlanes(new int4(3, 1, 0, 2), cube.frustumPlanes + 24, float3(1, 0, 0));
                 GetPlanes(new int4(6, 4, 5, 7), cube.frustumPlanes + 30, float3(-1, 0, 0));
             }
-        }
-        public unsafe struct GetPerspMatrix : IJobParallelFor
-        {
-            [NativeDisableUnsafePtrRestriction]
-            public SpotLight* allLights;
-            [NativeDisableUnsafePtrRestriction]
-            public SpotLightMatrix* projectionMatrices;
-            [NativeDisableUnsafePtrRestriction]
-            public int2* shadowIndex;
-            public void Execute(int index)
+            public static void CalculatePersMatrix(SpotLight* allLights, SpotLightMatrix* projectionMatrices, int index)
             {
-                ref SpotLight lit = ref allLights[shadowIndex[index].x];
                 ref SpotLightMatrix matrices = ref projectionMatrices[index];
+                int2 shadowIndex = matrices.index;
+                ref SpotLight lit = ref allLights[shadowIndex.x];
                 PerspCam cam = new PerspCam
                 {
                     aspect = 1,
@@ -478,6 +435,86 @@ namespace MPipeline
                 cam.UpdateProjectionMatrix();
                 matrices.projectionMatrix = cam.projectionMatrix;
                 matrices.worldToCamera = cam.worldToCameraMatrix;
+            }
+            public void Execute(int index)
+            {
+                PointLightStruct* indStr = pointLightArray.Ptr();
+                SpotLight* spotStr = spotLightArray.Ptr();
+                VisibleLight i = allVisibleLight[index];
+                MLight mlight;
+                switch (i.lightType)
+                {
+                    case LightType.Point:
+                        if (!MLight.GetPointLight(allLights[index], out mlight))
+                        {
+                            lock (allMLightCommandList)
+                            {
+                                allMLightCommandList.Add(allLights[index]);
+                            }
+                            break;
+                        }
+                        int currentPointCount = Interlocked.Increment(ref pointLightCount) - 1;
+                        PointLightStruct* currentPtr = indStr + currentPointCount;
+                        Color col = i.finalColor;
+                        currentPtr->lightColor = new float3(col.r, col.g, col.b);
+                        currentPtr->lightIntensity = mlight.intensity;
+                        currentPtr->sphere = i.localToWorld.GetColumn(3);
+                        currentPtr->sphere.w = i.range;
+                        if (mlight.useShadow)
+                        {
+                            currentPtr->shadowIndex = cubemapVPMatrices.ConcurrentAdd(new CubemapViewProjMatrix
+                            {
+                                index = new int2(currentPointCount, index),
+                                mLightPtr = MUnsafeUtility.GetManagedPtr(mlight)
+                            });
+                        }
+                        else
+                        {
+                            currentPtr->shadowIndex = -1;
+                        }
+                        if(currentPtr->shadowIndex >= 0)
+                        {
+                            CalculateCubemapMatrix(indStr, cubemapVPMatrices.unsafePtr, currentPtr->shadowIndex);
+                        }
+                        
+                        break;
+                    case LightType.Spot:
+                        if (!MLight.GetPointLight(allLights[index], out mlight))
+                        {
+                            lock (allMLightCommandList)
+                            {
+                                allMLightCommandList.Add(allLights[index]);
+                            }
+                            break;
+                        }
+                        int currentSpotCount = Interlocked.Increment(ref spotLightCount) - 1;
+                        SpotLight* currentSpot = spotStr + currentSpotCount;
+                        Color spotCol = i.finalColor;
+                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b);
+                        currentSpot->lightIntensity = mlight.intensity;
+                        float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
+                        currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, (Vector3)i.localToWorld.GetColumn(2), deg);
+                        currentSpot->angle = deg;
+                        if (mlight.useShadow)
+                        {
+                            currentSpot->vpMatrix = i.localToWorld;
+                            currentSpot->shadowIndex = spotLightMatrices.ConcurrentAdd(new SpotLightMatrix
+                            {
+                                index = new int2(currentSpotCount, index),
+                                mLightPtr = MUnsafeUtility.GetManagedPtr(mlight)
+                            });
+                        }
+                        else
+                        {
+                            currentSpot->shadowIndex = -1;
+                        }
+                        if (currentSpot->shadowIndex >= 0)
+                        {
+                            CalculatePersMatrix(spotStr, spotLightMatrices.unsafePtr, currentSpot->shadowIndex);
+                        }
+                        break;
+
+                }
             }
         }
     }

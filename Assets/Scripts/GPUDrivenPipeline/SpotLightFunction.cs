@@ -30,6 +30,8 @@ namespace MPipeline
     }
     public unsafe struct SpotLightMatrix
     {
+        public int2 index;
+        public void* mLightPtr;
         public Matrix4x4 projectionMatrix;
         public Matrix4x4 worldToCamera;
     }
