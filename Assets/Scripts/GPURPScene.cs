@@ -59,7 +59,7 @@ namespace MPipeline
                 return;
             }
             current = this;
-            SceneController.current.Awake(resources, resolution, texArrayCapacity, propertyCapacity, mapResources);
+            SceneController.Awake(resources, resolution, texArrayCapacity, propertyCapacity, mapResources);
             loadingThread = new LoadingThread();
             int length = 0;
             Count(transformParents, ref length);
@@ -76,7 +76,7 @@ namespace MPipeline
             jobHandle.Complete();
             Shader.SetGlobalVector(ShaderIDs._SceneOffset, new float4(offset.xyz, lengthsq(offset.xyz) > 0.01f ? 1 : 0));
             mainCamera.transform.position += (Vector3)offset;
-            SceneController.current.TransformMapPosition(0);
+            SceneController.TransformMapPosition(0);
             RenderPipeline.AddCommandAfterFrame(this, (o) => Shader.SetGlobalVector(ShaderIDs._SceneOffset, Vector4.zero));
         }
         [EasyButtons.Button]
@@ -87,14 +87,14 @@ namespace MPipeline
 
         private void Update()
         {
-            SceneController.current.Update(this);
-            loadingThread.Update(SceneController.current.commandQueue);
+            SceneController.Update(this);
+            loadingThread.Update(SceneController.commandQueue);
         }
 
         private void OnDestroy()
         {
             transformArray.Dispose();
-            SceneController.current.Dispose();
+            SceneController.Dispose();
             loadingThread.Dispose();
             current = null;
         }

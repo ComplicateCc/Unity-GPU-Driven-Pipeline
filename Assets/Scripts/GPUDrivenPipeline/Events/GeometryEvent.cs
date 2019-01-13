@@ -50,11 +50,11 @@ namespace MPipeline
                     linearLODMaterial = linearMat,
                     currentDepthTex = cam.targets.depthTexture
                 };
-                SceneController.current.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
+                SceneController.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
             }
             else
             {
-                SceneController.current.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
+                SceneController.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
             }
         }
     }

@@ -465,12 +465,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
-  gpurp:
-    mapResources: SceneManager
-    resolution: 1024
-    texArrayCapacity: 50
-    propertyCapacity: 500
-    terrainTransforms: []
+  resolution: 1024
+  texArrayCapacity: 50
+  propertyCapacity: 500
+  mapResources: SceneManager
   mainCamera: {fileID: 330718102}
   transformParents: {fileID: 133086635}
   offset:
@@ -543,7 +541,7 @@ Camera:
   serializedVersion: 2
   m_ClearFlags: 1
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
-  m_projectionMatrixMode: 1
+  m_projectionMatrixMode: 0
   m_SensorSize: {x: 36, y: 24}
   m_LensShift: {x: 0, y: 0}
   m_GateFitMode: 2
@@ -723,7 +721,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 506224089}
   m_LocalRotation: {x: -0.03631498, y: -0.7244833, z: 0.68727, w: -0.038278073}
-  m_LocalPosition: {x: 5.177, y: 3.144, z: -1.06}
+  m_LocalPosition: {x: 5.64, y: 3.37, z: -5.41}
   m_LocalScale: {x: 1.0000007, y: 1.0000002, z: 1.0000002}
   m_Children: []
   m_Father: {fileID: 133086635}

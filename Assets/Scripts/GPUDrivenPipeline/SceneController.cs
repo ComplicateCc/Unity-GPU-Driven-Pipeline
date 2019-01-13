@@ -28,7 +28,7 @@ namespace MPipeline
         public Vector3 currentCameraUpVec;
     }
     [Serializable]
-    public unsafe sealed class SceneController
+    public unsafe static class SceneController
     {
         public struct SceneCommonData
         {
@@ -131,20 +131,19 @@ namespace MPipeline
         private const int CASCADELEVELCOUNT = 4;
         private const int CASCADECLIPSIZE = CASCADELEVELCOUNT + 1;
         public static SceneCommonData commonData;
-        public static SceneController current = new SceneController();
         public static bool gpurpEnabled = false;
         private static bool singletonReady = false;
-        private PipelineResources resources;
-        public PipelineBaseBuffer baseBuffer { get; private set; }
-        private ClusterMatResources clusterResources;
-        private List<SceneStreaming> allScenes;
-        public NativeList<ulong> pointerContainer;
-        public LoadingCommandQueue commandQueue;
-        public NativeList<ulong> addList;
-        public int resolution { get; private set; }
+        private static PipelineResources resources;
+        public static PipelineBaseBuffer baseBuffer { get; private set; }
+        private static ClusterMatResources clusterResources;
+        private static List<SceneStreaming> allScenes;
+        public static NativeList<ulong> pointerContainer;
+        public static LoadingCommandQueue commandQueue;
+        public static NativeList<ulong> addList;
+        public static int resolution { get; private set; }
         public static void SetState()
         {
-            if (singletonReady && current.baseBuffer.clusterCount > 0)
+            if (singletonReady && baseBuffer.clusterCount > 0)
             {
                 gpurpEnabled = true;
             }
@@ -153,14 +152,11 @@ namespace MPipeline
                 gpurpEnabled = false;
             }
         }
-        private SceneController()
+        public static void Awake(PipelineResources resources, int resolution, int texArrayCapacity, int propertyCapacity, string mapResources)
         {
-        }
-        public void Awake(PipelineResources resources, int resolution, int texArrayCapacity, int propertyCapacity, string mapResources)
-        {
-            this.resolution = resolution;
+            SceneController.resolution = resolution;
             singletonReady = true;
-            this.resources = resources;
+            SceneController.resources = resources;
             addList = new NativeList<ulong>(10, Allocator.Persistent);
             baseBuffer = new PipelineBaseBuffer();
             clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
@@ -169,7 +165,7 @@ namespace MPipeline
             foreach (var i in clusterResources.clusterProperties)
             {
                 clusterCount += i.clusterCount;
-                allScenes.Add(new SceneStreaming(i, this));
+                allScenes.Add(new SceneStreaming(i));
             }
             PipelineFunctions.InitBaseBuffer(baseBuffer, clusterResources, mapResources, clusterCount);
             pointerContainer = new NativeList<ulong>(clusterCount, Allocator.Persistent);
@@ -216,12 +212,12 @@ namespace MPipeline
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdateCopyMat()
+        public static void UpdateCopyMat()
         {
             commonData.copyTextureMat.SetVector(ShaderIDs._TextureSize, new Vector4(resolution, resolution));
             commonData.copyTextureMat.SetBuffer(ShaderIDs._TextureBuffer, commonData.texCopyBuffer);
         }
-        public void TransformMapPosition(int startPos)
+        public static void TransformMapPosition(int startPos)
         {
             if (baseBuffer.clusterCount - startPos <= 0) return;
             resources.gpuFrustumCulling.SetInt(ShaderIDs._OffsetIndex, startPos);
@@ -231,7 +227,7 @@ namespace MPipeline
             ComputeShaderUtility.Dispatch(resources.gpuFrustumCulling, PipelineBaseBuffer.MoveCluster, baseBuffer.clusterCount - startPos, 64);
         }
 
-        public void Dispose()
+        public static void Dispose()
         {
             singletonReady = false;
             PipelineFunctions.Dispose(baseBuffer);
@@ -250,7 +246,7 @@ namespace MPipeline
         }
         //Press number load scene
         
-        public void Update(MonoBehaviour behavior)
+        public static void Update(MonoBehaviour behavior)
         {
             /* int value;
              if (int.TryParse(Input.inputString, out value) && value < testNodeArray.Length)
@@ -290,18 +286,18 @@ namespace MPipeline
             }
 
         }
-        private bool GetBaseBuffer(out PipelineBaseBuffer result)
+        private static bool GetBaseBuffer(out PipelineBaseBuffer result)
         {
             result = baseBuffer;
             return result.clusterCount > 0;
         }
-        private void ClusterCullDraw(ref RenderClusterOptions options, Material mat)
+        private static void ClusterCullDraw(ref RenderClusterOptions options, Material mat)
         {
             PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
             PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
             PipelineFunctions.RenderProceduralCommand(baseBuffer, mat, options.command);
         }
-        private void RenderScene(ref PipelineCommandData data, Camera cam)
+        private static void RenderScene(ref PipelineCommandData data, Camera cam)
         {
             data.ExecuteCommandBuffer();
             FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
@@ -319,7 +315,7 @@ namespace MPipeline
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.PerObjectMotionVectors;
             data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
         }
-        public void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
+        public static void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
         {
             if (gpurpEnabled)
             {
@@ -330,7 +326,7 @@ namespace MPipeline
             RenderScene(ref data, cam);
 
         }
-        public void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
+        public static void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
         {
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
@@ -365,7 +361,7 @@ namespace MPipeline
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
         }
 
-        public void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
+        public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
         {
             if (!gpurpEnabled)
             {
@@ -401,7 +397,7 @@ options.isOrtho);
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
-        private StaticFit DirectionalShadowStaticFit(Camera cam, SunLight sunlight, float* outClipDistance)
+        private static StaticFit DirectionalShadowStaticFit(Camera cam, SunLight sunlight, float* outClipDistance)
         {
             StaticFit staticFit;
             staticFit.resolution = sunlight.resolution;
@@ -414,7 +410,7 @@ options.isOrtho);
             outClipDistance[4] = sunlight.farestDistance;
             return staticFit;
         }
-        public void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, SunLight sunLight, Matrix4x4[] cascadeShadowMapVP)
+        public static void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, SunLight sunLight, Matrix4x4[] cascadeShadowMapVP)
         {
             float* clipDistances = stackalloc float[CASCADECLIPSIZE];
             StaticFit staticFit = DirectionalShadowStaticFit(currentCam, sunLight, clipDistances);
@@ -465,7 +461,7 @@ options.isOrtho);
             }
         }
 
-        public void DrawCubeMap(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
+        public static void DrawCubeMap(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
         {
             CommandBuffer cb = opts.command;
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];

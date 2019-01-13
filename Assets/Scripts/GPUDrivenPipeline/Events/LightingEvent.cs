@@ -123,7 +123,7 @@ namespace MPipeline
                     SunLight.current.thirdLevelDistance,
                     SunLight.current.farestDistance));//Only Mask
                 buffer.SetGlobalVector(ShaderIDs._SoftParam, SunLight.current.cascadeSoftValue / SunLight.current.resolution);
-                SceneController.current.DrawDirectionalShadow(cam.cam, ref data, ref opts, SunLight.current, cascadeShadowMapVP);
+                SceneController.DrawDirectionalShadow(cam.cam, ref data, ref opts, SunLight.current, cascadeShadowMapVP);
                 buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
                 buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.current.shadowmapTexture);
                 cbdr.dirLightShadowmap = SunLight.current.shadowmapTexture;
@@ -174,7 +174,7 @@ namespace MPipeline
                         if (light.updateShadowmap)
                         {
                             light.UpdateShadowCacheType(true);
-                            SceneController.current.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                            SceneController.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
                         }
                         else
                         {
@@ -218,7 +218,7 @@ namespace MPipeline
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
                         if (mlight.updateShadowmap)
                         {
-                            SceneController.current.DrawSpotLight(ref opts, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
+                            SceneController.DrawSpotLight(ref opts, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
                             buffer.CopyTexture(cbdr.spotArrayMap, spot.shadowIndex, mlight.shadowMap, 0);
                         }
                         else
@@ -493,7 +493,7 @@ namespace MPipeline
                         currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b);
                         currentSpot->lightIntensity = mlight.intensity;
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
-                        currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, (Vector3)i.localToWorld.GetColumn(2), deg);
+                        currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, normalize((Vector3)i.localToWorld.GetColumn(2)), deg);
                         currentSpot->angle = deg;
                         if (mlight.useShadow)
                         {
