@@ -40,8 +40,8 @@ namespace MPipeline
         };
         ClusterProperty property;
         private List<TextureInfos> allTextureDatas;
-        private SceneControllerWithGPURPEnabled controller;
-        public SceneStreaming(ClusterProperty property, SceneControllerWithGPURPEnabled controller)
+        private SceneController controller;
+        public SceneStreaming(ClusterProperty property, SceneController controller)
         {
             this.controller = controller;
             state = State.Unloaded;

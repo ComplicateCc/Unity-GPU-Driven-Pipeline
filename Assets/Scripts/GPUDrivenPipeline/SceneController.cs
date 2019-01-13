@@ -28,7 +28,7 @@ namespace MPipeline
         public Vector3 currentCameraUpVec;
     }
     [Serializable]
-    public unsafe class SceneController
+    public unsafe sealed class SceneController
     {
         public struct SceneCommonData
         {
@@ -118,237 +118,49 @@ namespace MPipeline
                 pool.Dispose();
             }
         }
+        public struct DrawSceneSettings
+        {
+            public RenderClusterOptions clusterOptions;
+            public Camera targetCam;
+            public RenderQueueRange renderRange;
+            public string passName;
+            public CullFlag flag;
+            public RendererConfiguration configure;
+            public Material clusterMat;
+        }
+        private const int CASCADELEVELCOUNT = 4;
+        private const int CASCADECLIPSIZE = CASCADELEVELCOUNT + 1;
         public static SceneCommonData commonData;
-        protected static SceneController onlySRP = new SceneController();
-        protected static SceneControllerWithGPURPEnabled gpurp = null;
-        public static SceneController current;
-        protected const int CASCADELEVELCOUNT = 4;
-        protected const int CASCADECLIPSIZE = CASCADELEVELCOUNT + 1;
-        public static void SetSingleton()
-        {
-            if (gpurp != null && gpurp.baseBuffer.clusterCount > 0) current = gpurp;
-            else current = onlySRP;
-        }
-        protected StaticFit DirectionalShadowStaticFit(Camera cam, SunLight sunlight, float* outClipDistance)
-        {
-            StaticFit staticFit;
-            staticFit.resolution = sunlight.resolution;
-            staticFit.mainCamTrans = cam;
-            staticFit.frustumCorners = new NativeArray<float3>((CASCADELEVELCOUNT + 1) * 4, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            outClipDistance[0] = sunlight.shadCam.nearClipPlane;
-            outClipDistance[1] = sunlight.firstLevelDistance;
-            outClipDistance[2] = sunlight.secondLevelDistance;
-            outClipDistance[3] = sunlight.thirdLevelDistance;
-            outClipDistance[4] = sunlight.farestDistance;
-            return staticFit;
-        }
-        protected void RenderScene(ref PipelineCommandData data, Camera cam)
-        {
-            data.ExecuteCommandBuffer();
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
-            {
-                renderQueueRange = RenderQueueRange.opaque,
-                layerMask = cam.cullingMask
-            };
-            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("GBuffer"));
-            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-            {
-                flags = SortFlags.CommonOpaque,
-                sortMode = DrawRendererSortMode.Perspective,
-                cameraPosition = cam.transform.position
-            };
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.PerObjectMotionVectors;
-            data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-        }
-        public virtual void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
-        {
-            RenderScene(ref data, cam);
-        }
-        public virtual void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
-        {
-            ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
-            spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
-            currentCam.worldToCameraMatrix = spotLightMatrix.worldToCamera;
-            currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
-            options.command.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
-            options.command.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
-            options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
-            options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
-            data.ExecuteCommandBuffer();
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
-            {
-                renderQueueRange = RenderQueueRange.opaque,
-                layerMask = currentCam.cullingMask
-            };
-            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("SpotLightPass"));
-            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-            {
-                flags = SortFlags.None
-            };
-
-            CullResults.GetCullingParameters(currentCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
-            CullResults results = CullResults.Cull(ref data.cullParams, data.context);
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
-        }
-        public virtual void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
-        {
-            RenderScene(ref data, cam);
-        }
-        public virtual void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, SunLight sunLight, Matrix4x4[] cascadeShadowMapVP)
-        {
-            float* clipDistances = stackalloc float[CASCADECLIPSIZE];
-            StaticFit staticFit = DirectionalShadowStaticFit(currentCam, sunLight, clipDistances);
-            //   PipelineFunctions.GetfrustumCorners(farClipDistance, ref shadMap, currentCam);
-            PipelineFunctions.GetfrustumCorners(clipDistances, CASCADELEVELCOUNT + 1, currentCam, (float3*)staticFit.frustumCorners.GetUnsafePtr());
-            for (int pass = 0; pass < CASCADELEVELCOUNT; ++pass)
-            {
-                PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref sunLight.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
-                Vector4* vec = opts.frustumPlanes.Ptr();
-                PipelineFunctions.GetCullingPlanes((float4*)vec, sunLight.shadCam.size, sunLight.shadCam.nearClipPlane, sunLight.shadCam.farClipPlane,
-                                                    sunLight.shadCam.up, sunLight.shadCam.right, sunLight.shadCam.forward, sunLight.shadCam.position);
-                float* biasList = (float*)UnsafeUtility.AddressOf(ref sunLight.bias);
-                Matrix4x4 vpMatrix;
-                PipelineFunctions.UpdateCascadeState(ref sunLight, opts.command, biasList[pass] / currentCam.farClipPlane, pass, out vpMatrix);
-                data.ExecuteCommandBuffer();
-                FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
-                {
-                    renderQueueRange = RenderQueueRange.opaque,
-                    layerMask = currentCam.cullingMask
-                };
-                data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("DirectionalLight"));
-                data.defaultDrawSettings.flags = DrawRendererFlags.EnableDynamicBatching;
-                data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-                data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-                {
-                    flags = SortFlags.CommonOpaque,
-                    worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix,
-                    sortMode = DrawRendererSortMode.Orthographic
-                };
-                sunLight.cameraComponent.worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix;
-                sunLight.cameraComponent.projectionMatrix = sunLight.shadCam.projectionMatrix;
-                CullResults.GetCullingParameters(sunLight.cameraComponent, out data.cullParams);
-                data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-                CullResults results = CullResults.Cull(ref data.cullParams, data.context);
-                data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-                data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-
-            }
-        }
-        public virtual void DrawCubeMap(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
-        {
-            CommandBuffer cb = opts.command;
-            ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
-            cb.SetGlobalVector(ShaderIDs._LightPos, light.sphere);
-            Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
-            lit.shadowCam.projectionMatrix = vpMatrices.projMat;
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
-            {
-                renderQueueRange = RenderQueueRange.opaque,
-            };
-            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("PointLightPass"));
-            data.defaultDrawSettings.flags = DrawRendererFlags.EnableDynamicBatching;
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-            {
-                flags = SortFlags.None,
-            };
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-            
-            //Forward
-            int depthSlice = offset * 6;
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
-            cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.forwardView);
-            data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.forwardView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
-            CullResults results = CullResults.Cull(ref data.cullParams, data.context);
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice + 5, targetCopyTex, 5);
-            //Back
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
-            cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.backView);
-            data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.backView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
-            cb.CopyTexture(renderTarget, depthSlice + 4, targetCopyTex, 4);
-            //Up
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
-            cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.upView);
-            data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.upView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
-            cb.CopyTexture(renderTarget, depthSlice + 2, targetCopyTex, 2);
-            //Down
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
-            cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.downView);
-            data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.downView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
-            cb.CopyTexture(renderTarget, depthSlice + 3, targetCopyTex, 3);
-            //Right
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice);
-            cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.rightView);
-            data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.rightView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
-            cb.CopyTexture(renderTarget, depthSlice, targetCopyTex, 0);
-            //Left
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
-            cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.leftView);
-            data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.leftView ;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
-        }
-    }
-    [Serializable]
-    public unsafe class SceneControllerWithGPURPEnabled : SceneController
-    {
+        public static SceneController current = new SceneController();
+        public static bool gpurpEnabled = false;
+        private static bool singletonReady = false;
         private PipelineResources resources;
         public PipelineBaseBuffer baseBuffer { get; private set; }
-        public string mapResources = "SceneManager";
         private ClusterMatResources clusterResources;
         private List<SceneStreaming> allScenes;
         public NativeList<ulong> pointerContainer;
         public LoadingCommandQueue commandQueue;
-        [Header("Material Settings:")]
-        public int resolution = 1024;
-        public int texArrayCapacity = 50;
-        public int propertyCapacity = 500;
-        public void Awake(PipelineResources resources)
+        public NativeList<ulong> addList;
+        public int resolution { get; private set; }
+        public static void SetState()
         {
+            if (singletonReady && current.baseBuffer.clusterCount > 0)
+            {
+                gpurpEnabled = true;
+            }
+            else
+            {
+                gpurpEnabled = false;
+            }
+        }
+        private SceneController()
+        {
+        }
+        public void Awake(PipelineResources resources, int resolution, int texArrayCapacity, int propertyCapacity, string mapResources)
+        {
+            this.resolution = resolution;
+            singletonReady = true;
             this.resources = resources;
-            gpurp = this;
             addList = new NativeList<ulong>(10, Allocator.Persistent);
             baseBuffer = new PipelineBaseBuffer();
             clusterResources = Resources.Load<ClusterMatResources>("MapMat/" + mapResources);
@@ -402,22 +214,6 @@ namespace MPipeline
             {
                 commonData.avaiableTexs.Add(i);
             }
-            testNodeArray = new NativeList<ulong>(terrainTransforms.Length, Allocator.Persistent);
-            foreach (var i in terrainTransforms)
-            {
-                TerrainQuadTree.QuadTreeNode* testNode = (TerrainQuadTree.QuadTreeNode*)UnsafeUtility.Malloc(sizeof(TerrainQuadTree.QuadTreeNode), 16, Allocator.Persistent);
-                testNode->listPosition = -1;
-                ref TerrainPanel panel = ref testNode->panel;
-                if (i.localScale.x > 1.1f)
-                    panel.edgeFlag = 0;
-                else
-                    panel.edgeFlag = 15;
-                panel.extent = i.localScale * 0.5f;
-                panel.position = i.position;
-                panel.textureIndex = 0;
-                panel.heightMapIndex = 0;
-                testNodeArray.Add((ulong)testNode);
-            }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UpdateCopyMat()
@@ -434,9 +230,10 @@ namespace MPipeline
             resources.gpuFrustumCulling.Dispatch(PipelineBaseBuffer.MoveVertex, baseBuffer.clusterCount - startPos, 1, 1);
             ComputeShaderUtility.Dispatch(resources.gpuFrustumCulling, PipelineBaseBuffer.MoveCluster, baseBuffer.clusterCount - startPos, 64);
         }
+
         public void Dispose()
         {
-            gpurp = null;
+            singletonReady = false;
             PipelineFunctions.Dispose(baseBuffer);
             pointerContainer.Dispose();
             commandQueue = null;
@@ -449,17 +246,10 @@ namespace MPipeline
             commonData.terrainDrawStreaming.Dispose();
             UnityEngine.Object.DestroyImmediate(commonData.terrainMaterial);
             UnityEngine.Object.DestroyImmediate(commonData.copyTextureMat);
-            foreach (var i in testNodeArray)
-            {
-                UnsafeUtility.Free((void*)i, Allocator.Persistent);
-            }
-            testNodeArray.Dispose();
             addList.Dispose();
         }
         //Press number load scene
-        public Transform[] terrainTransforms;
-        public NativeList<ulong> addList;
-        public NativeList<ulong> testNodeArray;
+        
         public void Update(MonoBehaviour behavior)
         {
             /* int value;
@@ -509,17 +299,38 @@ namespace MPipeline
         {
             PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
             PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
-            PipelineFunctions.RenderProceduralCommand(baseBuffer,mat , options.command);
+            PipelineFunctions.RenderProceduralCommand(baseBuffer, mat, options.command);
         }
-        public override void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
+        private void RenderScene(ref PipelineCommandData data, Camera cam)
         {
-            options.command.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
-            options.command.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
-            ClusterCullDraw(ref options, commonData.clusterMaterial);
-            RenderScene(ref data, cam);
-            
+            data.ExecuteCommandBuffer();
+            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            {
+                renderQueueRange = RenderQueueRange.opaque,
+                layerMask = cam.cullingMask
+            };
+            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("GBuffer"));
+            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
+            {
+                flags = SortFlags.CommonOpaque,
+                sortMode = DrawRendererSortMode.Perspective,
+                cameraPosition = cam.transform.position
+            };
+            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.PerObjectMotionVectors;
+            data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
         }
-        public override void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
+        public void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
+        {
+            if (gpurpEnabled)
+            {
+                options.command.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
+                options.command.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
+                ClusterCullDraw(ref options, commonData.clusterMaterial);
+            }
+            RenderScene(ref data, cam);
+
+        }
+        public void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
         {
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
@@ -533,7 +344,8 @@ namespace MPipeline
             options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
 
             options.isOrtho = false;
-            ClusterCullDraw(ref options, spotcommand.clusterShadowMaterial);
+            if (gpurpEnabled)
+                ClusterCullDraw(ref options, spotcommand.clusterShadowMaterial);
 
             data.ExecuteCommandBuffer();
             FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
@@ -553,8 +365,13 @@ namespace MPipeline
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
         }
 
-        public override void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
+        public void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
         {
+            if (!gpurpEnabled)
+            {
+                RenderScene(ref data, cam);
+                return;
+            }
             CommandBuffer buffer = options.command;
             ComputeShader gpuFrustumShader = options.cullingShader;
 
@@ -584,16 +401,30 @@ options.isOrtho);
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
-
-        public override void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, SunLight sunLight, Matrix4x4[] cascadeShadowMapVP)
+        private StaticFit DirectionalShadowStaticFit(Camera cam, SunLight sunlight, float* outClipDistance)
+        {
+            StaticFit staticFit;
+            staticFit.resolution = sunlight.resolution;
+            staticFit.mainCamTrans = cam;
+            staticFit.frustumCorners = new NativeArray<float3>((CASCADELEVELCOUNT + 1) * 4, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            outClipDistance[0] = sunlight.shadCam.nearClipPlane;
+            outClipDistance[1] = sunlight.firstLevelDistance;
+            outClipDistance[2] = sunlight.secondLevelDistance;
+            outClipDistance[3] = sunlight.thirdLevelDistance;
+            outClipDistance[4] = sunlight.farestDistance;
+            return staticFit;
+        }
+        public void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, SunLight sunLight, Matrix4x4[] cascadeShadowMapVP)
         {
             float* clipDistances = stackalloc float[CASCADECLIPSIZE];
             StaticFit staticFit = DirectionalShadowStaticFit(currentCam, sunLight, clipDistances);
             //   PipelineFunctions.GetfrustumCorners(farClipDistance, ref shadMap, currentCam);
             PipelineFunctions.GetfrustumCorners(clipDistances, CASCADELEVELCOUNT + 1, currentCam, (float3*)staticFit.frustumCorners.GetUnsafePtr());
-            opts.command.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            opts.command.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-        
+            if (gpurpEnabled)
+            {
+                opts.command.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+                opts.command.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+            }
             for (int pass = 0; pass < CASCADELEVELCOUNT; ++pass)
             {
                 PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref sunLight.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
@@ -603,9 +434,12 @@ options.isOrtho);
                 float* biasList = (float*)UnsafeUtility.AddressOf(ref sunLight.bias);
                 Matrix4x4 vpMatrix;
                 PipelineFunctions.UpdateCascadeState(ref sunLight, opts.command, biasList[pass] / currentCam.farClipPlane, pass, out vpMatrix);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, opts.frustumPlanes, opts.command);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, true, opts.command);
-                opts.command.DrawProceduralIndirect(Matrix4x4.identity, sunLight.shadowDepthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
+                if (gpurpEnabled)
+                {
+                    PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, opts.frustumPlanes, opts.command);
+                    PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, true, opts.command);
+                    opts.command.DrawProceduralIndirect(Matrix4x4.identity, sunLight.shadowDepthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
+                }
                 data.ExecuteCommandBuffer();
                 FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
                 {
@@ -631,7 +465,7 @@ options.isOrtho);
             }
         }
 
-        public override void DrawCubeMap(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
+        public void DrawCubeMap(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
         {
             CommandBuffer cb = opts.command;
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
@@ -661,9 +495,12 @@ options.isOrtho);
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
-            PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes, cb);
-            PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            if (gpurpEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
+                cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
 
             cb.CopyTexture(renderTarget, depthSlice + 5, targetCopyTex, 5);
@@ -676,9 +513,12 @@ options.isOrtho);
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             results = CullResults.Cull(ref data.cullParams, data.context);
-            PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 6, cb);
-            PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            if (gpurpEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 6, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
+                cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
 
             cb.CopyTexture(renderTarget, depthSlice + 4, targetCopyTex, 4);
@@ -691,9 +531,12 @@ options.isOrtho);
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             results = CullResults.Cull(ref data.cullParams, data.context);
-            PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 12, cb);
-            PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            if (gpurpEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 12, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
+                cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
 
             cb.CopyTexture(renderTarget, depthSlice + 2, targetCopyTex, 2);
@@ -706,9 +549,12 @@ options.isOrtho);
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             results = CullResults.Cull(ref data.cullParams, data.context);
-            PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 18, cb);
-            PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            if (gpurpEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 18, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
+                cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
 
             cb.CopyTexture(renderTarget, depthSlice + 3, targetCopyTex, 3);
@@ -721,9 +567,12 @@ options.isOrtho);
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             results = CullResults.Cull(ref data.cullParams, data.context);
-            PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 24, cb);
-            PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            if (gpurpEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 24, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
+                cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
 
             cb.CopyTexture(renderTarget, depthSlice, targetCopyTex, 0);
@@ -736,12 +585,15 @@ options.isOrtho);
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
             results = CullResults.Cull(ref data.cullParams, data.context);
-            PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 30, cb);
-            PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
-            cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            if (gpurpEnabled)
+            {
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 30, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
+                cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
-        
+
     }
 }

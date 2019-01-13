@@ -10,7 +10,11 @@ namespace MPipeline
     public class GPURPScene : MonoBehaviour
     {
         public PipelineResources resources;
-        public SceneControllerWithGPURPEnabled gpurp;
+        [Header("Material Settings:")]
+        public int resolution = 1024;
+        public int texArrayCapacity = 50;
+        public int propertyCapacity = 500;
+        public string mapResources = "SceneManager";
         private LoadingThread loadingThread;
         private GPURPScene current;
         public Camera mainCamera;
@@ -55,7 +59,7 @@ namespace MPipeline
                 return;
             }
             current = this;
-            gpurp.Awake(resources);
+            SceneController.current.Awake(resources, resolution, texArrayCapacity, propertyCapacity, mapResources);
             loadingThread = new LoadingThread();
             int length = 0;
             Count(transformParents, ref length);
@@ -72,7 +76,7 @@ namespace MPipeline
             jobHandle.Complete();
             Shader.SetGlobalVector(ShaderIDs._SceneOffset, new float4(offset.xyz, lengthsq(offset.xyz) > 0.01f ? 1 : 0));
             mainCamera.transform.position += (Vector3)offset;
-            gpurp.TransformMapPosition(0);
+            SceneController.current.TransformMapPosition(0);
             RenderPipeline.AddCommandAfterFrame(this, (o) => Shader.SetGlobalVector(ShaderIDs._SceneOffset, Vector4.zero));
         }
         [EasyButtons.Button]
@@ -83,14 +87,14 @@ namespace MPipeline
 
         private void Update()
         {
-            gpurp.Update(this);
-            loadingThread.Update(gpurp.commandQueue);
+            SceneController.current.Update(this);
+            loadingThread.Update(SceneController.current.commandQueue);
         }
 
         private void OnDestroy()
         {
             transformArray.Dispose();
-            gpurp.Dispose();
+            SceneController.current.Dispose();
             loadingThread.Dispose();
             current = null;
         }

@@ -77,7 +77,7 @@ namespace MPipeline
                 i.func(i.obj);
             }
             beforeRenderFrame.Clear();
-            SceneController.SetSingleton();
+            SceneController.SetState();
             foreach (var cam in cameras)
             {
                 PipelineCamera pipelineCam = cam.GetComponent<PipelineCamera>();

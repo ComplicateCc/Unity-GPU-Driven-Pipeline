@@ -6,5 +6,10 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 public unsafe class Test : MonoBehaviour
 {
-
+    [Button]
+    public void Run()
+    {
+        System.Action a = ()=> { };
+        a();
+    }
 }
