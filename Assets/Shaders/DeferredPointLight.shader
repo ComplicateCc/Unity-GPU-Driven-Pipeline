@@ -111,8 +111,8 @@ ENDCG
                         Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
 
                         //////Shading
-                        ShadowTrem = 1;
-                        float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(LightAngle * 0.5), cos(LightAngle), LumianceIntensity, 1.0 / LightRange, LightData.NoL);
+                        ShadowTrem = dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
+                        float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), LumianceIntensity, 1.0 / LightRange, LightData.NoL);
                         if(Light.shadowIndex >= 0)
                     {
                         float4 clipPos = mul(Light.vpMatrix, WorldPos);

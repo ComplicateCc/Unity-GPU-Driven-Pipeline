@@ -426,7 +426,7 @@ namespace MPipeline
                 ref SpotLight lit = ref allLights[shadowIndex.x];
                 PerspCam cam = new PerspCam
                 {
-                    aspect = 1,
+                    aspect = lit.aspect,
                     farClipPlane = lit.lightCone.height,
                     fov = lit.angle * 2 * Mathf.Rad2Deg,
                     nearClipPlane = 0.3f
@@ -495,6 +495,10 @@ namespace MPipeline
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
                         currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, normalize((Vector3)i.localToWorld.GetColumn(2)), deg);
                         currentSpot->angle = deg;
+                        currentSpot->aspect = mlight.aspect;
+                        currentSpot->lightRight = normalize((Vector3)i.localToWorld.GetColumn(1));
+                        currentSpot->smallAngle = Mathf.Deg2Rad * mlight.smallSpotAngle * 0.5f;
+                        currentSpot->nearClip = mlight.spotNearClip;
                         if (mlight.useShadow)
                         {
                             currentSpot->vpMatrix = i.localToWorld;

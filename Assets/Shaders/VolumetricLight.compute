@@ -110,12 +110,12 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             float lightDirLength = length(Un_LightDir);
             float3 lightDir = Un_LightDir / lightDirLength;
             float ldf = -dot(lightDir, LightForward);
-            float2 SpotConeAngle = float2(cos(LightAngle), cos(LightAngle * 0.75));
+            float2 SpotConeAngle = float2(cos(LightAngle), cos(Light.smallAngle));
             if(ldf < SpotConeAngle.x || SpotCone.height / ldf < lightDirLength) continue;
             float lightAngleScale = 1 / max ( 0.001, (SpotConeAngle.y - SpotConeAngle.x) );
             float lightAngleOffset = -SpotConeAngle.x * lightAngleScale;
             float SpotFalloff = AngleFalloff(ldf, lightAngleScale, lightAngleOffset);
-            float ShadowTrem = 1;
+            float ShadowTrem =  dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
             #ifdef SPOTMAP
             if(Light.shadowIndex >= 0)
             {

@@ -784,6 +784,9 @@ MonoBehaviour:
   useShadow: 1
   updateShadowmap: 1
   intensity: 500
+  smallSpotAngle: 30
+  spotNearClip: 0.3
+  aspect: 1
 --- !u!108 &506224093
 Light:
   m_ObjectHideFlags: 0
@@ -1682,7 +1685,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   useShadow: 1
   updateShadowmap: 1
-  intensity: 500
+  intensity: 10000
+  smallSpotAngle: 30
+  spotNearClip: 1.31
+  aspect: 1
 --- !u!108 &1483706494
 Light:
   m_ObjectHideFlags: 0

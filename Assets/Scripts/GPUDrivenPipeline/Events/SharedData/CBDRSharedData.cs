@@ -37,6 +37,10 @@ namespace MPipeline
         public Cone lightCone;
         public float angle;
         public Matrix4x4 vpMatrix;
+        public float smallAngle;
+        public float nearClip;
+        public float aspect;
+        public float3 lightRight;
         public int shadowIndex;
     };
     public unsafe class CBDRSharedData : PipelineSharedData

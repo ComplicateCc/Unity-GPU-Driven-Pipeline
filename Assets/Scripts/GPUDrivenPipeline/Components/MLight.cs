@@ -12,6 +12,11 @@ public unsafe class MLight : MonoBehaviour
     public bool useShadow = false;
     public bool updateShadowmap = true;
     public float intensity = 500;
+    public float smallSpotAngle = 30;
+    public float spotNearClip = 0.3f;
+    [Range(0.01f, 1f)]
+    public float aspect = 1;
+    
     private static Dictionary<Light, MLight> lightDict = new Dictionary<Light, MLight>(47);
     [System.NonSerialized] public RenderTexture shadowMap;
     [System.NonSerialized] public Light light;
