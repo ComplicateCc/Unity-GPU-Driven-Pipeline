@@ -31,10 +31,10 @@ namespace MPipeline
         private NativeList<CubemapViewProjMatrix> cubemapVPMatrices;
         private NativeArray<PointLightStruct> pointLightArray;
         private NativeArray<SpotLight> spotLightArray;
-        public NativeList<SpotLightMatrix> spotLightMatrices;
-        public List<Light> addMLightCommandList = new List<Light>(30);
-        public List<Light> allLights = new List<Light>(30);
-        public JobHandle lightingHandle;
+        private NativeList<SpotLightMatrix> spotLightMatrices;
+        private List<Light> addMLightCommandList = new List<Light>(30);
+        private List<Light> allLights = new List<Light>(30);
+        private JobHandle lightingHandle;
         #endregion
         protected override void Init(PipelineResources resources)
         {

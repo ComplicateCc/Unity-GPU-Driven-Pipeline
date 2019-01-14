@@ -14,27 +14,24 @@ namespace MPipeline
             backupMip = new RenderTexture(depthRes * 2, depthRes, 0, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
             backupMip.useMipMap = true;
             backupMip.autoGenerateMips = false;
-            backupMip.enableRandomWrite = true;
+            backupMip.enableRandomWrite = false;
             backupMip.wrapMode = TextureWrapMode.Clamp;
             backupMip.filterMode = FilterMode.Point;
             getLodMat = new Material(resources.HizLodShader);
         }
         public void GetMipMap(RenderTexture depthMipTexture, CommandBuffer buffer)
         {
+            buffer.SetGlobalTexture(ShaderIDs._MainTex, depthMipTexture);
             for (int i = 1; i < 8; ++i)
             {
-                buffer.SetGlobalTexture(ShaderIDs._MainTex, depthMipTexture);
                 buffer.SetGlobalInt(ShaderIDs._PreviousLevel, i - 1);
                 buffer.SetRenderTarget(backupMip, i);
                 buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, getLodMat, 0, 0);
-                buffer.SetGlobalTexture(ShaderIDs._MainTex, backupMip);
-                buffer.SetGlobalInt(ShaderIDs._PreviousLevel, i);
-                buffer.SetRenderTarget(depthMipTexture, i);
-                buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, getLodMat, 0, 0);
+                buffer.CopyTexture(backupMip, 0, i, depthMipTexture, 0, i);
             }
         }
         public void DisposeHiZ()
-        { 
+        {
             backupMip.Release();
             Object.DestroyImmediate(backupMip);
         }

@@ -12,8 +12,10 @@ CGINCLUDE
 
 Texture3D<half4> _VolumeTex; SamplerState sampler_VolumeTex;
 Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
-float4 _RandomSeed;
+
 float4 _Screen_TexelSize;
+
+float4 _RandomSeed;
 inline int ihash(int n)
 {
 	n = (n<<13)^n;

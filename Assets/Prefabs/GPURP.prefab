@@ -86,6 +86,8 @@ MonoBehaviour:
   m_enabledInPipeline: 1
   m_enableBeforePipeline: 1
   layer: 2010
+  addMLightCommandList: []
+  allLights: []
 --- !u!114 &2084661033390156272
 MonoBehaviour:
   m_ObjectHideFlags: 0
