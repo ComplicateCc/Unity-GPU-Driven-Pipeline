@@ -150,6 +150,7 @@ namespace MPipeline
                 MLight.AddMLight(i);
             }
             addMLightCommandList.Clear();
+            cbdr.pointshadowCount = cubemapVPMatrices.Length;
             if (LightFilter.pointLightCount > 0)
             {
                 if (cubemapVPMatrices.Length > 0)
@@ -193,6 +194,7 @@ namespace MPipeline
             {
                 buffer.DisableShaderKeyword("POINTLIGHT");
             }
+            cbdr.spotShadowCount = spotLightMatrices.Length;
             if (LightFilter.spotLightCount > 0)
             {
                 if (spotLightMatrices.Length > 0)
@@ -389,35 +391,6 @@ namespace MPipeline
                 cam.UpdateProjectionMatrix();
                 cube.projMat = cam.projectionMatrix;
                 cube.leftView = cam.worldToCameraMatrix;
-                NativeArray<float4> vec = new NativeArray<float4>(36, Allocator.Temp);
-                cube.frustumPlanes = vec.Ptr();
-                float3 camPos = cam.position;
-                float3* allEdgePos = stackalloc float3[]
-                {
-                    camPos + float3(1, 1, -1) * str.sphere.w,    //Right, up, back
-                    camPos + float3(1, 1, 1) * str.sphere.w,     //Right , up, forward
-                    camPos + float3(1, -1, -1) * str.sphere.w,   //right, down, back
-                    camPos + float3(1, -1, 1) * str.sphere.w,    //Right, down, forward
-                    camPos + float3(-1, 1, -1) * str.sphere.w,   //Left, up, back
-                    camPos + float3(-1, 1, 1) * str.sphere.w,    //Left, up, forward
-                    camPos + float3(-1, -1, -1) * str.sphere.w,  //Left, down, back
-                    camPos + float3(-1, -1, 1) * str.sphere.w   //Left, down, forward
-                };
-                void GetPlanes(int4 indices, float4* ptr, float3 dir)
-                {
-                    ptr[0] = VectorUtility.GetPlane(allEdgePos[indices.x], allEdgePos[indices.y], camPos);
-                    ptr[1] = VectorUtility.GetPlane(allEdgePos[indices.y], allEdgePos[indices.z], camPos);
-                    ptr[2] = VectorUtility.GetPlane(allEdgePos[indices.z], allEdgePos[indices.w], camPos);
-                    ptr[3] = VectorUtility.GetPlane(allEdgePos[indices.w], allEdgePos[indices.x], camPos);
-                    ptr[4] = float4(-dir, dot(camPos, dir));
-                    ptr[5] = float4(dir, -dot(camPos + dir * str.sphere.w, dir));
-                }
-                GetPlanes(new int4(7, 5, 0, 2), cube.frustumPlanes, float3(0, 0, 1));
-                GetPlanes(new int4(2, 0, 4, 6), cube.frustumPlanes + 6, float3(0, 0, -1));
-                GetPlanes(new int4(5, 4, 0, 1), cube.frustumPlanes + 12, float3(0, 1, 0));
-                GetPlanes(new int4(6, 7, 3, 2), cube.frustumPlanes + 18, float3(0, -1, 0));
-                GetPlanes(new int4(3, 1, 0, 2), cube.frustumPlanes + 24, float3(1, 0, 0));
-                GetPlanes(new int4(6, 4, 5, 7), cube.frustumPlanes + 30, float3(-1, 0, 0));
             }
             public static void CalculatePersMatrix(SpotLight* allLights, SpotLightMatrix* projectionMatrices, int index)
             {
@@ -438,6 +411,7 @@ namespace MPipeline
             }
             public void Execute(int index)
             {
+                const float LUMENRATE = (4 * Mathf.PI);
                 PointLightStruct* indStr = pointLightArray.Ptr();
                 SpotLight* spotStr = spotLightArray.Ptr();
                 VisibleLight i = allVisibleLight[index];
@@ -456,8 +430,7 @@ namespace MPipeline
                         int currentPointCount = Interlocked.Increment(ref pointLightCount) - 1;
                         PointLightStruct* currentPtr = indStr + currentPointCount;
                         Color col = i.finalColor;
-                        currentPtr->lightColor = new float3(col.r, col.g, col.b);
-                        currentPtr->lightIntensity = mlight.intensity;
+                        currentPtr->lightColor = new float3(col.r, col.g, col.b) / LUMENRATE;
                         currentPtr->sphere = i.localToWorld.GetColumn(3);
                         currentPtr->sphere.w = i.range;
                         if (mlight.useShadow)
@@ -490,8 +463,7 @@ namespace MPipeline
                         int currentSpotCount = Interlocked.Increment(ref spotLightCount) - 1;
                         SpotLight* currentSpot = spotStr + currentSpotCount;
                         Color spotCol = i.finalColor;
-                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b);
-                        currentSpot->lightIntensity = mlight.intensity;
+                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b) / LUMENRATE;
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
                         currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, normalize((Vector3)i.localToWorld.GetColumn(2)), deg);
                         currentSpot->angle = deg;

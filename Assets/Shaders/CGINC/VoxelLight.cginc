@@ -19,14 +19,12 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
 
             struct PointLight{
                 float3 lightColor;
-                float lightIntensity;
                 float4 sphere;
                 int shadowIndex;
             };
             struct SpotLight
             {
                 float3 lightColor;
-                float lightIntensity;
                 Cone lightCone;
                 float angle;
                 float4x4 vpMatrix;

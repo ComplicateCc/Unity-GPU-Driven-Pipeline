@@ -63,6 +63,10 @@ namespace MPipeline
             int pass = 0;
             if (cbdr.dirLightShadowmap != null)
                 pass |= 0b010;
+            if (cbdr.pointshadowCount > 0)
+                pass |= 0b001;
+            if (cbdr.spotShadowCount > 0)
+                pass |= 0b100;
             buffer.SetGlobalFloat(ShaderIDs._MaxDistance, availableDistance);
             buffer.SetGlobalInt(ShaderIDs._FrameCount, Time.frameCount);
             HistoryVolumetric historyVolume = IPerCameraData.GetProperty(cam, () => new HistoryVolumetric());

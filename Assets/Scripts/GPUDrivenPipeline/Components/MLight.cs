@@ -11,7 +11,6 @@ public unsafe class MLight : MonoBehaviour
     public const int perspShadowResolution = 2048;
     public bool useShadow = false;
     public bool updateShadowmap = true;
-    public float intensity = 500;
     public float smallSpotAngle = 30;
     public float spotNearClip = 0.3f;
     [Range(0.01f, 1f)]

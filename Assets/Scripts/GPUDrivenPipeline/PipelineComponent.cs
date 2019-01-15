@@ -35,8 +35,6 @@ namespace MPipeline
         public Matrix4x4 rightView;
         public Matrix4x4 leftView;
         public Matrix4x4 projMat;
-        [NativeDisableUnsafePtrRestriction]
-        public float4* frustumPlanes;
     }
 
     public class PipelineBaseBuffer

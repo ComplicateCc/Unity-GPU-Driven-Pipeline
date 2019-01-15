@@ -6,7 +6,6 @@ namespace MPipeline
     public struct PointLightStruct
     {
         public float3 lightColor;
-        public float lightIntensity;
         public float4 sphere;
         public int shadowIndex;
     }
@@ -33,7 +32,6 @@ namespace MPipeline
     public struct SpotLight
     {
         public float3 lightColor;
-        public float lightIntensity;
         public Cone lightCone;
         public float angle;
         public Matrix4x4 vpMatrix;
@@ -74,6 +72,8 @@ namespace MPipeline
         public float availiableDistance;
         public const int MAXIMUMPOINTLIGHTCOUNT = 4;
         public const int MAXIMUMSPOTLIGHTCOUNT = 8;
+        public int spotShadowCount;
+        public int pointshadowCount;
         public CBDRSharedData(PipelineResources res)
         {
             cbdrShader = res.cbdrShader;

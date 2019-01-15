@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 using Unity.Mathematics;
 using UnityEngine.Experimental.Rendering;
 using System;
+using static Unity.Mathematics.math;
 using System.Runtime.CompilerServices;
 namespace MPipeline
 {
@@ -291,12 +292,7 @@ namespace MPipeline
             result = baseBuffer;
             return result.clusterCount > 0;
         }
-        private static void ClusterCullDraw(ref RenderClusterOptions options, Material mat)
-        {
-            PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
-            PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
-            PipelineFunctions.RenderProceduralCommand(baseBuffer, mat, options.command);
-        }
+
         private static void RenderScene(ref PipelineCommandData data, Camera cam)
         {
             data.ExecuteCommandBuffer();
@@ -321,7 +317,9 @@ namespace MPipeline
             {
                 options.command.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
                 options.command.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
-                ClusterCullDraw(ref options, commonData.clusterMaterial);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
+                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
+                PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
             }
             RenderScene(ref data, cam);
 
@@ -338,10 +336,20 @@ namespace MPipeline
             options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
             options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
             options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
-
             options.isOrtho = false;
+            CullResults.GetCullingParameters(currentCam, out data.cullParams);
             if (gpurpEnabled)
-                ClusterCullDraw(ref options, spotcommand.clusterShadowMaterial);
+            {
+                float4* frustumPlanes = stackalloc float4[6];
+                for(int i = 0; i < 6; ++i)
+                {
+                    Plane p = data.cullParams.GetCullingPlane(i);
+                    frustumPlanes[i] = new float4(-p.normal, -p.distance);
+                }
+                PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, frustumPlanes, options.command);
+                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
+                PipelineFunctions.RenderProceduralCommand(baseBuffer, spotcommand.clusterShadowMaterial, options.command);
+            }
 
             data.ExecuteCommandBuffer();
             FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
@@ -354,7 +362,7 @@ namespace MPipeline
             {
                 flags = SortFlags.None
             };
-            CullResults.GetCullingParameters(currentCam, out data.cullParams);
+            
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
@@ -491,9 +499,19 @@ options.isOrtho);
             CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+            float4* frustumPlanes = stackalloc float4[6];
+            void SetFrustumPlanes(ref PipelineCommandData d)
+            {
+                for(int i = 0; i < 6; ++i)
+                {
+                    Plane p = d.cullParams.GetCullingPlane(i);
+                    frustumPlanes[i] = float4(-p.normal, -p.distance);
+                }
+            }
             if (gpurpEnabled)
             {
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes, cb);
+                SetFrustumPlanes(ref data);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
                 PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
@@ -511,7 +529,8 @@ options.isOrtho);
             results = CullResults.Cull(ref data.cullParams, data.context);
             if (gpurpEnabled)
             {
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 6, cb);
+                SetFrustumPlanes(ref data);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
                 PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
@@ -529,7 +548,8 @@ options.isOrtho);
             results = CullResults.Cull(ref data.cullParams, data.context);
             if (gpurpEnabled)
             {
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 12, cb);
+                SetFrustumPlanes(ref data);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
                 PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
@@ -547,7 +567,8 @@ options.isOrtho);
             results = CullResults.Cull(ref data.cullParams, data.context);
             if (gpurpEnabled)
             {
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 18, cb);
+                SetFrustumPlanes(ref data);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
                 PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
@@ -565,7 +586,8 @@ options.isOrtho);
             results = CullResults.Cull(ref data.cullParams, data.context);
             if (gpurpEnabled)
             {
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 24, cb);
+                SetFrustumPlanes(ref data);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
                 PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
@@ -583,7 +605,8 @@ options.isOrtho);
             results = CullResults.Cull(ref data.cullParams, data.context);
             if (gpurpEnabled)
             {
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes + 30, cb);
+                SetFrustumPlanes(ref data);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
                 PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }

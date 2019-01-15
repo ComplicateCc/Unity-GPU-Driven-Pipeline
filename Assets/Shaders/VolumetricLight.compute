@@ -82,7 +82,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             if(lenOfLightDir > pt.sphere.w) continue;
 
             //float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
-            float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * GetLumianceIntensity(pt.lightIntensity) * MieScattering(dot(lightDir / lenOfLightDir, viewDir), _MieG) * pt.lightColor;
+            float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * MieScattering(dot(lightDir / lenOfLightDir, viewDir), _MieG) * pt.lightColor;
 
             #ifdef CUBEMAP
             if(pt.shadowIndex >= 0){
@@ -101,7 +101,6 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
         {
             SpotLight Light = _AllSpotLight[_FroxelSpotTileLightList[uint3(tileIndex, c)]];
             Cone SpotCone = Light.lightCone;
-            float LumianceIntensity = Light.lightIntensity;
             float LightRange = SpotCone.radius;
             float3 LightPos = SpotCone.vertex;
             float LightAngle = Light.angle;
@@ -126,7 +125,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         ShadowTrem = lightDirLength / SpotCone.height < shadowDist;
             }
             #endif
-            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * GetLumianceIntensity(LumianceIntensity) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor;
+            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor;
         }
     }
     color.a = 1;//TODO

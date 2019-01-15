@@ -92,9 +92,7 @@ ENDCG
                 {
                     SpotLight Light = _AllSpotLight[_SpotLightIndexBuffer[c]];
                     Cone SpotCone = Light.lightCone;
-                    
-                        //////Light Data
-                        float LumianceIntensity = Light.lightIntensity;
+                
                         float LightRange = SpotCone.radius;
                         float3 LightPos = SpotCone.vertex;
                         float3 LightColor = Light.lightColor;
@@ -112,7 +110,7 @@ ENDCG
 
                         //////Shading
                         ShadowTrem = dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
-                        float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), LumianceIntensity, 1.0 / LightRange, LightData.NoL);
+                        float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), 1.0 / LightRange, LightData.NoL);
                         if(Light.shadowIndex >= 0)
                     {
                         float4 clipPos = mul(Light.vpMatrix, WorldPos);
@@ -133,9 +131,6 @@ ENDCG
                 for(c = LightIndex.x; c < LightIndex.y; c++)
                 {
                     PointLight Light = _AllPointLight[_PointLightIndexBuffer[c]];
-
-                    //////Light Data
-                    float LumianceIntensity = Light.lightIntensity;
                     float LightRange = Light.sphere.a;
                     float3 LightPos = Light.sphere.rgb;
                     float3 LightColor = Light.lightColor;
@@ -160,7 +155,7 @@ ENDCG
                     Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
 
                     //////Shading
-                    float3 Energy = Point_Energy(Un_LightDir, LightColor, LumianceIntensity, 1 / LightRange, LightData.NoL) * ShadowTrem;
+                    float3 Energy = Point_Energy(Un_LightDir, LightColor, 1 / LightRange, LightData.NoL) * ShadowTrem;
                    ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1));
                 }
                 #endif

@@ -142,13 +142,6 @@ void AreaLightIntegrated(float3 pos, float3 tubeStart, float3 tubeEnd, float3 no
     outLightDir = closestPoint / outLightDist;
 }
 
-
-/////////////////////////////////////////////////////////////////////////***Falloff***/////////////////////////////////////////////////////////////////////////
-half GetLumianceIntensity(half lumiance)
-{
-    return max(0, lumiance) / (4 * PI);
-}
-
 half SmoothFalloff(half squaredDistance, half invSqrAttRadius)
 {
     return Square( saturate(1 - Square(squaredDistance * Square(invSqrAttRadius))) );
@@ -212,16 +205,16 @@ half IESFalloff(half3 L)
 
 //////Punctual Energy
 
-half3 Point_Energy(half3 Un_LightDir,half3 lightColor, half lumiance, half range, half NoL)
+half3 Point_Energy(half3 Un_LightDir,half3 lightColor, half range, half NoL)
 {
     half Falloff = DistanceFalloff(Un_LightDir, range);
 
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
-    half3 luminance = Falloff * NoL * ( lightColor * GetLumianceIntensity(lumiance) );
+    half3 luminance = Falloff * NoL *  lightColor;
     return luminance;
 }
 
-half3 Spot_Energy(half ldh, half lightDist, half3 lightColor, half innerCone, half outerCone, half lumiance, half range, half NoL)
+half3 Spot_Energy(half ldh, half lightDist, half3 lightColor, half innerCone, half outerCone, half range, half NoL)
 {
     half Falloff = DistanceFalloff(lightDist * lightDist, range);
 
@@ -230,13 +223,13 @@ half3 Spot_Energy(half ldh, half lightDist, half3 lightColor, half innerCone, ha
     Falloff *= AngleFalloff(ldh, lightAngleScale, lightAngleOffset);
 
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
-    half3 luminance = Falloff * NoL * ( lightColor * GetLumianceIntensity(lumiance) );
+    half3 luminance = Falloff * NoL *  lightColor;
     return luminance;
 }
 
 
 //////Area Energy
-half Sphere_Energy(half3 worldNormal, half3 Un_LightDir, half3 lightPos, half3 lightColor, half radius, half range, half lumiance)
+half Sphere_Energy(half3 worldNormal, half3 Un_LightDir, half3 lightPos, half3 lightColor, half radius, half range)
 {
     half3 L = normalize(Un_LightDir);
     half sqrDist = dot (Un_LightDir , Un_LightDir);
@@ -268,10 +261,8 @@ half Sphere_Energy(half3 worldNormal, half3 Un_LightDir, half3 lightPos, half3 l
     illuminance *= PI;
 
 #endif
-
     half RangeFalloff = DistanceFalloff(Un_LightDir, range);
-    half LumiancePower = lightColor * GetLumianceIntensity(lumiance);
-    return illuminance * RangeFalloff * LumiancePower;
+    return illuminance * RangeFalloff * lightColor;
 }
 
 #endif
