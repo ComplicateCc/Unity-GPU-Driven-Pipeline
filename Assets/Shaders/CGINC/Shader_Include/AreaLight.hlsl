@@ -97,9 +97,9 @@ void Init_Sphere(inout BSDFContext Context, float SinAlpha)
 }
 */
 
-void AreaLightIntegrated(float3 pos, float3 tubeStart, float3 tubeEnd, float3 normal, float tubeRad, float3 ReflectionDir, out float3 outLightDir, out float outNdotL, out half outLightDist)
+void AreaLightIntegrated(float3 pos, float3 tubeStart, float3 tubeEnd, float3 normal, float tubeRad, float3 ReflectionDir, out float3 outLightDir, out float outNdotL, out float outLightDist)
 {
-    half3 N = normal;
+    float3 N = normal;
     float3 L0 = tubeStart - pos;
     float3 L1 = tubeEnd - pos;
     float L0dotL0 = dot(L0, L0);
@@ -142,61 +142,61 @@ void AreaLightIntegrated(float3 pos, float3 tubeStart, float3 tubeEnd, float3 no
     outLightDir = closestPoint / outLightDist;
 }
 
-half SmoothFalloff(half squaredDistance, half invSqrAttRadius)
+float SmoothFalloff(float squaredDistance, float invSqrAttRadius)
 {
     return Square( saturate(1 - Square(squaredDistance * Square(invSqrAttRadius))) );
 }
 
-half DistanceFalloff(half3 unLightDir, half invSqrAttRadius)
+float DistanceFalloff(float3 unLightDir, float invSqrAttRadius)
 {
-    half sqrDist = dot(unLightDir, unLightDir);
-    half attenuation = 1 / (max(sqrDist, 0.01 * 0.01));
+    float sqrDist = dot(unLightDir, unLightDir);
+    float attenuation = 1 / (max(sqrDist, 0.01 * 0.01));
     attenuation *= SmoothFalloff(sqrDist, invSqrAttRadius);
     return attenuation;
 }
 
-half DistanceFalloff(half sqrDist, half invSqrAttRadius)
+float DistanceFalloff(float sqrDist, float invSqrAttRadius)
 {
-    half attenuation = 1 / (max(sqrDist, 0.01 * 0.01));
+    float attenuation = 1 / (max(sqrDist, 0.01 * 0.01));
     attenuation *= SmoothFalloff(sqrDist, invSqrAttRadius);
     return attenuation;
 }
 
 
-half AngleFalloff(half3 lightDir, half3 coneDir, half lightAngleScale, half lightAngleOffset)
+float AngleFalloff(float3 lightDir, float3 coneDir, float lightAngleScale, float lightAngleOffset)
 {
     // On the CPU
-    // half lightAngleScale = 1 / max ( 0.001, (cosInner - cosOuter) );
-    // half lightAngleOffset = -cosOuter * lightAngleScale ;
+    // float lightAngleScale = 1 / max ( 0.001, (cosInner - cosOuter) );
+    // float lightAngleOffset = -cosOuter * lightAngleScale ;
 
-    half cd = dot(coneDir, lightDir);
-    half attenuation = saturate(cd * lightAngleScale + lightAngleOffset);
+    float cd = dot(coneDir, lightDir);
+    float attenuation = saturate(cd * lightAngleScale + lightAngleOffset);
     attenuation *= attenuation;
     return attenuation;
 }
 
-half AngleFalloff(half cd, half lightAngleScale, half lightAngleOffset)
+float AngleFalloff(float cd, float lightAngleScale, float lightAngleOffset)
 {
     // On the CPU
-    // half lightAngleScale = 1 / max ( 0.001, (cosInner - cosOuter) );
-    // half lightAngleOffset = -cosOuter * lightAngleScale ;
-    half attenuation = saturate(cd * lightAngleScale + lightAngleOffset);
+    // float lightAngleScale = 1 / max ( 0.001, (cosInner - cosOuter) );
+    // float lightAngleOffset = -cosOuter * lightAngleScale ;
+    float attenuation = saturate(cd * lightAngleScale + lightAngleOffset);
     attenuation *= attenuation;
     return attenuation;
 }
 
 /*
-half IESFalloff(half3 L)
+float IESFalloff(float3 L)
 {
-    half3 iesSampleDirection = mul (light  worldToLight , -L);
+    float3 iesSampleDirection = mul (light  worldToLight , -L);
 
     // Cartesian to spherical
     // Texture encoded with cos(phi), scale from -1 - >1 to 0 - >1
-    half phiCoord = ( iesSampleDirection.z * 0.5) + 0.5;
-    half theta = atan2 ( iesSampleDirection.y , iesSampleDirection.x);
-    half thetaCoord = theta * Inv_Two_PI ;
-    half3 texCoord = half3 (thetaCoord , phiCoord);
-    half iesProfileScale = iesTexture . SampleLevel (sampler , texCoord , 0).r;
+    float phiCoord = ( iesSampleDirection.z * 0.5) + 0.5;
+    float theta = atan2 ( iesSampleDirection.y , iesSampleDirection.x);
+    float thetaCoord = theta * Inv_Two_PI ;
+    float3 texCoord = float3 (thetaCoord , phiCoord);
+    float iesProfileScale = iesTexture . SampleLevel (sampler , texCoord , 0).r;
     return iesProfileScale ;
 }
 */
@@ -205,40 +205,40 @@ half IESFalloff(half3 L)
 
 //////Punctual Energy
 
-half3 Point_Energy(half3 Un_LightDir,half3 lightColor, half range, half NoL)
+float3 Point_Energy(float3 Un_LightDir,float3 lightColor, float range, float NoL)
 {
-    half Falloff = DistanceFalloff(Un_LightDir, range);
+    float Falloff = DistanceFalloff(Un_LightDir, range);
 
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
-    half3 luminance = Falloff * NoL *  lightColor;
+    float3 luminance = Falloff * NoL *  lightColor;
     return luminance;
 }
 
-half3 Spot_Energy(half ldh, half lightDist, half3 lightColor, half innerCone, half outerCone, half range, half NoL)
+float3 Spot_Energy(float ldh, float lightDist, float3 lightColor, float innerCone, float outerCone, float range, float NoL)
 {
-    half Falloff = DistanceFalloff(lightDist * lightDist, range);
+    float Falloff = DistanceFalloff(lightDist * lightDist, range);
 
-    half lightAngleScale = 1 / max ( 0.001, (innerCone - outerCone) );
-    half lightAngleOffset = -outerCone * lightAngleScale;
+    float lightAngleScale = 1 / max ( 0.001, (innerCone - outerCone) );
+    float lightAngleOffset = -outerCone * lightAngleScale;
     Falloff *= AngleFalloff(ldh, lightAngleScale, lightAngleOffset);
 
     // i.e with point light and luminous power unit : lightColor = color * phi / (4 * PI)
-    half3 luminance = Falloff * NoL *  lightColor;
+    float3 luminance = Falloff * NoL *  lightColor;
     return luminance;
 }
 
 
 //////Area Energy
-half Sphere_Energy(half3 worldNormal, half3 Un_LightDir, half3 lightPos, half3 lightColor, half radius, half range)
+float Sphere_Energy(float3 worldNormal, float3 Un_LightDir, float3 lightPos, float3 lightColor, float radius, float range)
 {
-    half3 L = normalize(Un_LightDir);
-    half sqrDist = dot (Un_LightDir , Un_LightDir);
-    half illuminance = 0;
+    float3 L = normalize(Un_LightDir);
+    float sqrDist = dot (Un_LightDir , Un_LightDir);
+    float illuminance = 0;
 
 #if WITHOUT_CORRECT_HORIZON // Analytical solution above horizon
 
     // Patch to Sphere frontal equation ( Quilez version )
-    half sqrLightRadius = radius * radius;
+    float sqrLightRadius = radius * radius;
     // Do not allow object to penetrate the light ( max )
     // Form factor equation include a (1 / PI ) that need to be cancel
     // thus the " PI *"
@@ -247,11 +247,11 @@ half Sphere_Energy(half3 worldNormal, half3 Un_LightDir, half3 lightPos, half3 l
 #else // Analytical solution with horizon
 
     // Tilted patch to sphere equation
-    half Beta = acos(saturate(dot(worldNormal, L)));
-    half H = sqrt (sqrDist);
-    half h = H / radius;
-    half x = sqrt (h * h - 1);
-    half y = -x * (1 / tan (Beta));
+    float Beta = acos(saturate(dot(worldNormal, L)));
+    float H = sqrt (sqrDist);
+    float h = H / radius;
+    float x = sqrt (h * h - 1);
+    float y = -x * (1 / tan (Beta));
 
     if (h * cos (Beta) > 1) {
         illuminance = cos ( Beta ) / (h * h);
@@ -261,7 +261,7 @@ half Sphere_Energy(half3 worldNormal, half3 Un_LightDir, half3 lightPos, half3 l
     illuminance *= PI;
 
 #endif
-    half RangeFalloff = DistanceFalloff(Un_LightDir, range);
+    float RangeFalloff = DistanceFalloff(Un_LightDir, range);
     return illuminance * RangeFalloff * lightColor;
 }
 

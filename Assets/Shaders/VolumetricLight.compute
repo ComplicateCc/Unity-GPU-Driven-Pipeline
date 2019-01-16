@@ -79,11 +79,10 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             PointLight pt = _AllPointLight[_FroxelPointTileLightList[uint3(tileIndex, c)]];
             float3 lightDir = pt.sphere.xyz - targetWorldPos;
             float lenOfLightDir = length(lightDir);
+            //Cull Light
             if(lenOfLightDir > pt.sphere.w) continue;
-
-            //float3 currentCol = pt.lightColor * pow(saturate(1 - distance(targetWorldPos, pt.sphere.xyz) / pt.sphere.w), 2) * pt.lightIntensity;
+            
             float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * MieScattering(dot(lightDir / lenOfLightDir, viewDir), _MieG) * pt.lightColor;
-
             #ifdef CUBEMAP
             if(pt.shadowIndex >= 0){
                 float shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex), 0);
