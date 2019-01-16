@@ -8,6 +8,7 @@
 #pragma kernel Clear USE_FROXEL
 #pragma kernel TBDRSpot
 #pragma kernel TBDRSpot USE_FROXEL
+#pragma kernel FogVolumeCull
 #include "UnityCG.cginc"
 #include "CGINC/VoxelLight.cginc"
 float4x4 _InvVP;
@@ -153,3 +154,8 @@ void TBDRSpot(uint3 id : SV_DISPATCHTHREADID)
     }
 }
 
+[numthreads(XRES, YRES, 1)]
+void FogVolumeCull(uint3 id : SV_DISPATCHTHREADID)
+{
+
+}

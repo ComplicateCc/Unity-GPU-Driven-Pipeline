@@ -74,6 +74,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
     uint2 tileIndex = uv * uint2(XRES, YRES);
     if(_LightFlag & 1){
         uint len = min(_FroxelPointTileLightList[uint3(tileIndex, 0)], FROXELMAXPOINTLIGHTPERTILE + 1);
+        [loop]
         for(uint c = 1; c < len; c++)
         {
             PointLight pt = _AllPointLight[_FroxelPointTileLightList[uint3(tileIndex, c)]];
@@ -96,6 +97,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
     if(_LightFlag & 8)
     {
         uint len = min(_FroxelSpotTileLightList[uint3(tileIndex, 0)], FROXELMAXSPOTLIGHTPERTILE + 1);
+        [loop]
         for(uint c = 1; c < len; c++)
         {
             SpotLight Light = _AllSpotLight[_FroxelSpotTileLightList[uint3(tileIndex, c)]];
@@ -121,7 +123,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
                         float shadowDist = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0);
-                        ShadowTrem = lightDirLength / SpotCone.height < shadowDist;
+                        ShadowTrem *= lightDirLength / SpotCone.height < shadowDist;
             }
             #endif
             color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor;
@@ -154,7 +156,7 @@ inline uint From3DTo1D(uint3 id, const uint3 size){
     return dot(id, multiValue);
 }
 
-[numthreads(8, 2, VOXELZ)]
+[numthreads(2, 2, VOXELZ)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));

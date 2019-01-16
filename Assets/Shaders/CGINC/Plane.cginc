@@ -43,7 +43,18 @@ float BoxIntersect(float3 extent, float3 position, float4 planes[6]){
     {
         float4 plane = planes[i];
         float3 absNormal = abs(plane.xyz);
-        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ? 1.0 : 0.0;
+        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ;
+    }
+    return result;
+}
+float BoxIntersect(float3 extent, float3x3 boxLocalToWorld, float3 position, float4 planes[6])
+{
+    float result = 1;
+    for(uint i = 0; i < 6; ++i)
+    {
+        float4 plane = planes[i];
+        float3 absNormal = abs(mul(plane.xyz, boxLocalToWorld));
+        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ;
     }
     return result;
 }
@@ -53,7 +64,7 @@ float SphereIntersect(float4 sphere, float4 planes[2])
     float result = 1;
     for(uint i = 0; i < 2; ++i)
     {
-        result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w) ? 1.0 : 0.0;
+        result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w);
     }
     return result;
 }
@@ -63,11 +74,22 @@ float SphereIntersect(float4 sphere, float4 planes[4])
     float result = 1;
     for(uint i = 0; i < 4; ++i)
     {
-        result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w) ? 1.0 : 0.0;
+        result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w);
     }
     return result;
 }
 
+float BoxIntersect(float3 extent, float3x3 localToWorld, float3 position, RWTexture3D<float4> tex, uint2 uv, const uint count){
+    float result = 1;
+    [unroll]
+    for(uint i = 0; i < count; ++i)
+    {
+        float4 plane = tex[uint3(uv, i)];
+        float3 absNormal = abs(mul(plane.xyz, localToWorld));
+        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w);
+    }
+    return result;
+}
 
 float BoxIntersect(float3 extent, float3 position, RWTexture3D<float4> tex, uint2 uv, const uint count){
     float result = 1;
@@ -76,7 +98,7 @@ float BoxIntersect(float3 extent, float3 position, RWTexture3D<float4> tex, uint
     {
         float4 plane = tex[uint3(uv, i)];
         float3 absNormal = abs(plane.xyz);
-        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ? 1.0 : 0.0;
+        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w);
     }
     return result;
 }
@@ -87,7 +109,7 @@ float SphereIntersect(float4 sphere, RWTexture3D<float4> tex, uint2 uv, const ui
     [unroll]
     for(uint i = 0; i < count; ++i)
     {
-        result *= (GetDistanceToPlane(tex[uint3(uv, i)], sphere.xyz) < sphere.w) ? 1.0 : 0.0;
+        result *= (GetDistanceToPlane(tex[uint3(uv, i)], sphere.xyz) < sphere.w);
     }
     return result;
 }

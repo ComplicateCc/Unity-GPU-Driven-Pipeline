@@ -127,7 +127,7 @@ namespace MPipeline
 
             cbdr.dirLightShadowmap = null;
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
-            buffer.DispatchCompute(scatter, pass, downSampledSize.x / 8, downSampledSize.y / 2, downSampledSize.z / marchStep);
+            buffer.DispatchCompute(scatter, pass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
             buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);
             buffer.DispatchCompute(scatter, scatterPass, downSampledSize.x / 32, downSampledSize.y / 2, 1);
             buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 0);

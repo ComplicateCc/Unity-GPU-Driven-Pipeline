@@ -4,36 +4,29 @@ using UnityEngine;
 using EasyButtons;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
-using System.Diagnostics;
+using Unity.Mathematics;
+using static Unity.Mathematics.math;
 public unsafe class Test : MonoBehaviour
 {
-    public static int value = 0;
-    public class Base
+    public static bool contactWithPlane(float4x4 localToWorldMat, float3 extent, float4 plane)
     {
-        public virtual void run()
-        {
-            value++;
-        }
+        float3 position = localToWorldMat.c3.xyz;
+        float3x3 mat = new float3x3();
+        mat.c0 = localToWorldMat.c0.xyz;
+        mat.c1 = localToWorldMat.c1.xyz;
+        mat.c2 = localToWorldMat.c2.xyz;
+        float3 absNormal = abs(mul(plane.xyz, mat));
+        return (dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w;
     }
-    public class NewClass : Base
-    {
-        public override void run()
-        {
-            value++;
-        }
-    }
-    public System.Action act = () => { value++; };
-    public static Base bs = new NewClass();
+    [SerializeField]
+    UnityEngine.UI.Text txt;
+    [SerializeField]
+    Transform plane;
+    [SerializeField]
+    Transform box;
     private void Update()
     {
-        Stopwatch watch = new Stopwatch();
-        watch.Start();
-        for (int i = 0; i < 10000000; ++i)
-        {
-            //bs.run();
-           act();
-        }
-        watch.Stop();
-        UnityEngine.Debug.Log(watch.ElapsedTicks);
+        Plane p = new Plane(plane.up, plane.position);
+        txt.text = contactWithPlane(box.localToWorldMatrix, box.localScale * 0.5f, float4(p.normal, p.distance)).ToString();
     }
 }
