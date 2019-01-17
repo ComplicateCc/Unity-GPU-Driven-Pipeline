@@ -10,6 +10,7 @@
 #define MAXSPOTLIGHTPERTILE 64
 #define FROXELMAXPOINTLIGHTPERTILE 32
 #define FROXELMAXSPOTLIGHTPERTILE 32
+#define MAXFOGVOLUMEPERTILE 16
 
 static const uint3 _ScreenSize = uint3(160, 90, 256);
 #include "CGINC/Plane.cginc"
@@ -33,6 +34,14 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
                 float aspect;
                 float3 lightRight;
                 int shadowIndex;
+            };
+
+            struct FogVolume
+            {
+                float3x3 localToWorld;
+                float3 position;
+                float3 extent;
+                float targetVolume;
             };
 float3 _CameraForward;
 float3 _CameraNearPos;

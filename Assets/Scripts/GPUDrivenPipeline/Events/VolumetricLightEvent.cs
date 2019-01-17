@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.Rendering;
 using Unity.Collections;
+using Unity.Jobs;
 using Unity.Mathematics;
 using System.Runtime.CompilerServices;
 using Random = Unity.Mathematics.Random;
+using static Unity.Mathematics.math;
 using System.Threading;
+using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
     [PipelineEvent(true, true)]
@@ -15,9 +18,13 @@ namespace MPipeline
         public float availableDistance = 64;
         const int marchStep = 64;
         const int scatterPass = 8;
+        const int fogVolumePass = 9;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
         private Random rand;
+        private JobHandle jobHandle;
+        private NativeArray<FogVolume> resultVolume;
+        private int fogCount = 0;
 
         protected override void Init(PipelineResources resources)
         {
@@ -27,7 +34,7 @@ namespace MPipeline
             rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
             for (int i = 0; i < randomArray.Length; ++i)
             {
-                randPtr[i] = (uint)System.Guid.NewGuid().GetHashCode();   
+                randPtr[i] = (uint)System.Guid.NewGuid().GetHashCode();
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();
@@ -48,6 +55,24 @@ namespace MPipeline
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
             cbdr.availiableDistance = availableDistance;
+            fogCount = 0;
+            if (FogVolumeComponent.allVolumes.isCreated && FogVolumeComponent.allVolumes.Length > 0)
+            {
+                resultVolume = new NativeArray<FogVolume>(FogVolumeComponent.allVolumes.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                float4* frustumPlanes = (float4*)UnsafeUtility.Malloc(6 * sizeof(float4), 16, Allocator.Temp);
+                UnsafeUtility.MemCpy(frustumPlanes, data.frustumPlanes.Ptr(), 6 * sizeof(float4));
+                Transform camTrans = cam.transform;
+                float3 inPoint = camTrans.position + camTrans.forward * cbdr.availiableDistance;
+                float3 normal = camTrans.forward;
+                float4 plane = float4(normal, -dot(normal, inPoint));
+                frustumPlanes[5] = plane;
+                jobHandle = (new FogVolumeCalculate
+                {
+                    allVolume = resultVolume.Ptr(),
+                    frustumPlanes = frustumPlanes,
+                    fogVolumeCount = fogCount.Ptr()
+                }).Schedule(FogVolumeComponent.allVolumes.Length, 1);
+            }
         }
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
@@ -67,6 +92,7 @@ namespace MPipeline
                 pass |= 0b001;
             if (cbdr.spotShadowCount > 0)
                 pass |= 0b100;
+            
             buffer.SetGlobalFloat(ShaderIDs._MaxDistance, availableDistance);
             buffer.SetGlobalInt(ShaderIDs._FrameCount, Time.frameCount);
             HistoryVolumetric historyVolume = IPerCameraData.GetProperty(cam, () => new HistoryVolumetric());
@@ -110,8 +136,22 @@ namespace MPipeline
                 else
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.7f);
             }
+            jobHandle.Complete();
+            if (fogCount > 0)
+            {
+               
+                CBDRSharedData.ResizeBuffer(ref cbdr.allFogVolumeBuffer, fogCount);
+                cbdr.allFogVolumeBuffer.SetData(resultVolume, 0, 0, fogCount);
+                ComputeShader cullShader = data.resources.cbdrShader;
+                buffer.SetComputeTextureParam(cullShader, fogVolumePass, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
+                buffer.SetComputeTextureParam(cullShader, fogVolumePass, ShaderIDs._FroxelFogVolumeList, cbdr.froxelFogVolumeList);
+                buffer.SetComputeBufferParam(cullShader, fogVolumePass, ShaderIDs._AllFogVolume, cbdr.allFogVolumeBuffer);
+                buffer.DispatchCompute(cullShader, fogVolumePass, 1, 1, fogCount);
+            }
             buffer.SetGlobalVector(ShaderIDs._NearFarClip, new Vector4(cam.cam.farClipPlane / availableDistance, cam.cam.nearClipPlane / availableDistance, cam.cam.nearClipPlane));
             buffer.SetGlobalVector(ShaderIDs._Screen_TexelSize, new Vector4(1f / cam.cam.pixelWidth, 1f / cam.cam.pixelHeight, cam.cam.pixelWidth, cam.cam.pixelHeight));
+            buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllFogVolume, cbdr.allFogVolumeBuffer);
+            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelFogVolumeList, cbdr.froxelFogVolumeList);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelPointTileLightList, cbdr.froxelpointTileLightList);
@@ -139,8 +179,35 @@ namespace MPipeline
         {
             DestroyImmediate(volumeMat);
             randomBuffer.Dispose();
-
         }
+        public unsafe struct FogVolumeCalculate : IJobParallelFor
+        {
+            [NativeDisableUnsafePtrRestriction]
+            public FogVolume* allVolume;
+            [NativeDisableUnsafePtrRestriction]
+            public int* fogVolumeCount;
+            [NativeDisableUnsafePtrRestriction]
+            public float4* frustumPlanes;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static bool BoxUnderPlane(ref float4 plane, ref FogVolume fog, int i)
+            {
+                
+                float3 absNormal = abs(normalize(mul(plane.xyz, fog.localToWorld)));
+                return dot(fog.position, plane.xyz) - dot(absNormal, fog.extent) < -plane.w;
+            }
+            public void Execute(int index)
+            {
+                ref FogVolume vol = ref FogVolumeComponent.allVolumes[index].volume;
+                for(int i = 0; i < 6; ++i)
+                {
+                    if (!BoxUnderPlane(ref frustumPlanes[i], ref vol, i))
+                        return;
+                }
+                int last = Interlocked.Increment(ref *fogVolumeCount) - 1;
+                allVolume[last] = vol;
+            }
+        }
+
     }
     public class HistoryVolumetric : IPerCameraData
     {

@@ -27,11 +27,13 @@ TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapA
 Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
+StructuredBuffer<FogVolume> _AllFogVolume;
 Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
 RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 Texture3D<int> _FroxelPointTileLightList;
 Texture3D<int> _FroxelSpotTileLightList;
+Texture3D<int> _FroxelFogVolumeList;
 float3 _DirLightPos;
 
             inline float EyeDepthToProj(float lin)
@@ -129,7 +131,13 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor;
         }
     }
-    color.a = 1;//TODO
+    color.a = 0;
+    uint len = min(_FroxelFogVolumeList[uint3(tileIndex, 0)], MAXFOGVOLUMEPERTILE + 1);
+    for(uint c = 1; c < len; c++)
+    {
+        FogVolume vol = _AllFogVolume[_FroxelFogVolumeList[uint3(tileIndex, c)]];
+        color.a += 1;
+    }
     return color;
 }
 

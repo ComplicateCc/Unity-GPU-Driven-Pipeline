@@ -53,6 +53,8 @@ namespace MPipeline
         public RenderTexture spotTileLightList;
         public RenderTexture froxelpointTileLightList;
         public RenderTexture froxelSpotTileLightList;
+        public RenderTexture froxelFogVolumeList;
+        public ComputeBuffer allFogVolumeBuffer;
         public ComputeBuffer allPointLightBuffer;
         public ComputeBuffer allSpotLightBuffer;
         public ComputeBuffer pointlightIndexBuffer;
@@ -65,6 +67,7 @@ namespace MPipeline
         public const int MAXSPOTLIGHTPERTILE = 64;
         public const int FROXELMAXPOINTLIGHTPERTILE = 32;
         public const int FROXELMAXSPOTLIGHTPERTILE = 32;
+        public const int MAXFOGVOLUMEPERTILE = 16;
         public const int pointLightInitCapacity = 50;
         public const int spotLightInitCapacity = 50;
         public uint lightFlag = 0;
@@ -165,7 +168,10 @@ namespace MPipeline
             desc.volumeDepth = FROXELMAXSPOTLIGHTPERTILE;
             froxelSpotTileLightList = new RenderTexture(desc);
             froxelSpotTileLightList.Create();
-
+            allFogVolumeBuffer = new ComputeBuffer(30, sizeof(FogVolume));
+            desc.volumeDepth = MAXFOGVOLUMEPERTILE;
+            froxelFogVolumeList = new RenderTexture(desc);
+            froxelFogVolumeList.Create();
         }
         public static void ResizeBuffer(ref ComputeBuffer buffer, int newCapacity)
         {
@@ -208,8 +214,10 @@ namespace MPipeline
             allPointLightBuffer.Dispose();
             allSpotLightBuffer.Dispose();
             spotlightIndexBuffer.Dispose();
+            allFogVolumeBuffer.Dispose();
             Object.DestroyImmediate(froxelpointTileLightList);
             Object.DestroyImmediate(froxelSpotTileLightList);
+            Object.DestroyImmediate(froxelFogVolumeList);
             Object.DestroyImmediate(pointTileLightList);
             Object.DestroyImmediate(spotTileLightList);
             Object.DestroyImmediate(cubeArrayMap);

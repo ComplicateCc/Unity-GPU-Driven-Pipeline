@@ -37,6 +37,14 @@ namespace MPipeline
         public Matrix4x4 projMat;
     }
 
+    public struct FogVolume
+    {
+        public float3x3 localToWorld;
+        public float3 position;
+        public float3 extent;
+        public float targetVolume;
+    }
+
     public class PipelineBaseBuffer
     {
         public ComputeBuffer reCheckCount;

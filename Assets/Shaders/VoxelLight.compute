@@ -20,8 +20,10 @@ RWTexture3D<int> _TilePointLightList;
 RWTexture3D<int> _TileSpotLightList;
 RWTexture3D<int> _FroxelPointTileLightList;
 RWTexture3D<int> _FroxelSpotTileLightList;
+RWTexture3D<int> _FroxelFogVolumeList;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
+StructuredBuffer<FogVolume> _AllFogVolume;
 RWStructuredBuffer<uint> _PointLightIndexBuffer;
 RWStructuredBuffer<uint> _SpotLightIndexBuffer;
 
@@ -124,6 +126,7 @@ void Clear(uint3 id : SV_DISPATCHTHREADID)
     #if USE_FROXEL
     _FroxelPointTileLightList[uint3(id.xy, 0)] = 1;
     _FroxelSpotTileLightList[uint3(id.xy, 0)] = 1;
+    _FroxelFogVolumeList[uint3(id.xy, 0)] = 1;
     #endif
     _TilePointLightList[uint3(id.xy, 0)] = 1;
     _TileSpotLightList[uint3(id.xy, 0)] = 1;
@@ -157,5 +160,13 @@ void TBDRSpot(uint3 id : SV_DISPATCHTHREADID)
 [numthreads(XRES, YRES, 1)]
 void FogVolumeCull(uint3 id : SV_DISPATCHTHREADID)
 {
-
+    FogVolume vol = _AllFogVolume[id.z];
+    if(BoxIntersect(vol.extent, vol.localToWorld, vol.position, _XYPlaneTexture, id.xy, 4) > 0.5){
+        int currentValue;
+        InterlockedAdd(_FroxelFogVolumeList[uint3(id.xy, 0)], 1, currentValue);
+        if(currentValue <= MAXFOGVOLUMEPERTILE)
+        {
+            _FroxelFogVolumeList[uint3(id.xy, currentValue)] = id.z;
+        }
+    }
 }

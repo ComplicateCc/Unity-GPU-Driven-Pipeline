@@ -17,9 +17,11 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
 {
     [NativeDisableUnsafePtrRestriction]
     private NativeListData* data;
+    public bool isCreated { get; private set; }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public NativeList(int capacity, Allocator alloc)
     {
+        isCreated = true;
         capacity = Mathf.Max(capacity, 1);
         data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
         data->count = 0;
@@ -29,6 +31,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     }
     public NativeList(int count, Allocator alloc, T defaultValue)
     {
+        isCreated = true;
         data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
         data->count = count;
         data->capacity = count;
@@ -43,6 +46,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public NativeList(int count, int capacity, Allocator alloc)
     {
+        isCreated = true;
         data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
         data->count = count;
         data->capacity = capacity;
@@ -130,6 +134,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
+        isCreated = false;
         Allocator alloc = data->allocator;
         UnsafeUtility.Free(data->ptr, alloc);
         UnsafeUtility.Free(data, alloc);
