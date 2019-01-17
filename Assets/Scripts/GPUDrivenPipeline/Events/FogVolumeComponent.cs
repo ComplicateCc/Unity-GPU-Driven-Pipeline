@@ -30,14 +30,21 @@ namespace MPipeline
                 c1 = transform.up,
                 c2 = transform.forward
             };
+            float4x4 worldToLocal = new float4x4
+            {
+                c0 = float4(localToWorld.c0, 0),
+                c1 = float4(localToWorld.c1, 0),
+                c2 = float4(localToWorld.c2, 0),
+                c3 = float4(transform.position, 1)
+            };
             FogVolume volume = new FogVolume
             {
                 extent = transform.localScale * 0.5f,
                 localToWorld = localToWorld,
                 position = transform.position,
+                worldToLocal = inverse(worldToLocal),
                 targetVolume = this.volume
             };
-            Debug.Log(volume.position);
             currentcon.volume = volume;
             allVolumes.Add(currentcon);
             container = allVolumes.unsafePtr + allVolumes.Length - 1;

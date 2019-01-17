@@ -39,6 +39,7 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
             struct FogVolume
             {
                 float3x3 localToWorld;
+                float4x4 worldToLocal;
                 float3 position;
                 float3 extent;
                 float targetVolume;

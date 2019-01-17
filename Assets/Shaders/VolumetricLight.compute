@@ -136,7 +136,10 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
     for(uint c = 1; c < len; c++)
     {
         FogVolume vol = _AllFogVolume[_FroxelFogVolumeList[uint3(tileIndex, c)]];
-        color.a += 1;
+        float3 localPos = abs(mul(vol.worldToLocal, float4(targetWorldPos, 1)).xyz);
+        bool3 b = localPos < vol.extent;
+        if(b.x && b.y && b.z)
+            color.a += vol.targetVolume;
     }
     return color;
 }
@@ -182,7 +185,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
     
     float reprojectionValid = lerp(_TemporalWeight, 0.999, _SceneOffset.w) * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
-    _VolumeTex[id] = lerp(GetColor(targetWorldPos.xyz, linearDepth, uv), lastFrameColor, reprojectionValid);
+    float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
+    _VolumeTex[id] = float4(lerp(col.xyz, lastFrameColor.xyz, reprojectionValid), col.w);
 }
 
 [numthreads(32, 2, 1)]

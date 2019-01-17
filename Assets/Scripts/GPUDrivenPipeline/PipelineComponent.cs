@@ -40,6 +40,7 @@ namespace MPipeline
     public struct FogVolume
     {
         public float3x3 localToWorld;
+        public float4x4 worldToLocal;
         public float3 position;
         public float3 extent;
         public float targetVolume;
