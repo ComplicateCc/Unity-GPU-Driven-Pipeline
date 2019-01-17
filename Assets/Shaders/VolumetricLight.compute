@@ -33,8 +33,9 @@ RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 Texture3D<int> _FroxelPointTileLightList;
 Texture3D<int> _FroxelSpotTileLightList;
-Texture3D<int> _FroxelFogVolumeList;
+
 float3 _DirLightPos;
+uint _FogVolumeCount;
 
             inline float EyeDepthToProj(float lin)
             {
@@ -132,10 +133,10 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
         }
     }
     color.a = 0;
-    uint len = min(_FroxelFogVolumeList[uint3(tileIndex, 0)], MAXFOGVOLUMEPERTILE + 1);
-    for(uint c = 1; c < len; c++)
+    [loop]
+    for(uint c = 0; c < _FogVolumeCount; c++)
     {
-        FogVolume vol = _AllFogVolume[_FroxelFogVolumeList[uint3(tileIndex, c)]];
+        FogVolume vol = _AllFogVolume[c];
         float3 localPos = abs(mul(vol.worldToLocal, float4(targetWorldPos, 1)).xyz);
         bool3 b = localPos < vol.extent;
         if(b.x && b.y && b.z)
@@ -183,9 +184,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     lastFrameClip /= lastFrameClip.w;
     float3 lastFrameUV = float3(lastFrameClip.xy * 0.5 + 0.5, LinearEyeDepth(lastFrameClip.z) / _MaxDistance);
     float4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
-    
-    float reprojectionValid = lerp(_TemporalWeight, 0.999, _SceneOffset.w) * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
     float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
+    float diff = abs(Luminance(col.xyz) - Luminance(lastFrameColor.xyz));
+    float reprojectionValid = lerp(_TemporalWeight, 0, saturate(diff * 0.3));
+    reprojectionValid = lerp(reprojectionValid, 0.999, _SceneOffset.w) * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
     _VolumeTex[id] = float4(lerp(col.xyz, lastFrameColor.xyz, reprojectionValid), col.w);
 }
 

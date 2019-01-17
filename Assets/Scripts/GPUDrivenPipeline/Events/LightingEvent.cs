@@ -292,7 +292,6 @@ namespace MPipeline
             {
                 buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._FroxelPointTileLightList, cbdr.froxelpointTileLightList);
                 buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._FroxelSpotTileLightList, cbdr.froxelSpotTileLightList);
-                buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._FroxelFogVolumeList, cbdr.froxelFogVolumeList);
             }
             buffer.DispatchCompute(cbdrShader, clearKernel, 1, 1, 1);
         }

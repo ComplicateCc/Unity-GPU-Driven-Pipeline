@@ -18,7 +18,6 @@ namespace MPipeline
         public float availableDistance = 64;
         const int marchStep = 64;
         const int scatterPass = 8;
-        const int fogVolumePass = 9;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
         private Random rand;
@@ -134,26 +133,19 @@ namespace MPipeline
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0);
                 }
                 else
-                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.7f);
+                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.95f);
             }
             jobHandle.Complete();
-            if (fogCount > 0)
+            if(fogCount > 0)
             {
-               
-                CBDRSharedData.ResizeBuffer(ref cbdr.allFogVolumeBuffer, fogCount);
                 cbdr.allFogVolumeBuffer.SetData(resultVolume, 0, 0, fogCount);
-                ComputeShader cullShader = data.resources.cbdrShader;
-                buffer.SetComputeTextureParam(cullShader, fogVolumePass, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
-                buffer.SetComputeTextureParam(cullShader, fogVolumePass, ShaderIDs._FroxelFogVolumeList, cbdr.froxelFogVolumeList);
-                buffer.SetComputeBufferParam(cullShader, fogVolumePass, ShaderIDs._AllFogVolume, cbdr.allFogVolumeBuffer);
-                buffer.DispatchCompute(cullShader, fogVolumePass, 1, 1, fogCount);
             }
             buffer.SetGlobalVector(ShaderIDs._NearFarClip, new Vector4(cam.cam.farClipPlane / availableDistance, cam.cam.nearClipPlane / availableDistance, cam.cam.nearClipPlane));
             buffer.SetGlobalVector(ShaderIDs._Screen_TexelSize, new Vector4(1f / cam.cam.pixelWidth, 1f / cam.cam.pixelHeight, cam.cam.pixelWidth, cam.cam.pixelHeight));
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllFogVolume, cbdr.allFogVolumeBuffer);
-            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelFogVolumeList, cbdr.froxelFogVolumeList);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
+            buffer.SetComputeIntParam(scatter, ShaderIDs._FogVolumeCount, fogCount);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelPointTileLightList, cbdr.froxelpointTileLightList);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelSpotTileLightList, cbdr.froxelSpotTileLightList);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._RandomBuffer, randomBuffer);

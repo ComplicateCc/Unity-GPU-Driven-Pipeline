@@ -101,9 +101,9 @@ public static partial class ShaderIDs
     public static readonly int _TilePointLightList = Shader.PropertyToID("_TilePointLightList");
     public static readonly int _TileSpotLightList = Shader.PropertyToID("_TileSpotLightList");
     public static readonly int _AllFogVolume = Shader.PropertyToID("_AllFogVolume");
+    public static readonly int _FogVolumeCount = Shader.PropertyToID("_FogVolumeCount");
     public static readonly int _FroxelPointTileLightList = Shader.PropertyToID("_FroxelPointTileLightList");
     public static readonly int _FroxelSpotTileLightList = Shader.PropertyToID("_FroxelSpotTileLightList");
-    public static readonly int _FroxelFogVolumeList = Shader.PropertyToID("_FroxelFogVolumeList");
     public static readonly int _SceneOffset = Shader.PropertyToID("_SceneOffset");
     public static readonly int _BackupMap = Shader.PropertyToID("_BackupMap");
 }
