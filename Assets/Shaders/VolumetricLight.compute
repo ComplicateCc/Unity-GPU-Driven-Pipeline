@@ -185,9 +185,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float3 lastFrameUV = float3(lastFrameClip.xy * 0.5 + 0.5, LinearEyeDepth(lastFrameClip.z) / _MaxDistance);
     float4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
     float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
-    float diff = abs(Luminance(col.xyz) - Luminance(lastFrameColor.xyz));
-    float reprojectionValid = lerp(_TemporalWeight, 0, saturate(diff * 0.3));
-    reprojectionValid = lerp(reprojectionValid, 0.999, _SceneOffset.w) * (dot(lastFrameUV.xyz - saturate(lastFrameUV.xyz), 1) == 0.0);
+   float reprojectionValid = lerp(0.5, 0.999, _SceneOffset.w);
     _VolumeTex[id] = float4(lerp(col.xyz, lastFrameColor.xyz, reprojectionValid), col.w);
 }
 

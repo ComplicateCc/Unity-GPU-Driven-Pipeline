@@ -157,9 +157,9 @@ MonoBehaviour:
   jitterSpread: 1
   sharpness: 0.25
   stationaryBlending: 0.95
-  motionBlending: 0.87
-  stationaryAABBScale: 4
-  motionAABBScale: 1.25
+  motionBlending: 0.85
+  stationaryAABBScale: 3
+  motionAABBScale: 1
 --- !u!1 &8525019081660873867
 GameObject:
   m_ObjectHideFlags: 0

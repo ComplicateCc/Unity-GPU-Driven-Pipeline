@@ -33,7 +33,7 @@ namespace MPipeline
             rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
             for (int i = 0; i < randomArray.Length; ++i)
             {
-                randPtr[i] = (uint)System.Guid.NewGuid().GetHashCode();
+                randPtr[i] = (uint)(-System.Guid.NewGuid().GetHashCode());
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();
@@ -133,7 +133,7 @@ namespace MPipeline
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0);
                 }
                 else
-                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.95f);
+                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.5f);
             }
             jobHandle.Complete();
             if(fogCount > 0)
