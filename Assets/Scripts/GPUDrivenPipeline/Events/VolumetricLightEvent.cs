@@ -133,7 +133,7 @@ namespace MPipeline
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0);
                 }
                 else
-                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.5f);
+                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.7f);
             }
             jobHandle.Complete();
             if(fogCount > 0)
@@ -183,7 +183,6 @@ namespace MPipeline
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static bool BoxUnderPlane(ref float4 plane, ref FogVolume fog, int i)
             {
-                
                 float3 absNormal = abs(normalize(mul(plane.xyz, fog.localToWorld)));
                 return dot(fog.position, plane.xyz) - dot(absNormal, fog.extent) < -plane.w;
             }

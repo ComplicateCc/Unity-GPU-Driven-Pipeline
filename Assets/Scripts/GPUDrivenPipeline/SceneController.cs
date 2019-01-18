@@ -475,7 +475,6 @@ options.isOrtho);
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
             cb.SetGlobalVector(ShaderIDs._LightPos, light.sphere);
             Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
-            lit.shadowCam.projectionMatrix = vpMatrices.projMat;
             FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
             {
                 renderQueueRange = RenderQueueRange.opaque,
@@ -495,8 +494,14 @@ options.isOrtho);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.forwardView);
             data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.forwardView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
+           
+            lit.shadowCam.orthographic = true;
+            lit.shadowCam.nearClipPlane = -light.sphere.w;
+            lit.shadowCam.farClipPlane = light.sphere.w;
+            lit.shadowCam.orthographicSize = light.sphere.w;
+            lit.shadowCam.aspect = 1;
+           CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
+
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             float4* frustumPlanes = stackalloc float4[6];
@@ -523,10 +528,7 @@ options.isOrtho);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.backView);
             data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.backView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
                 SetFrustumPlanes(ref data);
@@ -542,10 +544,7 @@ options.isOrtho);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.upView);
             data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.upView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
                 SetFrustumPlanes(ref data);
@@ -561,10 +560,7 @@ options.isOrtho);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.downView);
             data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.downView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
                 SetFrustumPlanes(ref data);
@@ -580,10 +576,7 @@ options.isOrtho);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.rightView);
             data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.rightView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
                 SetFrustumPlanes(ref data);
@@ -599,10 +592,7 @@ options.isOrtho);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.leftView);
             data.ExecuteCommandBuffer();
-            lit.shadowCam.worldToCameraMatrix = vpMatrices.leftView;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-            results = CullResults.Cull(ref data.cullParams, data.context);
+            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
                 SetFrustumPlanes(ref data);
