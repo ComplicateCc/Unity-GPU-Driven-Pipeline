@@ -13,19 +13,15 @@ CGINCLUDE
             #pragma multi_compile _ POINTLIGHT
             #pragma multi_compile _ SPOTLIGHT
             Texture2D _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
-            Texture2D<half4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
-            Texture2D<half4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
-            Texture2D<half4> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;
+            Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
+            Texture2D<float4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
+            Texture2D<float4> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;
 
             StructuredBuffer<PointLight> _AllPointLight;
             StructuredBuffer<uint> _PointLightIndexBuffer;
             StructuredBuffer<SpotLight> _AllSpotLight;
             StructuredBuffer<uint> _SpotLightIndexBuffer;
             
-            float4 _LightPos;
-            float3  _LightColor;
-            
-            float _LightIntensity;
             float2 _CameraClipDistance; //X: Near Y: Far - Near
 
             float4x4 _InvVP;
@@ -58,26 +54,26 @@ ENDCG
             #pragma vertex screenVert
             #pragma fragment frag
 
-            TextureCubeArray<half> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
-            Texture2DArray<half> _SpotMapArray; SamplerState sampler_SpotMapArray;
+            TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
+            Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
 
-            half3 frag(v2fScreen i) : SV_TARGET
+            float3 frag(v2fScreen i) : SV_TARGET
             {
                 float2 uv = i.uv;
                 float SceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
                 float2 NDC_UV = uv * 2 - 1;
 
                 //////Screen Data
-                half3 AlbedoColor = _CameraGBufferTexture0.SampleLevel(sampler_CameraGBufferTexture0, uv, 0).rgb;
-                half3 WorldNormal = _CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1;
-                half4 SpecularColor = _CameraGBufferTexture1.SampleLevel(sampler_CameraGBufferTexture1, uv, 0); 
-                half Roughness = clamp(1 - SpecularColor.a, 0.02, 1);
+                float3 AlbedoColor = _CameraGBufferTexture0.SampleLevel(sampler_CameraGBufferTexture0, uv, 0).rgb;
+                float3 WorldNormal = _CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1;
+                float4 SpecularColor = _CameraGBufferTexture1.SampleLevel(sampler_CameraGBufferTexture1, uv, 0); 
+                float Roughness = clamp(1 - SpecularColor.a, 0.02, 1);
                 float4 WorldPos = mul(_InvVP, float4(NDC_UV, SceneDepth, 1));
                 WorldPos /= WorldPos.w;
 
 
-                half ShadowTrem;
-                half3 ShadingColor = 0;
+                float ShadowTrem;
+                float3 ShadingColor = 0;
                 float rate = saturate((LinearEyeDepth(SceneDepth) - _CameraClipDistance.x) / _CameraClipDistance.y);
                 uint3 voxelValue =uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
                 uint sb = GetIndex(voxelValue, VOXELSIZE,  (MAXLIGHTPERCLUSTER + 1));
@@ -97,16 +93,16 @@ ENDCG
                         float3 LightPos = SpotCone.vertex;
                         float3 LightColor = Light.lightColor;
                         
-                        half LightAngle = Light.angle;
+                        float LightAngle = Light.angle;
                         float3 LightForward = SpotCone.direction;
                         float3 Un_LightDir = LightPos - WorldPos.xyz;
                         float lightDirLen = length(Un_LightDir);
                         float3 LightDir = Un_LightDir / lightDirLen;
-                        float3 HalfDir = normalize(ViewDir + LightDir);
+                        float3 floatDir = normalize(ViewDir + LightDir);
                         float ldh = -dot(LightDir, SpotCone.direction);
                         //////BSDF Variable
                         BSDFContext LightData;
-                        Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
+                        Init(LightData, WorldNormal, ViewDir, LightDir, floatDir);
 
                         //////Shading
                         ShadowTrem = dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
@@ -116,7 +112,7 @@ ENDCG
                         float4 clipPos = mul(Light.vpMatrix, WorldPos);
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
-                        half shadowDist = _SpotMapArray.Sample(sampler_SpotMapArray, float3(uv, Light.shadowIndex));
+                        float shadowDist = _SpotMapArray.Sample(sampler_SpotMapArray, float3(uv, Light.shadowIndex));
                         ShadowTrem = (lightDirLen - 0.25) / SpotCone.height < shadowDist;
                     }
                         ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness, 1) * ShadowTrem);
@@ -138,7 +134,7 @@ ENDCG
                     float3 Un_LightDir = LightPos - WorldPos.xyz;
                     float Length_LightDir = length(Un_LightDir);
                     float3 LightDir = Un_LightDir / Length_LightDir;
-                    float3 HalfDir = normalize(ViewDir + LightDir);
+                    float3 floatDir = normalize(ViewDir + LightDir);
                     
                     //////Shadow
                     if(Light.shadowIndex >= 0){
@@ -152,7 +148,7 @@ ENDCG
 
                     //////BSDF Variable
                     BSDFContext LightData;
-                    Init(LightData, WorldNormal, ViewDir, LightDir, HalfDir);
+                    Init(LightData, WorldNormal, ViewDir, LightDir, floatDir);
 
                     //////Shading
                     float3 Energy = Point_Energy(Un_LightDir, LightColor, 1 / LightRange, LightData.NoL) * ShadowTrem;

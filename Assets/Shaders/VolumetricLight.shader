@@ -10,7 +10,7 @@ CGINCLUDE
 #include "CGINC/VoxelLight.cginc"
 #include "UnityCG.cginc"
 
-Texture3D<half4> _VolumeTex; SamplerState sampler_VolumeTex;
+Texture3D<float4> _VolumeTex; SamplerState sampler_VolumeTex;
 Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
 
 float4 _Screen_TexelSize;
@@ -33,14 +33,14 @@ inline float2 cellNoise(int2 p)
 	return sin(float2(frand(i), frand(i + 57)) * _RandomSeed.xy + _RandomSeed.zw);
 }
 
-half4 Fog(half linear01Depth, half2 screenuv)
+float4 Fog(float linear01Depth, float2 screenuv)
 {
-	half z = linear01Depth * _NearFarClip.x;
+	float z = linear01Depth * _NearFarClip.x;
 	z = (z - _NearFarClip.y) / (1 - _NearFarClip.y);
 	if (z < 0.0)
-		return half4(0, 0, 0, 1);
+		return float4(0, 0, 0, 1);
 
-	half3 uvw = half3(screenuv.x, screenuv.y, z);
+	float3 uvw = float3(screenuv.x, screenuv.y, z);
 	uvw.xy += cellNoise(uvw.xy * _Screen_TexelSize.zw) / (float2)_ScreenSize.xy;
 	return _VolumeTex.Sample(sampler_VolumeTex, uvw);
 }
@@ -73,8 +73,8 @@ ENDCG
             float4 frag(v2fScreen i) : SV_TARGET
             {
                 
-                half linear01Depth = Linear01Depth(_CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv));
-		        half4 fog = Fog(linear01Depth, i.uv);
+                float linear01Depth = Linear01Depth(_CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv));
+		        float4 fog = Fog(linear01Depth, i.uv);
 		        return fog;
             }
             ENDCG
