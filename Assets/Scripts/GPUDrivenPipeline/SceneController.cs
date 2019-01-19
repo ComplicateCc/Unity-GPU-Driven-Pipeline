@@ -246,7 +246,7 @@ namespace MPipeline
             addList.Dispose();
         }
         //Press number load scene
-        
+
         public static void Update(MonoBehaviour behavior)
         {
             /* int value;
@@ -341,7 +341,7 @@ namespace MPipeline
             if (gpurpEnabled)
             {
                 float4* frustumPlanes = stackalloc float4[6];
-                for(int i = 0; i < 6; ++i)
+                for (int i = 0; i < 6; ++i)
                 {
                     Plane p = data.cullParams.GetCullingPlane(i);
                     frustumPlanes[i] = new float4(-p.normal, -p.distance);
@@ -362,7 +362,7 @@ namespace MPipeline
             {
                 flags = SortFlags.None
             };
-            
+
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
@@ -494,112 +494,76 @@ options.isOrtho);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.forwardView);
             data.ExecuteCommandBuffer();
-           
+
             lit.shadowCam.orthographic = true;
             lit.shadowCam.nearClipPlane = -light.sphere.w;
             lit.shadowCam.farClipPlane = light.sphere.w;
             lit.shadowCam.orthographicSize = light.sphere.w;
             lit.shadowCam.aspect = 1;
-           CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-
+            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
             data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
-            float4* frustumPlanes = stackalloc float4[6];
-            void SetFrustumPlanes(ref PipelineCommandData d)
-            {
-                for(int i = 0; i < 6; ++i)
-                {
-                    Plane p = d.cullParams.GetCullingPlane(i);
-                    frustumPlanes[i] = float4(-p.normal, -p.distance);
-                }
-            }
             if (gpurpEnabled)
             {
-                SetFrustumPlanes(ref data);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, true, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-
             cb.CopyTexture(renderTarget, depthSlice + 5, targetCopyTex, 5);
             //Back
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.backView);
-            data.ExecuteCommandBuffer();
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
-                SetFrustumPlanes(ref data);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
+            data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-
             cb.CopyTexture(renderTarget, depthSlice + 4, targetCopyTex, 4);
             //Up
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.upView);
-            data.ExecuteCommandBuffer();
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
-                SetFrustumPlanes(ref data);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
+            data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-
             cb.CopyTexture(renderTarget, depthSlice + 2, targetCopyTex, 2);
             //Down
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.downView);
-            data.ExecuteCommandBuffer();
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
-                SetFrustumPlanes(ref data);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
+            data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-
             cb.CopyTexture(renderTarget, depthSlice + 3, targetCopyTex, 3);
             //Right
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.rightView);
-            data.ExecuteCommandBuffer();
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
-                SetFrustumPlanes(ref data);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
+            data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-
             cb.CopyTexture(renderTarget, depthSlice, targetCopyTex, 0);
             //Left
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, projMat * vpMatrices.leftView);
-            data.ExecuteCommandBuffer();
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
             if (gpurpEnabled)
             {
-                SetFrustumPlanes(ref data);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, frustumPlanes, cb);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, false, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
+            data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
         }

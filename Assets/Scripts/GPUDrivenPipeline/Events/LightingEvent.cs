@@ -391,6 +391,14 @@ namespace MPipeline
                 cam.UpdateProjectionMatrix();
                 cube.projMat = cam.projectionMatrix;
                 cube.leftView = cam.worldToCameraMatrix;
+                NativeArray<float4> frustumArray = new NativeArray<float4>(6, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                cube.frustumPlanes = frustumArray.Ptr();
+                cube.frustumPlanes[0] = VectorUtility.GetPlane(float3(0, 1, 0), str.sphere.xyz + float3(0, str.sphere.w, 0));
+                cube.frustumPlanes[1] = VectorUtility.GetPlane(float3(0, -1, 0), str.sphere.xyz + float3(0, -str.sphere.w, 0));
+                cube.frustumPlanes[2] = VectorUtility.GetPlane(float3(1, 0, 0), str.sphere.xyz + float3(str.sphere.w, 0, 0));
+                cube.frustumPlanes[3] = VectorUtility.GetPlane(float3(-1, 0, 0), str.sphere.xyz + float3(-str.sphere.w, 0, 0));
+                cube.frustumPlanes[4] = VectorUtility.GetPlane(float3(0, 0, 1), str.sphere.xyz + float3(0, 0, str.sphere.w));
+                cube.frustumPlanes[5] = VectorUtility.GetPlane(float3(0, 0, -1), str.sphere.xyz + float3(0, 0, -str.sphere.w));
             }
             public static void CalculatePersMatrix(SpotLight* allLights, SpotLightMatrix* projectionMatrices, int index)
             {

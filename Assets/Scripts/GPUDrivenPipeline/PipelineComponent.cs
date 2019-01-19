@@ -35,6 +35,7 @@ namespace MPipeline
         public Matrix4x4 rightView;
         public Matrix4x4 leftView;
         public Matrix4x4 projMat;
+        public float4* frustumPlanes;
     }
 
     public struct FogVolume

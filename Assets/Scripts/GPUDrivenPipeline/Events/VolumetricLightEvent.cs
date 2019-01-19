@@ -133,7 +133,7 @@ namespace MPipeline
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0);
                 }
                 else
-                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.7f);
+                    buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.8f);
             }
             jobHandle.Complete();
             if(fogCount > 0)
