@@ -24,10 +24,10 @@ namespace UnityEngine.Rendering.PostProcessing
     }
 
     [Serializable]
-    public sealed class GradingModeParameter : ParameterOverride<GradingMode> {}
+    public sealed class GradingModeParameter : ParameterOverride<GradingMode> { }
 
     [Serializable]
-    public sealed class TonemapperParameter : ParameterOverride<Tonemapper> {}
+    public sealed class TonemapperParameter : ParameterOverride<Tonemapper> { }
 
     // TODO: Could use some refactoring, too much duplicated code here
     [Serializable]
@@ -131,10 +131,10 @@ namespace UnityEngine.Rendering.PostProcessing
         [DisplayName("Gain"), Tooltip("Controls the lightest portions of the render."), Trackball(TrackballAttribute.Mode.Gain)]
         public Vector4Parameter gain = new Vector4Parameter { value = new Vector4(1f, 1f, 1f, 0f) };
 
-        public SplineParameter masterCurve   = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
-        public SplineParameter redCurve      = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
-        public SplineParameter greenCurve    = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
-        public SplineParameter blueCurve     = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
+        public SplineParameter masterCurve = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
+        public SplineParameter redCurve = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
+        public SplineParameter greenCurve = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
+        public SplineParameter blueCurve = new SplineParameter { value = new Spline(new AnimationCurve(new Keyframe(0f, 0f, 1f, 1f), new Keyframe(1f, 1f, 1f, 1f)), 0f, false, new Vector2(0f, 1f)) };
         public SplineParameter hueVsHueCurve = new SplineParameter { value = new Spline(new AnimationCurve(), 0.5f, true, new Vector2(0f, 1f)) };
         public SplineParameter hueVsSatCurve = new SplineParameter { value = new Spline(new AnimationCurve(), 0.5f, true, new Vector2(0f, 1f)) };
         public SplineParameter satVsSatCurve = new SplineParameter { value = new Spline(new AnimationCurve(), 0.5f, false, new Vector2(0f, 1f)) };
@@ -170,24 +170,15 @@ namespace UnityEngine.Rendering.PostProcessing
         const int k_Lut3DSize = 33;
 
         readonly HableCurve m_HableCurve = new HableCurve();
-
         public override void Render(PostProcessRenderContext context)
         {
-            var gradingMode = settings.gradingMode.value;
-            var supportComputeTex3D = SystemInfo.supports3DRenderTextures
-                && SystemInfo.supportsComputeShaders
-                && context.resources.computeShaders.lut3DBaker != null
-                && SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLCore
-                && SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES3;
-
-            if (gradingMode == GradingMode.External)
-                RenderExternalPipeline3D(context);
-            else if (gradingMode == GradingMode.HighDefinitionRange && supportComputeTex3D)
-                RenderHDRPipeline3D(context);
-            else if (gradingMode == GradingMode.HighDefinitionRange)
-                RenderHDRPipeline2D(context);
-            else
-                RenderLDRPipeline2D(context);
+            if (!settings.active)
+            {
+                context.uberSheet.DisableKeyword("COLOR_GRADING_HDR_3D", context.command);
+                
+                return;
+            }
+            RenderHDRPipeline3D(context);
         }
 
         // Do color grading using an externally authored 3D lut; it requires Texture3D support and
@@ -200,16 +191,32 @@ namespace UnityEngine.Rendering.PostProcessing
                 return;
 
             var uberSheet = context.uberSheet;
-            uberSheet.EnableKeyword("COLOR_GRADING_HDR_3D");
+            uberSheet.EnableKeyword("COLOR_GRADING_HDR_3D", context.command);
             uberSheet.properties.SetTexture(ShaderIDs.Lut3D, lut);
             uberSheet.properties.SetVector(ShaderIDs.Lut3D_Params, new Vector2(1f / lut.width, lut.width - 1f));
             uberSheet.properties.SetFloat(ShaderIDs.PostExposure, RuntimeUtilities.Exp2(settings.postExposure.value));
             context.logLut = lut;
         }
 
-        // HDR color pipeline is rendered to a 3D lut; it requires Texture3D & compute shaders
-        // support - Desktop / Consoles / Some high-end mobiles
-        // TODO: Use ShaderIDs for compute once the compatible APIs go in
+        static readonly int _Output = Shader.PropertyToID("_Output");
+        static readonly int _Size = Shader.PropertyToID("_Size");
+        static readonly int _ColorBalance = Shader.PropertyToID("_ColorBalance");
+        static readonly int _ColorFilter = Shader.PropertyToID("_ColorFilter");
+        static readonly int _HueSatCon = Shader.PropertyToID("_HueSatCon");
+        static readonly int _ChannelMixerRed = Shader.PropertyToID("_ChannelMixerRed");
+        static readonly int _ChannelMixerBlue = Shader.PropertyToID("_ChannelMixerBlue");
+        static readonly int _ChannelMixerGreen = Shader.PropertyToID("_ChannelMixerGreen");
+        static readonly int _InvGamma = Shader.PropertyToID("_InvGamma");
+        static readonly int _Lift = Shader.PropertyToID("_Lift");
+        static readonly int _Gain = Shader.PropertyToID("_Gain");
+        static readonly int _Curves = Shader.PropertyToID("_Curves");
+        static readonly int _CustomToneCurve = Shader.PropertyToID("_CustomToneCurve");
+        static readonly int _ToeSegmentA = Shader.PropertyToID("_ToeSegmentA");
+        static readonly int _ToeSegmentB = Shader.PropertyToID("_ToeSegmentB");
+        static readonly int _MidSegmentA = Shader.PropertyToID("_MidSegmentA");
+        static readonly int _MidSegmentB = Shader.PropertyToID("_MidSegmentB");
+        static readonly int _ShoSegmentA = Shader.PropertyToID("_ShoSegmentA");
+        static readonly int _ShoSegmentB = Shader.PropertyToID("_ShoSegmentB");
         void RenderHDRPipeline3D(PostProcessRenderContext context)
         {
             // Unfortunately because AnimationCurve doesn't implement GetHashCode and we don't have
@@ -227,44 +234,48 @@ namespace UnityEngine.Rendering.PostProcessing
 
                 switch (settings.tonemapper.value)
                 {
-                    case Tonemapper.None: kernel = compute.FindKernel("KGenLut3D_NoTonemap");
+                    case Tonemapper.None:
+                        kernel = compute.FindKernel("KGenLut3D_NoTonemap");
                         break;
-                    case Tonemapper.Neutral: kernel = compute.FindKernel("KGenLut3D_NeutralTonemap");
+                    case Tonemapper.Neutral:
+                        kernel = compute.FindKernel("KGenLut3D_NeutralTonemap");
                         break;
-                    case Tonemapper.ACES: kernel = compute.FindKernel("KGenLut3D_AcesTonemap");
+                    case Tonemapper.ACES:
+                        kernel = compute.FindKernel("KGenLut3D_AcesTonemap");
                         break;
-                    case Tonemapper.Custom: kernel = compute.FindKernel("KGenLut3D_CustomTonemap");
+                    case Tonemapper.Custom:
+                        kernel = compute.FindKernel("KGenLut3D_CustomTonemap");
                         break;
                 }
 
                 var cmd = context.command;
-                cmd.SetComputeTextureParam(compute, kernel, "_Output", m_InternalLogLut);
-                cmd.SetComputeVectorParam(compute, "_Size", new Vector4(k_Lut3DSize, 1f / (k_Lut3DSize - 1f), 0f, 0f));
+                cmd.SetComputeTextureParam(compute, kernel, _Output, m_InternalLogLut);
+                cmd.SetComputeVectorParam(compute, _Size, new Vector4(k_Lut3DSize, 1f / (k_Lut3DSize - 1f), 0f, 0f));
 
                 var colorBalance = ColorUtilities.ComputeColorBalance(settings.temperature.value, settings.tint.value);
-                cmd.SetComputeVectorParam(compute, "_ColorBalance", colorBalance);
-                cmd.SetComputeVectorParam(compute, "_ColorFilter", settings.colorFilter.value);
+                cmd.SetComputeVectorParam(compute, _ColorBalance, colorBalance);
+                cmd.SetComputeVectorParam(compute, _ColorFilter, settings.colorFilter.value);
 
                 float hue = settings.hueShift.value / 360f;         // Remap to [-0.5;0.5]
                 float sat = settings.saturation.value / 100f + 1f;  // Remap to [0;2]
                 float con = settings.contrast.value / 100f + 1f;    // Remap to [0;2]
-                cmd.SetComputeVectorParam(compute, "_HueSatCon", new Vector4(hue, sat, con, 0f));
+                cmd.SetComputeVectorParam(compute, _HueSatCon, new Vector4(hue, sat, con, 0f));
 
                 var channelMixerR = new Vector4(settings.mixerRedOutRedIn, settings.mixerRedOutGreenIn, settings.mixerRedOutBlueIn, 0f);
                 var channelMixerG = new Vector4(settings.mixerGreenOutRedIn, settings.mixerGreenOutGreenIn, settings.mixerGreenOutBlueIn, 0f);
                 var channelMixerB = new Vector4(settings.mixerBlueOutRedIn, settings.mixerBlueOutGreenIn, settings.mixerBlueOutBlueIn, 0f);
-                cmd.SetComputeVectorParam(compute, "_ChannelMixerRed", channelMixerR / 100f); // Remap to [-2;2]
-                cmd.SetComputeVectorParam(compute, "_ChannelMixerGreen", channelMixerG / 100f);
-                cmd.SetComputeVectorParam(compute, "_ChannelMixerBlue", channelMixerB / 100f);
+                cmd.SetComputeVectorParam(compute, _ChannelMixerRed, channelMixerR / 100f); // Remap to [-2;2]
+                cmd.SetComputeVectorParam(compute, _ChannelMixerGreen, channelMixerG / 100f);
+                cmd.SetComputeVectorParam(compute, _ChannelMixerBlue, channelMixerB / 100f);
 
                 var lift = ColorUtilities.ColorToLift(settings.lift.value * 0.2f);
                 var gain = ColorUtilities.ColorToGain(settings.gain.value * 0.8f);
                 var invgamma = ColorUtilities.ColorToInverseGamma(settings.gamma.value * 0.8f);
-                cmd.SetComputeVectorParam(compute, "_Lift", new Vector4(lift.x, lift.y, lift.z, 0f));
-                cmd.SetComputeVectorParam(compute, "_InvGamma", new Vector4(invgamma.x, invgamma.y, invgamma.z, 0f));
-                cmd.SetComputeVectorParam(compute, "_Gain", new Vector4(gain.x, gain.y, gain.z, 0f));
+                cmd.SetComputeVectorParam(compute, _Lift, new Vector4(lift.x, lift.y, lift.z, 0f));
+                cmd.SetComputeVectorParam(compute, _InvGamma, new Vector4(invgamma.x, invgamma.y, invgamma.z, 0f));
+                cmd.SetComputeVectorParam(compute, _Gain, new Vector4(gain.x, gain.y, gain.z, 0f));
 
-                cmd.SetComputeTextureParam(compute, kernel, "_Curves", GetCurveTexture(true));
+                cmd.SetComputeTextureParam(compute, kernel, _Curves, GetCurveTexture(true));
 
                 if (settings.tonemapper.value == Tonemapper.Custom)
                 {
@@ -277,29 +288,26 @@ namespace UnityEngine.Rendering.PostProcessing
                         settings.toneCurveGamma.value
                     );
 
-                    cmd.SetComputeVectorParam(compute, "_CustomToneCurve", m_HableCurve.uniforms.curve);
-                    cmd.SetComputeVectorParam(compute, "_ToeSegmentA", m_HableCurve.uniforms.toeSegmentA);
-                    cmd.SetComputeVectorParam(compute, "_ToeSegmentB", m_HableCurve.uniforms.toeSegmentB);
-                    cmd.SetComputeVectorParam(compute, "_MidSegmentA", m_HableCurve.uniforms.midSegmentA);
-                    cmd.SetComputeVectorParam(compute, "_MidSegmentB", m_HableCurve.uniforms.midSegmentB);
-                    cmd.SetComputeVectorParam(compute, "_ShoSegmentA", m_HableCurve.uniforms.shoSegmentA);
-                    cmd.SetComputeVectorParam(compute, "_ShoSegmentB", m_HableCurve.uniforms.shoSegmentB);
+                    cmd.SetComputeVectorParam(compute, _CustomToneCurve, m_HableCurve.uniforms.curve);
+                    cmd.SetComputeVectorParam(compute, _ToeSegmentA, m_HableCurve.uniforms.toeSegmentA);
+                    cmd.SetComputeVectorParam(compute, _ToeSegmentB, m_HableCurve.uniforms.toeSegmentB);
+                    cmd.SetComputeVectorParam(compute, _MidSegmentA, m_HableCurve.uniforms.midSegmentA);
+                    cmd.SetComputeVectorParam(compute, _MidSegmentB, m_HableCurve.uniforms.midSegmentB);
+                    cmd.SetComputeVectorParam(compute, _ShoSegmentA, m_HableCurve.uniforms.shoSegmentA);
+                    cmd.SetComputeVectorParam(compute, _ShoSegmentB, m_HableCurve.uniforms.shoSegmentB);
                 }
 
                 // Generate the lut
-                context.command.BeginSample("HdrColorGradingLut3D");
                 int groupSize = Mathf.CeilToInt(k_Lut3DSize / 4f);
                 cmd.DispatchCompute(compute, kernel, groupSize, groupSize, groupSize);
-                context.command.EndSample("HdrColorGradingLut3D");
             }
 
             var lut = m_InternalLogLut;
             var uberSheet = context.uberSheet;
-            uberSheet.EnableKeyword("COLOR_GRADING_HDR_3D");
+            uberSheet.EnableKeyword("COLOR_GRADING_HDR_3D", context.command);
             uberSheet.properties.SetTexture(ShaderIDs.Lut3D, lut);
             uberSheet.properties.SetVector(ShaderIDs.Lut3D_Params, new Vector2(1f / lut.width, lut.width - 1f));
             uberSheet.properties.SetFloat(ShaderIDs.PostExposure, RuntimeUtilities.Exp2(settings.postExposure.value));
-
             context.logLut = lut;
         }
 
@@ -346,7 +354,7 @@ namespace UnityEngine.Rendering.PostProcessing
                 var tonemapper = settings.tonemapper.value;
                 if (tonemapper == Tonemapper.Custom)
                 {
-                    lutSheet.EnableKeyword("TONEMAPPING_CUSTOM");
+                    lutSheet.EnableKeyword("TONEMAPPING_CUSTOM", context.command);
 
                     m_HableCurve.Init(
                         settings.toneCurveToeStrength.value,
@@ -366,9 +374,9 @@ namespace UnityEngine.Rendering.PostProcessing
                     lutSheet.properties.SetVector(ShaderIDs.ShoSegmentB, m_HableCurve.uniforms.shoSegmentB);
                 }
                 else if (tonemapper == Tonemapper.ACES)
-                    lutSheet.EnableKeyword("TONEMAPPING_ACES");
+                    lutSheet.EnableKeyword("TONEMAPPING_ACES", context.command);
                 else if (tonemapper == Tonemapper.Neutral)
-                    lutSheet.EnableKeyword("TONEMAPPING_NEUTRAL");
+                    lutSheet.EnableKeyword("TONEMAPPING_NEUTRAL", context.command);
 
                 // Generate the lut
                 context.command.BeginSample("HdrColorGradingLut2D");
@@ -378,7 +386,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             var lut = m_InternalLdrLut;
             var uberSheet = context.uberSheet;
-            uberSheet.EnableKeyword("COLOR_GRADING_HDR_2D");
+            uberSheet.EnableKeyword("COLOR_GRADING_HDR_2D", context.command);
             uberSheet.properties.SetVector(ShaderIDs.Lut2D_Params, new Vector3(1f / lut.width, 1f / lut.height, lut.height - 1f));
             uberSheet.properties.SetTexture(ShaderIDs.Lut2D, lut);
             uberSheet.properties.SetFloat(ShaderIDs.PostExposure, RuntimeUtilities.Exp2(settings.postExposure.value));
@@ -442,7 +450,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             var lut = m_InternalLdrLut;
             var uberSheet = context.uberSheet;
-            uberSheet.EnableKeyword("COLOR_GRADING_LDR_2D");
+            uberSheet.EnableKeyword("COLOR_GRADING_LDR_2D", context.command);
             uberSheet.properties.SetVector(ShaderIDs.Lut2D_Params, new Vector3(1f / lut.width, 1f / lut.height, lut.height - 1f));
             uberSheet.properties.SetTexture(ShaderIDs.Lut2D, lut);
         }

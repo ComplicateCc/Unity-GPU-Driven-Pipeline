@@ -211,7 +211,7 @@ namespace UnityEngine.Rendering.PostProcessing
                 sheet.ClearKeywords();
 
                 if (context.camera.actualRenderingPath == RenderingPath.DeferredLighting)
-                    sheet.EnableKeyword("SOURCE_GBUFFER");
+                    sheet.EnableKeyword("SOURCE_GBUFFER", context.command);
 
                 PushDebugOverlay(context.command, BuiltinRenderTextureType.None, sheet, 1);
             }

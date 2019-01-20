@@ -1,0 +1,12 @@
+﻿#pragma kernel CSMain
+#include "LightBaker.cginc"
+RWStructuredBuffer<uint2> _ResultBuffer;
+Texture2D<half4> _GBuffer0;
+Texture2D<half4> _GBuffer1;
+uint _OffsetIndex;
+[numthreads(32, 32, 1)]
+void CSMain (uint2 id : SV_DispatchThreadID)
+{
+    uint2 result = uint2(Encode(_GBuffer0[id]), Encode(_GBuffer1[id]));
+    _ResultBuffer[id.y * RESOLUTION + id.x + _OffsetIndex] = result;
+}

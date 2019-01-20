@@ -48,7 +48,7 @@ namespace MPipeline
                     hizData = hizData,
                     hizDepth = hizDepth,
                     linearLODMaterial = linearMat,
-                    currentDepthTex = cam.targets.depthTexture
+                    currentDepthTex = cam.targets.depthIdentifier
                 };
                 SceneController.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
             }

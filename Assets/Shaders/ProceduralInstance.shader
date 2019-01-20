@@ -145,8 +145,7 @@ void frag_surf (v2f_surf IN,
     out half4 outGBuffer1 : SV_Target1,
     out half4 outGBuffer2 : SV_Target2,
     out half4 outEmission : SV_Target3,
-	out half2 outMotionVector : SV_Target4,
-	out float outDepth : SV_Target5
+	out half2 outMotionVector : SV_Target4
 ) {
   // prepare and unpack data
   Input surfIN;
@@ -161,7 +160,6 @@ void frag_surf (v2f_surf IN,
   o.Normal = normalize(mul(o.Normal, wdMatrix));
   float3 n = o.Normal;
   outEmission = ProceduralStandardSpecular_Deferred (o, worldViewDir, outGBuffer0, outGBuffer1, outGBuffer2); //GI neccessary here!
-  outDepth = IN.pos.z;
   half4 screenPos = mul(_NonJitterVP, float4(worldPos, 1));
   half2 screenUV = GetScreenPos(screenPos);
   outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);

@@ -796,6 +796,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3a9f108f594b8743a3a576d4c7a7638, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  txt: {fileID: 580106495}
-  plane: {fileID: 1325636132}
-  box: {fileID: 1545090710}

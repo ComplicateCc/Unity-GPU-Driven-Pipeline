@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
-using PostProcessing = UnityEngine.Rendering.PostProcessing;
-using Functional;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
@@ -13,59 +11,61 @@ namespace MPipeline
     {
         public PostProcessProfile profile;
         public PostProcessResources resources;
-        public Action finalizerAction;
-        public Function<PipelineCommandData> renderAction;
-        public PostSharedData sharedData;
-        private ColorGradingData colorGradingData;
-        private MotionBlurData motionBlurData;
-        private Dictionary<Type, PostProcessEffectSettings> allSettings = new Dictionary<Type, PostProcessEffectSettings>(7);
-        private PostProcessAction uberAction;
-        private MaterialPropertyBlock uberBlock;
+        public Dictionary<Type, PostProcessEffectRenderer> allEvents;
+        private PostProcessRenderContext postContext;
+        T AddEvents<S, T>() where T : PostProcessEffectRenderer, new()
+        {
+            T renderer = new T();
+            renderer.Init();
+            allEvents.Add(typeof(S), renderer);
+            return renderer;
+        }
         protected override void Init(PipelineResources res)
         {
-            uberBlock = new MaterialPropertyBlock();
-            finalizerAction = null;
-            renderAction = null;
-            PostFunctions.InitSharedData(ref sharedData, resources);
-            uberAction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier dest) =>
-            {
-                buffer.SetRenderTarget(dest);
-                buffer.BlitSRT(uberBlock, source, dest, sharedData.uberMaterial, 0);
-            };
-            var settingList = profile.settings;
-            foreach (var i in settingList)
-            {
-                allSettings.Add(i.GetType(), i);
-            }
-            PostProcessEffectSettings currentSetting;
-            if (allSettings.TryGetValue(typeof(ColorGrading), out currentSetting))
-            {
-                ColorGradingFunction.InitializeColorGrading(currentSetting as ColorGrading, ref colorGradingData, resources.computeShaders.lut3DBaker);
-                finalizerAction += () => ColorGradingFunction.Finalize(ref colorGradingData, sharedData.uberMaterial);
-                renderAction += (ref PipelineCommandData useless) => ColorGradingFunction.PrepareRender(ref colorGradingData, ref sharedData);
-            }
+            allEvents = new Dictionary<Type, PostProcessEffectRenderer>(7);
+            AddEvents<Bloom, BloomRenderer>();
+            AddEvents<ColorGrading, ColorGradingRenderer>();
+            postContext = new PostProcessRenderContext();
+            postContext.Reset();
+            postContext.propertySheets = new PropertySheetFactory();
+            postContext.resources = resources;
+            postContext.uberSheet = new PropertySheet(new Material(resources.shaders.uber));
         }
 
         protected override void Dispose()
         {
-            DestroyImmediate(sharedData.uberMaterial);
-            finalizerAction();
-            allSettings.Clear();
+            var values = allEvents.Values;
+            foreach(var i in values)
+            {
+                i.Release();
+            }
+            postContext.uberSheet.Release();
         }
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            CommandBuffer buffer = data.buffer;
-            sharedData.autoExposureTexture = RuntimeUtilities.whiteTexture;
-            sharedData.screenSize = new Vector2Int(cam.cam.pixelWidth, cam.cam.pixelHeight);
-            sharedData.uberMaterial.SetTexture(PostProcessing.ShaderIDs.AutoExposureTex, sharedData.autoExposureTexture);
-            renderAction(ref data);
-            if (sharedData.keywordsTransformed)
+            postContext.camera = cam.cam;
+            postContext.command = data.buffer;
+            postContext.sourceFormat = RenderTextureFormat.ARGBHalf;
+            var settings = profile.settings;
+            postContext.autoExposureTexture = RuntimeUtilities.whiteTexture;
+            postContext.bloomBufferNameID = -1;
+            data.buffer.SetGlobalTexture(UnityEngine.Rendering.PostProcessing.ShaderIDs.AutoExposureTex, postContext.autoExposureTexture);
+            int source, dest;
+            PipelineFunctions.RunPostProcess(ref cam.targets, out source, out dest);
+            foreach (var i in settings)
             {
-                sharedData.keywordsTransformed = false;
-                sharedData.uberMaterial.shaderKeywords = sharedData.shaderKeywords.ToArray();
-            }
-            PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, uberAction);
+                PostProcessEffectRenderer renderer;
+                if (allEvents.TryGetValue(i.GetType(), out renderer))
+                {
+                    postContext.source = source;
+                    postContext.destination = dest;
+                    renderer.SetSettings(i);
+                    renderer.Render(postContext);
+                }
+            };
+            
+            data.buffer.BlitSRT(source, dest, postContext.uberSheet.material, 0, postContext.uberSheet.properties);
         }
     }
 }

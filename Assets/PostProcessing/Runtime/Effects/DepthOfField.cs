@@ -11,7 +11,7 @@ namespace UnityEngine.Rendering.PostProcessing
     }
 
     [Serializable]
-    public sealed class KernelSizeParameter : ParameterOverride<KernelSize> {}
+    public sealed class KernelSizeParameter : ParameterOverride<KernelSize> { }
 
     [Serializable]
     [PostProcess(typeof(DepthOfFieldRenderer), "Unity/Depth of Field", false)]
@@ -126,10 +126,10 @@ namespace UnityEngine.Rendering.PostProcessing
             var cocFormat = SelectFormat(RenderTextureFormat.R8, RenderTextureFormat.RHalf);
 
             // Avoid using R8 on OSX with Metal. #896121, https://goo.gl/MgKqu6
-            #if (UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX) && !UNITY_2017_1_OR_NEWER
+#if (UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX) && !UNITY_2017_1_OR_NEWER
             if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Metal)
                 cocFormat = SelectFormat(RenderTextureFormat.RHalf, RenderTextureFormat.Default);
-            #endif
+#endif
 
             // Material setup
             float scaledFilmHeight = k_FilmHeight * (context.height / 1080f);
@@ -154,25 +154,6 @@ namespace UnityEngine.Rendering.PostProcessing
             context.GetScreenSpaceTemporaryRT(cmd, ShaderIDs.CoCTex, 0, cocFormat, RenderTextureReadWrite.Linear);
             cmd.BlitFullscreenTriangle(BuiltinRenderTextureType.None, ShaderIDs.CoCTex, sheet, (int)Pass.CoCCalculation);
 
-            // CoC temporal filter pass when TAA is enabled
-            if (context.IsTemporalAntialiasingActive())
-            {
-                float motionBlending = context.temporalAntialiasing.motionBlending;
-                float blend = m_ResetHistory ? 0f : motionBlending; // Handles first frame blending
-                var jitter = context.temporalAntialiasing.jitter;
-
-                sheet.properties.SetVector(ShaderIDs.TaaParams, new Vector3(jitter.x, jitter.y, blend));
-
-                int pp = m_HistoryPingPong[context.xrActiveEye];
-                var historyRead = CheckHistory(context.xrActiveEye, ++pp % 2, context, cocFormat);
-                var historyWrite = CheckHistory(context.xrActiveEye, ++pp % 2, context, cocFormat);
-                m_HistoryPingPong[context.xrActiveEye] = ++pp % 2;
-
-                cmd.BlitFullscreenTriangle(historyRead, historyWrite, sheet, (int)Pass.CoCTemporalFilter);
-                cmd.ReleaseTemporaryRT(ShaderIDs.CoCTex);
-                cmd.SetGlobalTexture(ShaderIDs.CoCTex, historyWrite);
-            }
-
             // Downsampling and prefiltering pass
             context.GetScreenSpaceTemporaryRT(cmd, ShaderIDs.DepthOfFieldTex, 0, colorFormat, RenderTextureReadWrite.Default, FilterMode.Bilinear, context.width / 2, context.height / 2);
             cmd.BlitFullscreenTriangle(context.source, ShaderIDs.DepthOfFieldTex, sheet, (int)Pass.DownsampleAndPrefilter);
@@ -192,9 +173,7 @@ namespace UnityEngine.Rendering.PostProcessing
             // Combine pass
             cmd.BlitFullscreenTriangle(context.source, context.destination, sheet, (int)Pass.Combine);
             cmd.ReleaseTemporaryRT(ShaderIDs.DepthOfFieldTex);
-
-            if (!context.IsTemporalAntialiasingActive())
-                cmd.ReleaseTemporaryRT(ShaderIDs.CoCTex);
+            cmd.ReleaseTemporaryRT(ShaderIDs.CoCTex);
 
             cmd.EndSample("DepthOfField");
 

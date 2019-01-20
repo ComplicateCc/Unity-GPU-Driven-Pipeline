@@ -59,6 +59,15 @@ half4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, floa
     half4 emission = half4(s.Emission, 1);
     return emission;
 }
+
+void ProceduralStandardSpecular_GI (SurfaceOutputStandardSpecular s, float3 viewDir, out half4 outGBuffer0, out half4 outGBuffer1)
+{
+    // energy conservation
+    float oneMinusReflectivity;
+    s.Albedo = EnergyConservationBetweenDiffuseAndSpecular (s.Albedo, s.Specular, /*out*/ oneMinusReflectivity);
+    outGBuffer0 = half4(s.Albedo, s.Occlusion);
+    outGBuffer1 = half4(s.Normal * 0.5f + 0.5f, 0);
+}
 float4x4 _LastVp;
 float4x4 _NonJitterVP;
 inline half2 CalculateMotionVector(float4x4 lastvp, float3 worldPos, half2 screenUV)
@@ -92,7 +101,21 @@ v2f_surf vert_surf (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
   	o.worldViewDir = UnityWorldSpaceViewDir(v.vertex);
   	return o;
 }
-float4 unity_Ambient;
+float4x4 _VP;
+v2f_surf vert_gbuffer (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID) 
+{
+  	Point v = getVertex(vertexID, instanceID);
+  	v2f_surf o;
+  	o.pack0 = v.texcoord;
+	o.objectIndex = v.objIndex;
+  	o.pos = mul(_VP, float4(v.vertex, 1));
+  	o.worldTangent = float4( v.tangent.xyz, v.vertex.x);
+	o.worldNormal =float4(v.normal, v.vertex.z);
+  	float tangentSign = v.tangent.w;
+  	o.worldBinormal = float4(cross(v.normal, o.worldTangent.xyz) * tangentSign, v.vertex.y);
+  	o.worldViewDir = UnityWorldSpaceViewDir(v.vertex);
+  	return o;
+}
 float3 _SceneOffset;
 
 // fragment shader
@@ -101,8 +124,7 @@ void frag_surf (v2f_surf IN,
     out half4 outGBuffer1 : SV_Target1,
     out half4 outGBuffer2 : SV_Target2,
     out half4 outEmission : SV_Target3,
-	out half2 outMotionVector : SV_Target4,
-	out float outDepth : SV_Target5
+	out half2 outMotionVector : SV_Target4
 ) {
   // prepare and unpack data
   float3 worldPos = float3(IN.worldTangent.w, IN.worldBinormal.w, IN.worldNormal.w);
@@ -113,11 +135,25 @@ void frag_surf (v2f_surf IN,
   surf (IN.pack0, IN.objectIndex, o);
   o.Normal = normalize(mul(o.Normal, wdMatrix));
   outEmission = ProceduralStandardSpecular_Deferred (o, worldViewDir, outGBuffer0, outGBuffer1, outGBuffer2); //GI neccessary here!
-  outDepth = IN.pos.z;
   //Calculate Motion Vector
   half4 screenPos = mul(_NonJitterVP, float4(worldPos, 1));
   half2 screenUV = GetScreenPos(screenPos);
   outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);
+}
+void frag_gi (v2f_surf IN,
+    out half4 outGBuffer0 : SV_Target0,
+    out half4 outGBuffer1 : SV_Target1
+) {
+  // prepare and unpack data
+  float3 worldPos = float3(IN.worldTangent.w, IN.worldBinormal.w, IN.worldNormal.w);
+  float3 worldViewDir = normalize(IN.worldViewDir);
+  SurfaceOutputStandardSpecular o;
+  half3x3 wdMatrix= half3x3(normalize(IN.worldTangent.xyz), normalize(IN.worldBinormal.xyz), normalize(IN.worldNormal.xyz));
+  // call surface function
+  surf (IN.pack0, IN.objectIndex, o);
+  o.Normal = normalize(mul(o.Normal, wdMatrix));
+  ProceduralStandardSpecular_GI (o, worldViewDir, outGBuffer0, outGBuffer1); //GI neccessary here!
+  outGBuffer1.w = IN.pos.z;
 }
 
 ENDCG
@@ -135,7 +171,16 @@ CGPROGRAM
 #pragma vertex vert_surf
 #pragma fragment frag_surf
 #pragma exclude_renderers nomrt
-#define UNITY_PASS_DEFERRED
+ENDCG
+}
+
+Pass {
+ZTest Less
+CGPROGRAM
+
+#pragma vertex vert_gbuffer
+#pragma fragment frag_gi
+#pragma exclude_renderers nomrt
 ENDCG
 }
 }

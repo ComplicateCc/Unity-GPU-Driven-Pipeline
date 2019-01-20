@@ -41,7 +41,7 @@ float4 Fog(float linear01Depth, float2 screenuv)
 		return float4(0, 0, 0, 1);
 
 	float3 uvw = float3(screenuv.x, screenuv.y, z);
-	uvw.xy += cellNoise(uvw.xy * _Screen_TexelSize.zw) / (float2)_ScreenSize.xy;
+	uvw.xy += cellNoise(uvw.xy * _Screen_TexelSize.zw) / ((float2)_ScreenSize.xy);
 	return _VolumeTex.Sample(sampler_VolumeTex, uvw);
 }
             struct v2fScreen

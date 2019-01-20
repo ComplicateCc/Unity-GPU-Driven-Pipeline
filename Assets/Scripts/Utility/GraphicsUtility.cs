@@ -133,7 +133,14 @@ new Vector3(1f, 0f, 0f)
         buffer.SetGlobalTexture(ShaderIDs._MainTex, source);
         buffer.SetRenderTarget(destination);
         buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass);
-    }//Use This
+    }
+
+    public static void BlitSRT(this CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier destination, Material mat, int pass, MaterialPropertyBlock block)
+    {
+        buffer.SetGlobalTexture(ShaderIDs._MainTex, source);
+        buffer.SetRenderTarget(destination);
+        buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass, block);
+    }
 
     public static void BlitSRT(this CommandBuffer buffer, MaterialPropertyBlock block, RenderTargetIdentifier source, RenderTargetIdentifier destination, Material mat, int pass)
     {

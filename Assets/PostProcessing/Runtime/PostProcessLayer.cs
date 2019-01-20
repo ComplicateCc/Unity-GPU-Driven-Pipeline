@@ -448,30 +448,6 @@ namespace UnityEngine.Rendering.PostProcessing
             m_LegacyCmdBuffer.ReleaseTemporaryRT(tempRt);
         }
 
-        void OnPostRender()
-        {
-            // Unused in scriptable render pipelines
-            if (RuntimeUtilities.scriptableRenderPipelineActive)
-                return;
-
-            if (m_CurrentContext.IsTemporalAntialiasingActive())
-            {
-#if UNITY_2018_2_OR_NEWER
-                // TAA calls SetProjectionMatrix so if the camera projection mode was physical, it gets set to explicit. So we set it back to physical.
-                if (m_CurrentContext.physicalCamera)   
-                    m_Camera.usePhysicalProperties = true;
-                else 
-#endif
-                    m_Camera.ResetProjectionMatrix();
-
-                if (m_CurrentContext.stereoActive)
-                {
-                    if (RuntimeUtilities.isSinglePassStereoEnabled || m_Camera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Right)
-                        m_Camera.ResetStereoProjectionMatrices();
-                }
-            }
-        }
-
         public PostProcessBundle GetBundle<T>()
             where T : PostProcessEffectSettings
         {
@@ -521,32 +497,6 @@ namespace UnityEngine.Rendering.PostProcessing
             }
         }
 
-        // In the legacy render loop you have to explicitely set flags on camera to tell that you
-        // need depth, depth+normals or motion vectors... This won't have any effect with most
-        // scriptable render pipelines.
-        void SetLegacyCameraFlags(PostProcessRenderContext context)
-        {
-            var flags = context.camera.depthTextureMode;
-
-            foreach (var bundle in m_Bundles)
-            {
-                if (bundle.Value.settings.IsEnabledAndSupported(context))
-                    flags |= bundle.Value.renderer.GetCameraFlags();
-            }
-
-            // Special case for AA & lighting effects
-            if (context.IsTemporalAntialiasingActive())
-                flags |= temporalAntialiasing.GetCameraFlags();
-
-            if (fog.IsEnabledAndSupported(context))
-                flags |= fog.GetCameraFlags();
-
-            if (debugLayer.debugOverlay != DebugOverlay.None)
-                flags |= debugLayer.GetCameraFlags();
-
-            context.camera.depthTextureMode = flags;
-        }
-
         // Call this function whenever you need to reset any temporal effect (TAA, Motion Blur etc).
         // Mainly used when doing camera cuts.
         public void ResetHistory()
@@ -582,15 +532,11 @@ namespace UnityEngine.Rendering.PostProcessing
             context.resources = m_Resources;
             context.propertySheets = m_PropertySheetFactory;
             context.debugLayer = debugLayer;
-            context.antialiasing = antialiasingMode;
-            context.temporalAntialiasing = temporalAntialiasing;
             context.logHistogram = m_LogHistogram;
 
 #if UNITY_2018_2_OR_NEWER
             context.physicalCamera = context.camera.usePhysicalProperties;
 #endif
-
-            SetLegacyCameraFlags(context);
 
             // Prepare debug overlay
             debugLayer.SetFrameSize(context.width, context.height);
@@ -667,36 +613,6 @@ namespace UnityEngine.Rendering.PostProcessing
                 m_NaNKilled = true;
             }
 
-            // Do temporal anti-aliasing first
-            if (context.IsTemporalAntialiasingActive())
-            {
-                if (!RuntimeUtilities.scriptableRenderPipelineActive)
-                {
-                    if (context.stereoActive)
-                    {
-                        // We only need to configure all of this once for stereo, during OnPreCull
-                        if (context.camera.stereoActiveEye != Camera.MonoOrStereoscopicEye.Right)
-                            temporalAntialiasing.ConfigureStereoJitteredProjectionMatrices(context);
-                    }
-                    else
-                    {
-                        temporalAntialiasing.ConfigureJitteredProjectionMatrix(context);
-                    }
-                }
-
-                var taaTarget = m_TargetPool.Get();
-                var finalDestination = context.destination;
-                context.GetScreenSpaceTemporaryRT(cmd, taaTarget, 0, context.sourceFormat);
-                context.destination = taaTarget;
-                temporalAntialiasing.Render(context);
-                context.source = taaTarget;
-                context.destination = finalDestination;
-
-                if (lastTarget > -1)
-                    cmd.ReleaseTemporaryRT(lastTarget);
-
-                lastTarget = taaTarget;
-            }
 
             bool hasBeforeStackEffects = HasActiveEffects(PostProcessEvent.BeforeStack, context);
             bool hasAfterStackEffects = HasActiveEffects(PostProcessEvent.AfterStack, context) && !breakBeforeColorGrading;
@@ -874,7 +790,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             if (isFinalPass)
             {
-                uberSheet.EnableKeyword("FINALPASS");
+                uberSheet.EnableKeyword("FINALPASS", context.command);
                 dithering.Render(context);
                 ApplyFlip(context, uberSheet.properties);
             }
@@ -921,11 +837,11 @@ namespace UnityEngine.Rendering.PostProcessing
                 {
                     uberSheet.EnableKeyword(fastApproximateAntialiasing.fastMode
                         ? "FXAA_LOW"
-                        : "FXAA"
+                        : "FXAA", context.command
                     );
 
                     if (fastApproximateAntialiasing.keepAlpha)
-                        uberSheet.EnableKeyword("FXAA_KEEP_ALPHA");
+                        uberSheet.EnableKeyword("FXAA_KEEP_ALPHA", context.command);
                 }
                 else if (antialiasingMode == Antialiasing.SubpixelMorphologicalAntialiasing && subpixelMorphologicalAntialiasing.IsSupported())
                 {

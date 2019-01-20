@@ -33,16 +33,10 @@ namespace MPipeline
         private int sampleIndex = 0;
         private const int k_SampleCount = 8;
         private Material taaMat;
-        private PostProcessAction taaFunction;
         private RenderTexture historyTex;
         protected override void Init(PipelineResources resources)
         {
             taaMat = new Material(resources.taaShader);
-            taaFunction = (ref PipelineCommandData data, CommandBuffer buffer, RenderTargetIdentifier source, RenderTargetIdentifier dest) =>
-            {
-                buffer.BlitSRT(source, dest, taaMat, 0);
-                buffer.CopyTexture(dest, historyTex);
-            };
         }
 
         protected override void Dispose()
@@ -64,7 +58,10 @@ namespace MPipeline
             buffer.SetGlobalVector(ShaderIDs._TemporalClipBounding, new Vector4(stationaryAABBScale, motionAABBScale, kMotionAmplification_Bounding, 0f));
             buffer.SetGlobalVector(ShaderIDs._FinalBlendParameters, new Vector4(stationaryBlending, motionBlending, kMotionAmplification_Blending, 0f));
             buffer.SetGlobalTexture(ShaderIDs._HistoryTex, historyTex);
-            PostFunctions.RunPostProcess(ref cam.targets, buffer, ref data, taaFunction);
+            int source, dest;
+            PipelineFunctions.RunPostProcess(ref cam.targets, out source, out dest);
+            buffer.BlitSRT(source, dest, taaMat, 0);
+            buffer.CopyTexture(dest, historyTex);
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)

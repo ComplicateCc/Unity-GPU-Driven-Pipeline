@@ -88,17 +88,13 @@ namespace UnityEngine.Rendering.PostProcessing
         // The following is auto-populated by the post-processing stack
 
         // Contains references to external resources (shaders, builtin textures...)
-        public PostProcessResources resources { get; internal set; }
+        public PostProcessResources resources { get;  set; }
 
         // Property sheet factory handled by the currently active PostProcessLayer
-        public PropertySheetFactory propertySheets { get; internal set; }
+        public PropertySheetFactory propertySheets { get;  set; }
 
-        // Custom user data objects (unused by builtin effects, feel free to store whatever you want
-        // in this dictionary)
-        public Dictionary<string, object> userData { get; private set; }
-
-        // Reference to the internal debug layer
-        public PostProcessDebugLayer debugLayer { get; internal set; }
+        // Reference to the  debug layer
+        public PostProcessDebugLayer debugLayer { get;  set; }
 
         // Current camera width in pixels
         public int width { get; private set; }
@@ -117,25 +113,18 @@ namespace UnityEngine.Rendering.PostProcessing
         public int screenHeight { get; private set; }
 
         // Are we currently rendering in the scene view?
-        public bool isSceneView { get; internal set; }
+        public bool isSceneView { get;  set; }
 
-        // Current antialiasing method set
-        public PostProcessLayer.Antialiasing antialiasing { get; internal set; }
-
-        // Mostly used to grab the jitter vector and other TAA-related values when an effect needs
-        // to do temporal reprojection (see: Depth of Field)
-        public TemporalAntialiasing temporalAntialiasing { get; internal set; }
-
-        // Internal values used for builtin effects
+        // public values used for builtin effects
         // Beware, these may not have been set before a specific builtin effect has been executed
-        internal PropertySheet uberSheet;
-        internal Texture autoExposureTexture;
-        internal LogHistogram logHistogram;
-        internal Texture logLut;
-        internal AutoExposure autoExposure;
-        internal int bloomBufferNameID;
+        public PropertySheet uberSheet;
+        public Texture autoExposureTexture;
+        public LogHistogram logHistogram;
+        public Texture logLut;
+        public AutoExposure autoExposure;
+        public int bloomBufferNameID;
 #if UNITY_2018_2_OR_NEWER
-        internal bool physicalCamera;
+        public bool physicalCamera;
 #endif
         public void Reset()
         {
@@ -164,27 +153,12 @@ namespace UnityEngine.Rendering.PostProcessing
             propertySheets = null;
             debugLayer = null;
             isSceneView = false;
-            antialiasing = PostProcessLayer.Antialiasing.None;
-            temporalAntialiasing = null;
 
-            uberSheet = null;
+            uberSheet = default;
             autoExposureTexture = null;
             logLut = null;
             autoExposure = null;
             bloomBufferNameID = -1;
-
-            if (userData == null)
-                userData = new Dictionary<string, object>();
-
-            userData.Clear();
-        }
-
-        // Checks if TAA is enabled & supported
-        public bool IsTemporalAntialiasingActive()
-        {
-            return antialiasing == PostProcessLayer.Antialiasing.TemporalAntialiasing
-                && !isSceneView
-                && temporalAntialiasing.IsSupported();
         }
 
         // Checks if a specific debug overlay is enabled

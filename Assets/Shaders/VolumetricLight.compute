@@ -174,8 +174,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
-    const float step = 1.0 / _ScreenSize.z;
-    float lerpPos = id.z / ((float)_ScreenSize.z) + step * jitterCoord.z;
+    float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z) ;
     float linearDepth = lerp(_NearFarClip.z, _MaxDistance, lerpPos);
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
     targetWorldPos /= targetWorldPos.w;

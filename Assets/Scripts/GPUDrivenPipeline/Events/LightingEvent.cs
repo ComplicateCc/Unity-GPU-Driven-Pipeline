@@ -175,7 +175,7 @@ namespace MPipeline
                         if (light.updateShadowmap)
                         {
                             light.UpdateShadowCacheType(true);
-                            SceneController.DrawCubeMap(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                            SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
                         }
                         else
                         {

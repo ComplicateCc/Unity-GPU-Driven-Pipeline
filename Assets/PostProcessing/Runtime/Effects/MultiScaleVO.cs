@@ -482,7 +482,7 @@ namespace UnityEngine.Rendering.PostProcessing
             // to apply it to AO as well or it'll drawn on top of the fog effect.
             if (context.camera.actualRenderingPath == RenderingPath.Forward && RenderSettings.fog)
             {
-                m_PropertySheet.EnableKeyword("APPLY_FORWARD_FOG");
+                m_PropertySheet.EnableKeyword("APPLY_FORWARD_FOG", context.command);
                 m_PropertySheet.properties.SetVector(
                     ShaderIDs.FogParams,
                     new Vector3(RenderSettings.fogDensity, RenderSettings.fogStartDistance, RenderSettings.fogEndDistance)

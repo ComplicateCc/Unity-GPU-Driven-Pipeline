@@ -34,7 +34,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             if (context.logLut != null && showCurves)
             {
-                sheet.EnableKeyword("COLOR_GRADING_HDR");
+                sheet.EnableKeyword("COLOR_GRADING_HDR", context.command);
                 sheet.properties.SetTexture(ShaderIDs.Lut3D, context.logLut);
             }
 
@@ -55,7 +55,7 @@ namespace UnityEngine.Rendering.PostProcessing
                     RuntimeUtilities.Exp2(autoExpo.maxLuminance.value)
                 );
 
-                sheet.EnableKeyword("AUTO_EXPOSURE");
+                sheet.EnableKeyword("AUTO_EXPOSURE", context.command);
                 sheet.properties.SetVector(ShaderIDs.Params, parameters);
             }
 

@@ -159,7 +159,7 @@ MonoBehaviour:
   stationaryBlending: 0.95
   motionBlending: 0.85
   stationaryAABBScale: 3
-  motionAABBScale: 1
+  motionAABBScale: 1.25
 --- !u!1 &8525019081660873867
 GameObject:
   m_ObjectHideFlags: 0

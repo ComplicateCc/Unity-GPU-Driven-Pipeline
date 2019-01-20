@@ -47,7 +47,7 @@ namespace UnityEngine.Rendering.PostProcessing
             var p0 = new Vector4(settings.centerX.value, settings.centerY.value, Mathf.Max(settings.intensityX.value, 1e-4f), Mathf.Max(settings.intensityY.value, 1e-4f));
             var p1 = new Vector4(settings.intensity.value >= 0f ? theta : 1f / theta, sigma, 1f / settings.scale.value, settings.intensity.value);
 
-            sheet.EnableKeyword("DISTORT");
+            sheet.EnableKeyword("DISTORT", context.command);
             sheet.properties.SetVector(ShaderIDs.Distortion_CenterScale, p0);
             sheet.properties.SetVector(ShaderIDs.Distortion_Amount, p1);
         }

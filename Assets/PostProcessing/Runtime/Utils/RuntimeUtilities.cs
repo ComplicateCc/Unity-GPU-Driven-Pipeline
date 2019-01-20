@@ -235,7 +235,7 @@ namespace UnityEngine.Rendering.PostProcessing
         {
             get
             {
-                if (s_CopySheet == null)
+                if (s_CopySheet.isCreated)
                     s_CopySheet = new PropertySheet(copyMaterial);
 
                 return s_CopySheet;

@@ -94,9 +94,16 @@ namespace UnityEngine.Rendering.PostProcessing
 
         public override void Render(PostProcessRenderContext context)
         {
+            var uberSheet = context.uberSheet;
+            if (!settings.active)
+            {
+                if (settings.fastMode)
+                    uberSheet.DisableKeyword("BLOOM_LOW", context.command);
+                else
+                    uberSheet.DisableKeyword("BLOOM", context.command);
+                return;
+            }
             var cmd = context.command;
-            cmd.BeginSample("BloomPyramid");
-
             var sheet = context.propertySheets.Get(context.resources.shaders.bloom);
 
             // Apply auto exposure adjustment in the prefiltering pass
@@ -167,17 +174,6 @@ namespace UnityEngine.Rendering.PostProcessing
             float intensity = RuntimeUtilities.Exp2(settings.intensity.value / 10f) - 1f;
             var shaderSettings = new Vector4(sampleScale, intensity, settings.dirtIntensity.value, iterations);
 
-            // Debug overlays
-            if (context.IsDebugOverlayEnabled(DebugOverlay.BloomThreshold))
-            {
-                context.PushDebugOverlay(cmd, context.source, sheet, (int)Pass.DebugOverlayThreshold);
-            }
-            else if (context.IsDebugOverlayEnabled(DebugOverlay.BloomBuffer))
-            {
-                sheet.properties.SetVector(ShaderIDs.ColorIntensity, new Vector4(linearColor.r, linearColor.g, linearColor.b, intensity));
-                context.PushDebugOverlay(cmd, m_Pyramid[0].up, sheet, (int)Pass.DebugOverlayTent + qualityOffset);
-            }
-
             // Lens dirtiness
             // Keep the aspect ratio correct & center the dirt texture, we don't want it to be
             // stretched or squashed
@@ -201,11 +197,11 @@ namespace UnityEngine.Rendering.PostProcessing
             }
 
             // Shader properties
-            var uberSheet = context.uberSheet;
+            
             if (settings.fastMode)
-                uberSheet.EnableKeyword("BLOOM_LOW");
+                uberSheet.EnableKeyword("BLOOM_LOW", context.command);
             else
-                uberSheet.EnableKeyword("BLOOM");
+                uberSheet.EnableKeyword("BLOOM", context.command);
             uberSheet.properties.SetVector(ShaderIDs.Bloom_DirtTileOffset, dirtTileOffset);
             uberSheet.properties.SetVector(ShaderIDs.Bloom_Settings, shaderSettings);
             uberSheet.properties.SetColor(ShaderIDs.Bloom_Color, linearColor);
@@ -220,8 +216,6 @@ namespace UnityEngine.Rendering.PostProcessing
                 if (m_Pyramid[i].up != lastUp)
                     cmd.ReleaseTemporaryRT(m_Pyramid[i].up);
             }
-
-            cmd.EndSample("BloomPyramid");
 
             context.bloomBufferNameID = lastUp;
         }

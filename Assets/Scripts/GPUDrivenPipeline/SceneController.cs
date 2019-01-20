@@ -132,7 +132,7 @@ namespace MPipeline
         private const int CASCADELEVELCOUNT = 4;
         private const int CASCADECLIPSIZE = CASCADELEVELCOUNT + 1;
         public static SceneCommonData commonData;
-        public static bool gpurpEnabled = false;
+        public static bool gpurpEnabled { get; private set; }
         private static bool singletonReady = false;
         private static PipelineResources resources;
         public static PipelineBaseBuffer baseBuffer { get; private set; }
@@ -336,7 +336,6 @@ namespace MPipeline
             options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
             options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
             options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
-            options.isOrtho = false;
             CullResults.GetCullingParameters(currentCam, out data.cullParams);
             if (gpurpEnabled)
             {
@@ -347,7 +346,7 @@ namespace MPipeline
                     frustumPlanes[i] = new float4(-p.normal, -p.distance);
                 }
                 PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, frustumPlanes, options.command);
-                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
+                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, false, options.command);
                 PipelineFunctions.RenderProceduralCommand(baseBuffer, spotcommand.clusterShadowMaterial, options.command);
             }
 
@@ -432,9 +431,15 @@ options.isOrtho);
             for (int pass = 0; pass < CASCADELEVELCOUNT; ++pass)
             {
                 PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref sunLight.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
-                Vector4* vec = opts.frustumPlanes.Ptr();
-                PipelineFunctions.GetCullingPlanes((float4*)vec, sunLight.shadCam.size, sunLight.shadCam.nearClipPlane, sunLight.shadCam.farClipPlane,
-                                                    sunLight.shadCam.up, sunLight.shadCam.right, sunLight.shadCam.forward, sunLight.shadCam.position);
+                float4* vec =(float4*)opts.frustumPlanes.Ptr();
+                sunLight.cameraComponent.worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix;
+                sunLight.cameraComponent.projectionMatrix = sunLight.shadCam.projectionMatrix;
+                CullResults.GetCullingParameters(sunLight.cameraComponent, out data.cullParams);
+                for(int i = 0; i < 6; ++i)
+                {
+                    Plane p = data.cullParams.GetCullingPlane(i);
+                    vec[i] = -float4(p.normal, p.distance);
+                }
                 float* biasList = (float*)UnsafeUtility.AddressOf(ref sunLight.bias);
                 Matrix4x4 vpMatrix;
                 PipelineFunctions.UpdateCascadeState(ref sunLight, opts.command, biasList[pass] / currentCam.farClipPlane, pass, out vpMatrix);
@@ -459,9 +464,6 @@ options.isOrtho);
                     worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix,
                     sortMode = DrawRendererSortMode.Orthographic
                 };
-                sunLight.cameraComponent.worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix;
-                sunLight.cameraComponent.projectionMatrix = sunLight.shadCam.projectionMatrix;
-                CullResults.GetCullingParameters(sunLight.cameraComponent, out data.cullParams);
                 data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
                 CullResults results = CullResults.Cull(ref data.cullParams, data.context);
                 data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
@@ -469,7 +471,7 @@ options.isOrtho);
             }
         }
 
-        public static void DrawCubeMap(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
+        public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
         {
             CommandBuffer cb = opts.command;
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
@@ -567,6 +569,54 @@ options.isOrtho);
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
-
+        public static void DrawGIBuffer(RenderBuffer[][] allGBuffer, RenderBuffer depthBuffer, float4 renderCube, ComputeShader cullingshader)
+        {
+            if (!gpurpEnabled) return;
+            PerspCam perspCam = new PerspCam();
+            perspCam.aspect = 1;
+            perspCam.farClipPlane = renderCube.w;
+            perspCam.nearClipPlane = 0.1f;
+            perspCam.fov = 90;
+            perspCam.position = renderCube.xyz;
+            perspCam.UpdateProjectionMatrix();
+            float3x3* coords = stackalloc float3x3[]
+            {
+                float3x3(float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1)),
+                float3x3(float3(0, 0, -1), float3(0, 1, 0), float3(1, 0, 0)),
+                float3x3(float3(-1, 0, 0), float3(0, 1, 0), float3(0, 0, -1)),
+                float3x3(float3(0, 0, 1), float3(0, 1, 0), float3(-1, 0, 0)),
+                float3x3(float3(1, 0, 0), float3(0, 0, -1), float3(0, 1, 0)),
+                float3x3(float3(1, 0, 0), float3(0, 0, 1), float3(0, -1, 0))
+            };
+            void GetCullingPlanes(ref PerspCam persp, float4* cullingPlanes)
+            {
+                float3 leftDown = persp.position + persp.forward * persp.farClipPlane - persp.right * persp.farClipPlane - persp.up * persp.farClipPlane;
+                float3 leftUp = persp.position + persp.forward * persp.farClipPlane - persp.right * persp.farClipPlane + persp.up * persp.farClipPlane;
+                float3 rightDown = persp.position + persp.forward * persp.farClipPlane + persp.right * persp.farClipPlane - persp.up * persp.farClipPlane;
+                float3 rightUp = persp.position + persp.forward * persp.farClipPlane + persp.right * persp.farClipPlane + persp.up * persp.farClipPlane;
+                cullingPlanes[0] = VectorUtility.GetPlane(persp.forward, persp.position + persp.forward * persp.farClipPlane);
+                cullingPlanes[1] = VectorUtility.GetPlane(leftUp, rightUp, persp.position);
+                cullingPlanes[2] = VectorUtility.GetPlane(rightDown, leftDown, persp.position);
+                cullingPlanes[3] = VectorUtility.GetPlane(leftDown, leftUp, persp.position);
+                cullingPlanes[4] = VectorUtility.GetPlane(rightUp, leftDown, persp.position);
+            }
+            for (int i = 0; i < 6; ++i)
+            {
+                float3x3 c = coords[i];
+                perspCam.right = c.c0;
+                perspCam.up = c.c1;
+                perspCam.forward = c.c2;
+                perspCam.UpdateTRSMatrix();
+                float4* cullingPlanes = stackalloc float4[6];
+                GetCullingPlanes(ref perspCam, cullingPlanes);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes);
+                PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, false);
+                Shader.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(perspCam.projectionMatrix, true) * (Matrix4x4)perspCam.worldToCameraMatrix);
+                Graphics.SetRenderTarget(allGBuffer[i], depthBuffer);
+                GL.Clear(true, true, Color.black);
+                commonData.clusterMaterial.SetPass(1);
+                Graphics.DrawProceduralIndirect(MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+            }
+        }
     }
 }

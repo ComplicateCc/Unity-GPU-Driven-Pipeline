@@ -55,7 +55,7 @@ namespace UnityEngine.Rendering.PostProcessing
         public override void Render(PostProcessRenderContext context)
         {
             var sheet = context.uberSheet;
-            sheet.EnableKeyword("VIGNETTE");
+            sheet.EnableKeyword("VIGNETTE", context.command);
             sheet.properties.SetColor(ShaderIDs.Vignette_Color, settings.color.value);
 
             if (settings.mode == VignetteMode.Classic)

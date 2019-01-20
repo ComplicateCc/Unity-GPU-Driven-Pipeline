@@ -27,15 +27,15 @@ namespace UnityEngine.Rendering.PostProcessing
 
         public abstract void Render(PostProcessRenderContext context);
 
-        internal abstract void SetSettings(PostProcessEffectSettings settings);
+        public abstract void SetSettings(PostProcessEffectSettings settings);
     }
 
     public abstract class PostProcessEffectRenderer<T> : PostProcessEffectRenderer
         where T : PostProcessEffectSettings
     {
-        public T settings { get; internal set; }
+        public T settings { get; set; }
 
-        internal override void SetSettings(PostProcessEffectSettings settings)
+        public override void SetSettings(PostProcessEffectSettings settings)
         {
             this.settings = (T)settings;
         }

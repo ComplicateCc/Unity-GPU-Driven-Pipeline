@@ -12,62 +12,16 @@ using MPipeline;
 
 public unsafe static class PipelineFunctions
 {
-    public static void GetCullingPlanes(float4* cullingPlanes, float size, float nearClip, float farClip, float3 up, float3 right, float3 forward, float3 position)
+    public static void RunPostProcess(ref RenderTargets targets, out int source, out int dest)
     {
-        float3 rightSize = size * right;
-        float3 upSize = size * up;
-        cullingPlanes[0] = VectorUtility.GetPlane(-forward, position + nearClip * forward);
-        cullingPlanes[1] = VectorUtility.GetPlane(forward, position + farClip * forward);
-        cullingPlanes[2] = VectorUtility.GetPlane(-right, position - rightSize);
-        cullingPlanes[3] = VectorUtility.GetPlane(right, position + rightSize);
-        cullingPlanes[4] = VectorUtility.GetPlane(up, position + upSize);
-        cullingPlanes[5] = VectorUtility.GetPlane(-up, position - upSize);
+        source = targets.renderTargetIdentifier;
+        dest = targets.backupIdentifier;
+        int back = targets.backupIdentifier;
+        targets.backupIdentifier = targets.renderTargetIdentifier;
+        targets.renderTargetIdentifier = back;
     }
 
-    public static void GetCullingPlanes(ref Matrix4x4 invVp, Vector4* cullingPlanes, float nearClip, float farClip, Vector3 cameraPosition, Vector3 cameraForward)
-    {
-        Vector3 nearLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 1));
-        Vector3 nearLeftTop = invVp.MultiplyPoint(new Vector3(-1, 1, 1));
-        Vector3 nearRightButtom = invVp.MultiplyPoint(new Vector3(1, -1, 1));
-        Vector3 nearRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 1));
-        Vector3 farLeftButtom = invVp.MultiplyPoint(new Vector3(-1, -1, 0.5f));
-        Vector3 farRightTop = invVp.MultiplyPoint(new Vector3(1, 1, 0.5f));
-        Plane plane;
-        //Far
-        plane = new Plane(cameraForward, cameraPosition + cameraForward * farClip);
-        cullingPlanes[0] = cameraForward;
-        cullingPlanes[0].w = plane.distance;
-        //Up
-        plane = new Plane(nearLeftTop, farRightTop, nearRightTop);
-        cullingPlanes[1] = plane.normal;
-        cullingPlanes[1].w = plane.distance;
-        //Down
-        plane = new Plane(nearRightButtom, farLeftButtom, nearLeftButtom);
-        cullingPlanes[2] = plane.normal;
-        cullingPlanes[2].w = plane.distance;
-        //Left
-        plane = new Plane(farLeftButtom, nearLeftTop, nearLeftButtom);
-        cullingPlanes[3] = plane.normal;
-        cullingPlanes[3].w = plane.distance;
-        //Right
-        plane = new Plane(farRightTop, nearRightButtom, nearRightTop);
-        cullingPlanes[4] = plane.normal;
-        cullingPlanes[4].w = plane.distance;
-        //Near
-        plane = new Plane(-cameraForward, cameraPosition + cameraForward * nearClip);
-        cullingPlanes[5] = -cameraForward;
-        cullingPlanes[5].w = plane.distance;
-
-    }
-    public static void GetCullingPlanesForSRP(Vector4* planes, int count = 6)
-    {
-        for (int i = 0; i < count; ++i)
-        {
-            planes[i] = -planes[i];
-        }
-    }
-
-       //TODO: Streaming Loading
+    //TODO: Streaming Loading
     /// <summary>
     /// Initialize pipeline buffers
     /// </summary>
@@ -260,6 +214,17 @@ public unsafe static class PipelineFunctions
         buffer.DispatchCompute(compute, 1, 1, 1, 1);
         buffer.SetComputeBufferParam(compute, 0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
     }
+    public static void SetBaseBuffer(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, float4* frustumCullingPlanes)
+    {
+        var compute = gpuFrustumShader;
+        UnsafeUtility.MemCpy(backupFrustumArray.Ptr(), frustumCullingPlanes, sizeof(float4) * 6);
+        compute.SetVectorArray(ShaderIDs.planes, backupFrustumArray);
+        compute.SetBuffer(0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+        compute.SetBuffer(0, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        compute.SetBuffer(1, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        compute.Dispatch(1, 1, 1, 1);
+        compute.SetBuffer(0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+    }
     private static Vector4[] backupFrustumArray = new Vector4[6];
 
     public static void SetBaseBuffer(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, float4* frustumCullingPlanes, CommandBuffer buffer)
@@ -296,6 +261,12 @@ public unsafe static class PipelineFunctions
         ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 64);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho)
+    {
+        computeShader.SetInt(ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
+        ComputeShaderUtility.Dispatch(computeShader, 0, baseBuffer.clusterCount, 64);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material, CommandBuffer cb)
     {
         cb.SetGlobalBuffer(ShaderIDs.resultBuffer, buffer.resultBuffer);
@@ -308,28 +279,28 @@ public unsafe static class PipelineFunctions
         vp = GL.GetGPUProjectionMatrix(currentCam.projectionMatrix, false) * currentCam.worldToCameraMatrix;
         invVP = vp.inverse;
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, CommandBuffer buffer)
     {
         buffer.GetTemporaryRT(tar.gbufferIndex[0], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB32);
         buffer.GetTemporaryRT(tar.gbufferIndex[1], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB32);
         buffer.GetTemporaryRT(tar.gbufferIndex[2], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB2101010);
-        buffer.GetTemporaryRT(tar.gbufferIndex[3], tarcam.pixelWidth, tarcam.pixelHeight, 24, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf);
+        buffer.GetTemporaryRT(tar.gbufferIndex[3], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf);
         buffer.GetTemporaryRT(tar.gbufferIndex[4], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.RGHalf);
-        buffer.GetTemporaryRT(tar.gbufferIndex[5], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.RFloat);
-        int renderTarget = tar.gbufferIndex[3];
+        buffer.GetTemporaryRT(tar.depthIdentifier, tarcam.pixelWidth, tarcam.pixelHeight, 32, FilterMode.Point, RenderTextureFormat.Depth);
         buffer.GetTemporaryRT(ShaderIDs._BackupMap, tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf);
-        tar.renderTargetIdentifier = renderTarget;
+        tar.renderTargetIdentifier = tar.gbufferIndex[3];
         tar.backupIdentifier = ShaderIDs._BackupMap;
-        tar.depthIdentifier = renderTarget;
     }
 
     public static void ReleaseRenderTarget(CommandBuffer buffer, ref RenderTargets targets)
     {
-        foreach(var i in targets.gbufferIndex)
+        foreach (var i in targets.gbufferIndex)
         {
             buffer.ReleaseTemporaryRT(i);
         }
+        buffer.ReleaseTemporaryRT(ShaderIDs._BackupMap);
+        buffer.ReleaseTemporaryRT(targets.depthIdentifier);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -426,10 +397,10 @@ public unsafe static class PipelineFunctions
         PipelineBaseBuffer baseBuffer, CommandBuffer buffer
         , ComputeShader coreShader)
     {
-      buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.dispatchBuffer, baseBuffer.dispatchBuffer);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.dispatchBuffer, baseBuffer.dispatchBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.reCheckCount, baseBuffer.reCheckCount);
-        buffer.DispatchCompute(coreShader, OcclusionBuffers.ClearOcclusionData, 1, 1, 1);  
+        buffer.DispatchCompute(coreShader, OcclusionBuffers.ClearOcclusionData, 1, 1, 1);
     }
     public static void OcclusionRecheck(
         PipelineBaseBuffer baseBuffer
