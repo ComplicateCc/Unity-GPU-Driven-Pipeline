@@ -10,17 +10,31 @@ public unsafe class MLight : MonoBehaviour
     public const int cubemapShadowResolution = 1024;
     public const int perspShadowResolution = 2048;
     public bool useShadow = false;
-    public bool updateShadowmap = true;
+    [SerializeField]
+    private bool updateShadowmap = true;
     public float smallSpotAngle = 30;
     public float spotNearClip = 0.3f;
     [Range(0.01f, 1f)]
     public float aspect = 1;
-    
+    [Range(0, 10)]
+    [SerializeField]
+    private int updateFrequency = 0;
+    private int lastShadowUpdateFrame = 0;
     private static Dictionary<Light, MLight> lightDict = new Dictionary<Light, MLight>(47);
     [System.NonSerialized] public RenderTexture shadowMap;
     [System.NonSerialized] public Light light;
     private bool useCubemap;
     public Camera shadowCam { get; private set; }
+    public bool UpdateFrame(int frameCount)
+    {
+        if (!updateShadowmap) return false;
+        if(lastShadowUpdateFrame + updateFrequency < frameCount)
+        {
+            lastShadowUpdateFrame = frameCount;
+            return true;
+        }
+        return false;
+    }
     public static void ClearLightDict()
     {
         lightDict.Clear();

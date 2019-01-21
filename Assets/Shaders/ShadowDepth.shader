@@ -22,6 +22,14 @@
 				float4 vertex : SV_POSITION;
 			};
 
+			v2f vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
+			{
+				Point v = getVertex(vertexID, instanceID); 
+				float4 worldPos = float4(v.vertex - _NormalBiases.x * v.normal, 1);
+				v2f o;
+				o.vertex = mul(_ShadowMapVP, worldPos);
+				return o;
+			}
 			
 			float frag (v2f i) : SV_Target
 			{
@@ -30,14 +38,6 @@
 				#else
 				return i.vertex.z + _ShadowCamDirection.w;
 				#endif
-			}
-			v2f vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
-			{
-				Point v = getVertex(vertexID, instanceID); 
-				float4 worldPos = float4(v.vertex - _NormalBiases.x * v.normal, 1);
-				v2f o;
-				o.vertex = mul(_ShadowMapVP, worldPos);
-				return o;
 			}
 			ENDCG
 		}

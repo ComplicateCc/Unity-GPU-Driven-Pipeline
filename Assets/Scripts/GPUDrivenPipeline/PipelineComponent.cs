@@ -235,7 +235,7 @@ namespace MPipeline
             localToWorldMatrix.c1 = new float4(up, 0);
             localToWorldMatrix.c2 = new float4(forward, 0);
             localToWorldMatrix.c3 = new float4(position, 1);
-            worldToCameraMatrix = math.inverse(localToWorldMatrix);
+            worldToCameraMatrix = inverse(localToWorldMatrix);
             worldToCameraMatrix.c0.z = -worldToCameraMatrix.c0.z;
             worldToCameraMatrix.c1.z = -worldToCameraMatrix.c1.z;
             worldToCameraMatrix.c2.z = -worldToCameraMatrix.c2.z;

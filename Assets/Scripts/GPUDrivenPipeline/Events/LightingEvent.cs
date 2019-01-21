@@ -172,7 +172,7 @@ namespace MPipeline
                         int2 lightIndex = vpMatrices.index;
                         Light lt = allLights[lightIndex.y].light;
                         MLight light = MUnsafeUtility.GetObject<MLight>(vpMatrices.mLightPtr);
-                        if (light.updateShadowmap)
+                        if (light.UpdateFrame(Time.frameCount))
                         {
                             light.UpdateShadowCacheType(true);
                             SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
@@ -218,7 +218,7 @@ namespace MPipeline
                         MLight mlight = MUnsafeUtility.GetObject<MLight>(vpMatrices.mLightPtr);
                         mlight.UpdateShadowCacheType(false);
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
-                        if (mlight.updateShadowmap)
+                        if (mlight.UpdateFrame(Time.frameCount))
                         {
                             SceneController.DrawSpotLight(ref opts, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
                             buffer.CopyTexture(cbdr.spotArrayMap, spot.shadowIndex, mlight.shadowMap, 0);

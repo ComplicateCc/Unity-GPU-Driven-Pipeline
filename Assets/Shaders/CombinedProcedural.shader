@@ -60,14 +60,6 @@ half4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, floa
     return emission;
 }
 
-void ProceduralStandardSpecular_GI (SurfaceOutputStandardSpecular s, float3 viewDir, out half4 outGBuffer0, out half4 outGBuffer1)
-{
-    // energy conservation
-    float oneMinusReflectivity;
-    s.Albedo = EnergyConservationBetweenDiffuseAndSpecular (s.Albedo, s.Specular, /*out*/ oneMinusReflectivity);
-    outGBuffer0 = half4(s.Albedo, s.Occlusion);
-    outGBuffer1 = half4(s.Normal * 0.5f + 0.5f, 0);
-}
 float4x4 _LastVp;
 float4x4 _NonJitterVP;
 inline half2 CalculateMotionVector(float4x4 lastvp, float3 worldPos, half2 screenUV)
@@ -140,10 +132,7 @@ void frag_surf (v2f_surf IN,
   half2 screenUV = GetScreenPos(screenPos);
   outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);
 }
-void frag_gi (v2f_surf IN,
-    out half4 outGBuffer0 : SV_Target0,
-    out half4 outGBuffer1 : SV_Target1
-) {
+float4 frag_gi (v2f_surf IN) : SV_TARGET{
   // prepare and unpack data
   float3 worldPos = float3(IN.worldTangent.w, IN.worldBinormal.w, IN.worldNormal.w);
   float3 worldViewDir = normalize(IN.worldViewDir);
@@ -152,8 +141,8 @@ void frag_gi (v2f_surf IN,
   // call surface function
   surf (IN.pack0, IN.objectIndex, o);
   o.Normal = normalize(mul(o.Normal, wdMatrix));
-  ProceduralStandardSpecular_GI (o, worldViewDir, outGBuffer0, outGBuffer1); //GI neccessary here!
-  outGBuffer1.w = IN.pos.z;
+  return float4(o.Normal * 0.5 + 0.5, 1);
+  //TODO
 }
 
 ENDCG

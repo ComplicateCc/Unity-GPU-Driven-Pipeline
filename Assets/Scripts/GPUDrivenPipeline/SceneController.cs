@@ -569,7 +569,7 @@ options.isOrtho);
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
-        public static void DrawGIBuffer(RenderBuffer[][] allGBuffer, RenderBuffer depthBuffer, float4 renderCube, ComputeShader cullingshader)
+        public static void DrawGIBuffer(RenderTexture targetRT, float4 renderCube, ComputeShader cullingshader, CommandBuffer buffer)
         {
             if (!gpurpEnabled) return;
             PerspCam perspCam = new PerspCam();
@@ -588,18 +588,26 @@ options.isOrtho);
                 float3x3(float3(1, 0, 0), float3(0, 0, -1), float3(0, 1, 0)),
                 float3x3(float3(1, 0, 0), float3(0, 0, 1), float3(0, -1, 0))
             };
-            void GetCullingPlanes(ref PerspCam persp, float4* cullingPlanes)
+            CubemapFace* faces = stackalloc CubemapFace[]
             {
-                float3 leftDown = persp.position + persp.forward * persp.farClipPlane - persp.right * persp.farClipPlane - persp.up * persp.farClipPlane;
-                float3 leftUp = persp.position + persp.forward * persp.farClipPlane - persp.right * persp.farClipPlane + persp.up * persp.farClipPlane;
-                float3 rightDown = persp.position + persp.forward * persp.farClipPlane + persp.right * persp.farClipPlane - persp.up * persp.farClipPlane;
-                float3 rightUp = persp.position + persp.forward * persp.farClipPlane + persp.right * persp.farClipPlane + persp.up * persp.farClipPlane;
-                cullingPlanes[0] = VectorUtility.GetPlane(persp.forward, persp.position + persp.forward * persp.farClipPlane);
-                cullingPlanes[1] = VectorUtility.GetPlane(leftUp, rightUp, persp.position);
-                cullingPlanes[2] = VectorUtility.GetPlane(rightDown, leftDown, persp.position);
-                cullingPlanes[3] = VectorUtility.GetPlane(leftDown, leftUp, persp.position);
-                cullingPlanes[4] = VectorUtility.GetPlane(rightUp, leftDown, persp.position);
-            }
+                CubemapFace.PositiveZ,
+                CubemapFace.PositiveX,
+                CubemapFace.NegativeZ,
+                CubemapFace.NegativeX,
+                CubemapFace.PositiveY,
+                CubemapFace.NegativeY
+            };
+            float4* cullingPlanes = stackalloc float4[]
+            {
+                VectorUtility.GetPlane(float3(0, 0, 1), perspCam.position + float3(0, 0, perspCam.farClipPlane)),
+                VectorUtility.GetPlane(float3(0, 0, -1), perspCam.position - float3(0, 0, perspCam.farClipPlane)),
+                VectorUtility.GetPlane(float3(0, 1, 0), perspCam.position + float3(0, perspCam.farClipPlane, 0)),
+                VectorUtility.GetPlane(float3(0, -1, 0), perspCam.position - float3(0, perspCam.farClipPlane, 0)),
+                VectorUtility.GetPlane(float3(1, 0, 0), perspCam.position + float3(perspCam.farClipPlane, 0, 0)),
+                VectorUtility.GetPlane(float3(-1, 0, 0), perspCam.position - float3(perspCam.farClipPlane, 0, 0))
+            };
+            PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes, buffer);
+            PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, true, buffer);
             for (int i = 0; i < 6; ++i)
             {
                 float3x3 c = coords[i];
@@ -607,15 +615,10 @@ options.isOrtho);
                 perspCam.up = c.c1;
                 perspCam.forward = c.c2;
                 perspCam.UpdateTRSMatrix();
-                float4* cullingPlanes = stackalloc float4[6];
-                GetCullingPlanes(ref perspCam, cullingPlanes);
-                PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes);
-                PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, false);
-                Shader.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(perspCam.projectionMatrix, true) * (Matrix4x4)perspCam.worldToCameraMatrix);
-                Graphics.SetRenderTarget(allGBuffer[i], depthBuffer);
-                GL.Clear(true, true, Color.black);
-                commonData.clusterMaterial.SetPass(1);
-                Graphics.DrawProceduralIndirect(MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
+                buffer.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(perspCam.projectionMatrix, true) * (Matrix4x4)perspCam.worldToCameraMatrix);
+                buffer.SetRenderTarget(targetRT, 0, faces[i], 0);
+                buffer.ClearRenderTarget(true, true, Color.black);
+                buffer.DrawProceduralIndirect(Matrix4x4.identity, commonData.clusterMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
         }
     }

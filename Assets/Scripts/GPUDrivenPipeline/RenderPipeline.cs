@@ -28,6 +28,7 @@ namespace MPipeline
         public PipelineResources resources;
         private static List<Command> afterRenderFrame = new List<Command>(10);
         private static List<Command> beforeRenderFrame = new List<Command>(10);
+        private static List<CommandBuffer> bufferAfterFrame = new List<CommandBuffer>(10);
         public static void AddCommandAfterFrame(object arg, Action<object> func)
         {
             afterRenderFrame.Add(new Command
@@ -35,6 +36,10 @@ namespace MPipeline
                 func = func,
                 obj = arg
             });
+        }
+        public static void ExecuteBufferAtFrameEnding(CommandBuffer buffer)
+        {
+            bufferAfterFrame.Add(buffer);
         }
         public static void AddCommandBeforeFrame(object arg, Action<object> func)
         {
@@ -88,8 +93,14 @@ namespace MPipeline
                 }
                 Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam);
                 PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
-                renderContext.Submit();
             }
+            foreach(var i in bufferAfterFrame)
+            {
+                renderContext.ExecuteCommandBuffer(i);
+                i.Clear();
+            }
+            bufferAfterFrame.Clear();
+            renderContext.Submit();
             foreach (var i in afterRenderFrame)
             {
                 i.func(i.obj);
