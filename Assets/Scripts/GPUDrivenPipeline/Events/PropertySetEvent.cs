@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
+    [System.Serializable]
     [PipelineEvent(false, true)]
     public class PropertySetEvent : PipelineEvent
     {

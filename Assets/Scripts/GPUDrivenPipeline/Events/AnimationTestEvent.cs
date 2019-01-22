@@ -91,7 +91,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            ComputeShader shader = data.resources.gpuSkin;
+            ComputeShader shader = data.resources.shaders.gpuSkin;
             int* pointer = stackalloc int[] {bindPoseCount , verticesBuffer.count };
             _ModelBones.CopyFrom(pointer, 2);
             shader.SetInts(ShaderIDs._ModelBones, _ModelBones);

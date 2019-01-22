@@ -6,6 +6,7 @@ using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
+    [System.Serializable]
     [PipelineEvent(false, true)]
     public class FinalPostEvent : PipelineEvent
     {
@@ -13,6 +14,7 @@ namespace MPipeline
         public PostProcessResources resources;
         public Dictionary<Type, PostProcessEffectRenderer> allEvents;
         private PostProcessRenderContext postContext;
+
         T AddEvents<S, T>() where T : PostProcessEffectRenderer, new()
         {
             T renderer = new T();

@@ -10,6 +10,7 @@ using System.Threading;
 using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
+    [System.Serializable]
     [PipelineEvent(true, true)]
     public unsafe class VolumetricLightEvent : PipelineEvent
     {
@@ -37,22 +38,13 @@ namespace MPipeline
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();
-            cbdr = PipelineSharedData.Get(renderPath, resources, (res) => new CBDRSharedData(res));
-            volumeMat = new Material(resources.volumetricShader);
-        }
-
-        public override void OnEventDisable()
-        {
-            cbdr.useFroxel = false;
-        }
-
-        public override void OnEventEnable()
-        {
-            cbdr.useFroxel = true;
+            cbdr = PipelineSharedData.Get(RenderPipeline.currentRenderingPath, resources, (res) => new CBDRSharedData(res));
+            volumeMat = new Material(resources.shaders.volumetricShader);
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
+            cbdr.useFroxel = true;
             cbdr.availiableDistance = availableDistance;
             fogCount = 0;
             if (FogVolumeComponent.allVolumes.isCreated && FogVolumeComponent.allVolumes.Length > 0)
@@ -77,7 +69,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            ComputeShader scatter = data.resources.volumetricScattering;
+            ComputeShader scatter = data.resources.shaders.volumetricScattering;
 
             if (cbdr.lightFlag == 0)
             {
@@ -165,11 +157,12 @@ namespace MPipeline
             buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 0);
             buffer.ReleaseTemporaryRT(ShaderIDs._VolumeTex);
             cbdr.lightFlag = 0;
+            cbdr.useFroxel = false;
         }
 
         protected override void Dispose()
         {
-            DestroyImmediate(volumeMat);
+            Object.DestroyImmediate(volumeMat);
             randomBuffer.Dispose();
         }
         public unsafe struct FogVolumeCalculate : IJobParallelFor

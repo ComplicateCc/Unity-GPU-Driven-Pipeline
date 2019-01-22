@@ -6,6 +6,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
+    [System.Serializable]
     [PipelineEvent(false, true)]
     public unsafe class GeometryEvent : PipelineEvent
     {
@@ -16,7 +17,7 @@ namespace MPipeline
         {
             hizDepth = new HizDepth();
             hizDepth.InitHiZ(resources);
-            linearMat = new Material(resources.linearDepthShader);
+            linearMat = new Material(resources.shaders.linearDepthShader);
             Application.targetFrameRate = int.MaxValue;
         }
 
@@ -35,8 +36,8 @@ namespace MPipeline
                 command = buffer,
                 frustumPlanes = data.frustumPlanes,
                 isOrtho = cam.cam.orthographic,
-                cullingShader = data.resources.gpuFrustumCulling,
-                terrainCompute = data.resources.terrainCompute
+                cullingShader = data.resources.shaders.gpuFrustumCulling,
+                terrainCompute = data.resources.shaders.terrainCompute
             };
 
             if (enableOcclusionCulling)

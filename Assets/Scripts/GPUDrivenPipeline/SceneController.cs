@@ -196,11 +196,11 @@ namespace MPipeline
                 avaiableTexs = new NativeList<int>(texArrayCapacity, Allocator.Persistent),
                 texCopyBuffer = new ComputeBuffer(resolution * resolution, sizeof(int)),
                 propertyBuffer = new ComputeBuffer(propertyCapacity, sizeof(PropertyValue)),
-                copyTextureMat = new Material(resources.copyShader),
+                copyTextureMat = new Material(resources.shaders.copyShader),
                 texArray = new RenderTexture(desc),
-                clusterMaterial = new Material(resources.clusterRenderShader),
-                terrainMaterial = new Material(resources.terrainShader),
-                terrainDrawStreaming = new TerrainDrawStreaming(100, 16, resources.terrainCompute)
+                clusterMaterial = new Material(resources.shaders.clusterRenderShader),
+                terrainMaterial = new Material(resources.shaders.terrainShader),
+                terrainDrawStreaming = new TerrainDrawStreaming(100, 16, resources.shaders.terrainCompute)
             };
 
             for (int i = 0; i < propertyCapacity; ++i)
@@ -221,11 +221,11 @@ namespace MPipeline
         public static void TransformMapPosition(int startPos)
         {
             if (baseBuffer.clusterCount - startPos <= 0) return;
-            resources.gpuFrustumCulling.SetInt(ShaderIDs._OffsetIndex, startPos);
-            resources.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveVertex, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            resources.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveCluster, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-            resources.gpuFrustumCulling.Dispatch(PipelineBaseBuffer.MoveVertex, baseBuffer.clusterCount - startPos, 1, 1);
-            ComputeShaderUtility.Dispatch(resources.gpuFrustumCulling, PipelineBaseBuffer.MoveCluster, baseBuffer.clusterCount - startPos, 64);
+            resources.shaders.gpuFrustumCulling.SetInt(ShaderIDs._OffsetIndex, startPos);
+            resources.shaders.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveVertex, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            resources.shaders.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveCluster, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+            resources.shaders.gpuFrustumCulling.Dispatch(PipelineBaseBuffer.MoveVertex, baseBuffer.clusterCount - startPos, 1, 1);
+            ComputeShaderUtility.Dispatch(resources.shaders.gpuFrustumCulling, PipelineBaseBuffer.MoveCluster, baseBuffer.clusterCount - startPos, 64);
         }
 
         public static void Dispose()

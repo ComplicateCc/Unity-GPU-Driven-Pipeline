@@ -78,7 +78,7 @@ namespace MPipeline
         public int pointshadowCount;
         public CBDRSharedData(PipelineResources res)
         {
-            cbdrShader = res.cbdrShader;
+            cbdrShader = res.shaders.cbdrShader;
             RenderTextureDescriptor desc = new RenderTextureDescriptor
             {
                 autoGenerateMips = false,

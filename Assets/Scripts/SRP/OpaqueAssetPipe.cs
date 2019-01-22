@@ -18,10 +18,9 @@ public class OpaqueAssetPipe : RenderPipelineAsset
     }
 
 #endif
-    public GameObject pipelinePrefab;
     public PipelineResources pipelineResources;
     protected override IRenderPipeline InternalCreatePipeline()
     {
-        return new MPipeline.RenderPipeline(pipelinePrefab, pipelineResources);
+        return new MPipeline.RenderPipeline(pipelineResources);
     }
 }

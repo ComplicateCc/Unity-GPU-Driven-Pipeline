@@ -57,7 +57,7 @@ namespace MPipeline
             float3 left = transform.position - transform.lossyScale * 0.5f;
             float3 right = transform.position + transform.lossyScale * 0.5f;
             float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
-            SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.gpuFrustumCulling, cbuffer);
+            SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
         }
         [EasyButtons.Button]
         public void DebugTry()

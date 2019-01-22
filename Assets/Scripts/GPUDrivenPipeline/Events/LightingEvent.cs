@@ -13,6 +13,7 @@ using static Unity.Mathematics.math;
 using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
+    [System.Serializable]
     [PipelineEvent(true, true)]
     public unsafe class LightingEvent : PipelineEvent
     {
@@ -38,16 +39,16 @@ namespace MPipeline
         #endregion
         protected override void Init(PipelineResources resources)
         {
-            cbdr = PipelineSharedData.Get(renderPath, resources, (a) => new CBDRSharedData(a));
-            shadMaskMaterial = new Material(resources.shadowMaskShader);
+            cbdr = PipelineSharedData.Get(RenderPipeline.currentRenderingPath, resources, (a) => new CBDRSharedData(a));
+            shadMaskMaterial = new Material(resources.shaders.shadowMaskShader);
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
             {
                 cascadeShadowMapVP[i] = Matrix4x4.identity;
             }
-            pointLightMaterial = new Material(resources.pointLightShader);
-            cubeDepthMaterial = new Material(resources.cubeDepthShader);
-            Vector3[] vertices = resources.sphereMesh.vertices;
-            int[] triangle = resources.sphereMesh.triangles;
+            pointLightMaterial = new Material(resources.shaders.pointLightShader);
+            cubeDepthMaterial = new Material(resources.shaders.cubeDepthShader);
+            Vector3[] vertices = resources.shaders.sphereMesh.vertices;
+            int[] triangle = resources.shaders.sphereMesh.triangles;
             NativeArray<Vector3> allVertices = new NativeArray<Vector3>(triangle.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             for (int i = 0; i < allVertices.Length; ++i)
             {
@@ -57,14 +58,14 @@ namespace MPipeline
             sphereBuffer.SetData(allVertices);
             allVertices.Dispose();
             spotBuffer = new RenderSpotShadowCommand();
-            spotBuffer.Init(resources.spotLightDepthShader);
+            spotBuffer.Init(resources.shaders.spotLightDepthShader);
         }
 
         protected override void Dispose()
         {
-            DestroyImmediate(shadMaskMaterial);
-            DestroyImmediate(pointLightMaterial);
-            DestroyImmediate(cubeDepthMaterial);
+            Object.DestroyImmediate(shadMaskMaterial);
+            Object.DestroyImmediate(pointLightMaterial);
+            Object.DestroyImmediate(cubeDepthMaterial);
             sphereBuffer.Dispose();
             spotBuffer.Dispose();
         }
@@ -114,7 +115,7 @@ namespace MPipeline
                 {
                     frustumPlanes = shadowFrustumVP,
                     command = buffer,
-                    cullingShader = data.resources.gpuFrustumCulling,
+                    cullingShader = data.resources.shaders.gpuFrustumCulling,
                     isOrtho = true
                 };
                 buffer.SetGlobalVector(ShaderIDs._NormalBiases, SunLight.current.normalBias);   //Only Depth
@@ -155,7 +156,7 @@ namespace MPipeline
             {
                 if (cubemapVPMatrices.Length > 0)
                 {
-                    var cullShader = data.resources.gpuFrustumCulling;
+                    var cullShader = data.resources.shaders.gpuFrustumCulling;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
                     RenderClusterOptions opts = new RenderClusterOptions
                     {
@@ -201,7 +202,7 @@ namespace MPipeline
                 {
                     RenderClusterOptions opts = new RenderClusterOptions
                     {
-                        cullingShader = data.resources.gpuFrustumCulling,
+                        cullingShader = data.resources.shaders.gpuFrustumCulling,
                         command = buffer,
                         frustumPlanes = null,
                         isOrtho = false,

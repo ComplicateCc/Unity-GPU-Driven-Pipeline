@@ -5,6 +5,7 @@ using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
+    [System.Serializable]
     [PipelineEvent(true, true)]
     public class TemporalAAEvent : PipelineEvent
     {
@@ -36,12 +37,12 @@ namespace MPipeline
         private RenderTexture historyTex;
         protected override void Init(PipelineResources resources)
         {
-            taaMat = new Material(resources.taaShader);
+            taaMat = new Material(resources.shaders.taaShader);
         }
 
         protected override void Dispose()
         {
-            DestroyImmediate(taaMat);
+            UnityEngine.Object.DestroyImmediate(taaMat);
         }
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
@@ -114,7 +115,7 @@ namespace MPipeline
             else if (history.width != cam.pixelWidth || history.height != cam.pixelHeight)
             {
                 history.Release();
-                Destroy(history);
+                Object.Destroy(history);
                 history = new RenderTexture(cam.pixelWidth, cam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
                 history.filterMode = FilterMode.Bilinear;
                 buffer.CopyTexture(renderTarget, history);

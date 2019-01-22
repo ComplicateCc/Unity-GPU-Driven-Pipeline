@@ -284,7 +284,7 @@ namespace MPipeline
             if (resultLength > 0)
             {
                 indexBuffer.SetData(results, currentCount, currentCount, resultLength - currentCount);
-                ComputeShader shader = resources.streamingShader;
+                ComputeShader shader = resources.shaders.streamingShader;
                 shader.SetBuffer(0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
                 shader.SetBuffer(1, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
                 shader.SetBuffer(0, ShaderIDs._IndexBuffer, indexBuffer);
@@ -339,7 +339,7 @@ namespace MPipeline
                     yield return null;
                 }
             }
-            ComputeShader copyShader = resources.gpuFrustumCulling;
+            ComputeShader copyShader = resources.shaders.gpuFrustumCulling;
             //TODO
             //Load Property
             const int loadPropertyKernel = 6;

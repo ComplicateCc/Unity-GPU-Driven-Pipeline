@@ -17,7 +17,7 @@ namespace MPipeline
             backupMip.enableRandomWrite = false;
             backupMip.wrapMode = TextureWrapMode.Clamp;
             backupMip.filterMode = FilterMode.Point;
-            getLodMat = new Material(resources.HizLodShader);
+            getLodMat = new Material(resources.shaders.HizLodShader);
         }
         public void GetMipMap(RenderTexture depthMipTexture, CommandBuffer buffer)
         {
