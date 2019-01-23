@@ -204,7 +204,6 @@ namespace MPipeline
             bf.SetComputeBufferParam(sh, frustumCullKernel, ShaderIDs.instanceCountBuffer, instanceCountBuffer);
             bf.SetComputeBufferParam(sh, clearCullKernel, ShaderIDs.instanceCountBuffer, instanceCountBuffer);
             bf.SetComputeVectorArrayParam(sh, ShaderIDs.planes, ops.frustumPlanes);
-            bf.SetComputeIntParam(sh, ShaderIDs._CullingPlaneCount, ops.isOrtho ? 6 : 5);
             bf.SetGlobalInt(ShaderIDs._MeshSize, meshSize);
             bf.DispatchCompute(sh, clearCullKernel, 1, 1, 1);
             ComputeShaderUtility.Dispatch(sh, bf, frustumCullKernel, referenceBuffer.Length, 64);

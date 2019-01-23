@@ -12,6 +12,15 @@ using MPipeline;
 
 public unsafe static class PipelineFunctions
 {
+    public static void GetOrthoCullingPlanes(ref OrthoCam orthoCam, float4* planes)
+    {
+        planes[0] = VectorUtility.GetPlane(orthoCam.forward, orthoCam.position + orthoCam.forward * orthoCam.farClipPlane);
+        planes[1] = VectorUtility.GetPlane(-orthoCam.forward, orthoCam.position + orthoCam.forward * orthoCam.nearClipPlane);
+        planes[2] = VectorUtility.GetPlane(-orthoCam.up, orthoCam.position - orthoCam.up * orthoCam.size);
+        planes[3] = VectorUtility.GetPlane(orthoCam.up, orthoCam.position + orthoCam.up * orthoCam.size);
+        planes[4] = VectorUtility.GetPlane(orthoCam.right, orthoCam.position + orthoCam.right * orthoCam.size);
+        planes[5] = VectorUtility.GetPlane(-orthoCam.right, orthoCam.position - orthoCam.right * orthoCam.size);
+    }
     public static void RunPostProcess(ref RenderTargets targets, out int source, out int dest)
     {
         source = targets.renderTargetIdentifier;
@@ -19,6 +28,25 @@ public unsafe static class PipelineFunctions
         int back = targets.backupIdentifier;
         targets.backupIdentifier = targets.renderTargetIdentifier;
         targets.renderTargetIdentifier = back;
+    }
+    public static void GetFrustumCorner(ref PerspCam perspCam, float distance, float3* corners)
+    {
+        perspCam.fov = Mathf.Deg2Rad * perspCam.fov * 0.5f;
+        float upLength = distance * tan(perspCam.fov);
+        float rightLength = upLength * perspCam.aspect;
+        float3 farPoint = perspCam.position + distance * perspCam.forward;
+        float3 upVec = upLength * perspCam.up;
+        float3 rightVec = rightLength * perspCam.right;
+        corners[0] = farPoint - upVec - rightVec;
+        corners[1] = farPoint - upVec + rightVec;
+        corners[2] = farPoint + upVec - rightVec;
+        corners[3] = farPoint + upVec + rightVec;
+    }
+
+    public static void GetFrustumPlanes(ref PerspCam perspCam, float4* planes)
+    {
+        float3* corners = stackalloc float3[4];
+        GetFrustumCorner(ref perspCam, perspCam.farClipPlane, corners);
     }
 
     //TODO: Streaming Loading
@@ -50,34 +78,6 @@ public unsafe static class PipelineFunctions
         baseBuffer.reCheckCount.SetData(occludedCountList);
         occludedCountList.Dispose();
     }
-    /// <summary>
-    /// Get Frustum Corners
-    /// </summary>
-    /// <param name="distance"></param> target distance range
-    /// <param name="shadMap"></param> shadowmap component
-    /// <param name="mask"></param> shadowmask component
-
-    public static void GetfrustumCorners(float2 nearFarPlane, float3* frustumCorners, float aspect, float relativeFov, float3 right, float3 up, float3 forward, float3 position)
-    {
-        //x: near width, y: near height z: far width w: far height
-        float2 tanValue = tan(relativeFov) / float2(1, aspect);
-        float4 screenDistanceNear = nearFarPlane.xxyy * tanValue.xyxy;
-        float3 nearPlane = position + forward * nearFarPlane.x;
-        float3 farPlane = position + forward * nearFarPlane.y;
-        float3 upDir = screenDistanceNear.y * up;
-        float3 rightDir = screenDistanceNear.x * right;
-        frustumCorners[0] = nearPlane + rightDir + upDir;
-        frustumCorners[1] = nearPlane - rightDir + upDir;
-        frustumCorners[2] = nearPlane + rightDir - upDir;
-        frustumCorners[3] = nearPlane - rightDir - upDir;
-        upDir = screenDistanceNear.w * up;
-        rightDir = screenDistanceNear.z * right;
-        frustumCorners[4] = farPlane + rightDir + upDir;
-        frustumCorners[5] = farPlane - rightDir + upDir;
-        frustumCorners[6] = farPlane + rightDir - upDir;
-        frustumCorners[7] = farPlane - rightDir - upDir;
-    }
-
 
     public static void GetfrustumCorners(float* planes, int planesCount, Camera cam, float3* frustumCorners)
     {
@@ -255,15 +255,13 @@ public unsafe static class PipelineFunctions
         buffer.DrawProceduralIndirect(Matrix4x4.identity, indirectMaterial, 0, MeshTopology.Triangles, occBuffer.reCheckCount, 0);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho, CommandBuffer buffer)
+    public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, CommandBuffer buffer)
     {
-        buffer.SetComputeIntParam(computeShader, ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
         ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 64);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, bool isOrtho)
+    public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader)
     {
-        computeShader.SetInt(ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
         ComputeShaderUtility.Dispatch(computeShader, 0, baseBuffer.clusterCount, 64);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -378,10 +376,8 @@ public unsafe static class PipelineFunctions
         , ComputeShader coreShader
         , CommandBuffer buffer
         , HizOcclusionData occlusionData
-        , Vector4[] frustumCullingPlanes
-        , bool isOrtho)
+        , Vector4[] frustumCullingPlanes)
     {
-        buffer.SetComputeIntParam(coreShader, ShaderIDs._CullingPlaneCount, isOrtho ? 6 : 5);
         buffer.SetComputeVectorArrayParam(coreShader, ShaderIDs.planes, frustumCullingPlanes);
         buffer.SetComputeVectorParam(coreShader, ShaderIDs._CameraUpVector, occlusionData.lastFrameCameraUp);
         buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.clusterBuffer, basebuffer.clusterBuffer);

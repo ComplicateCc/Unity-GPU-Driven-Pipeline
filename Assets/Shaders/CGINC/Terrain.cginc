@@ -10,11 +10,11 @@ struct TerrainPanel
     uint edgeFlag;
 };
 
-uint _CullingPlaneCount;
 shared float4 planes[6];
 float PlaneTest(float3 position, float3 extent){
     float result = 1;
-    for(uint i = 0; i < _CullingPlaneCount; ++i)
+    [unroll]
+    for(uint i = 0; i < 6; ++i)
     {
         float4 plane = planes[i];
         float3 absNormal = abs(plane.xyz);

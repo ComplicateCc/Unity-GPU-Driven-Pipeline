@@ -35,7 +35,6 @@ namespace MPipeline
             {
                 command = buffer,
                 frustumPlanes = data.frustumPlanes,
-                isOrtho = cam.cam.orthographic,
                 cullingShader = data.resources.shaders.gpuFrustumCulling,
                 terrainCompute = data.resources.shaders.terrainCompute
             };

@@ -116,7 +116,6 @@ namespace MPipeline
                     frustumPlanes = shadowFrustumVP,
                     command = buffer,
                     cullingShader = data.resources.shaders.gpuFrustumCulling,
-                    isOrtho = true
                 };
                 buffer.SetGlobalVector(ShaderIDs._NormalBiases, SunLight.current.normalBias);   //Only Depth
                 buffer.SetGlobalVector(ShaderIDs._ShadowDisableDistance, new Vector4(SunLight.current.firstLevelDistance,
@@ -158,13 +157,6 @@ namespace MPipeline
                 {
                     var cullShader = data.resources.shaders.gpuFrustumCulling;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
-                    RenderClusterOptions opts = new RenderClusterOptions
-                    {
-                        cullingShader = cullShader,
-                        command = buffer,
-                        frustumPlanes = null,
-                        isOrtho = false
-                    };
                     List<VisibleLight> allLights = data.cullResults.visibleLights;
                     PointLightStruct* pointLightPtr = pointLightArray.Ptr();
                     for (int i = 0; i < cubemapVPMatrices.Length; ++i)
@@ -176,7 +168,7 @@ namespace MPipeline
                         if (light.UpdateFrame(Time.frameCount))
                         {
                             light.UpdateShadowCacheType(true);
-                            SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, ref opts, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                            SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
                         }
                         else
                         {
@@ -200,13 +192,6 @@ namespace MPipeline
             {
                 if (spotLightMatrices.Length > 0)
                 {
-                    RenderClusterOptions opts = new RenderClusterOptions
-                    {
-                        cullingShader = data.resources.shaders.gpuFrustumCulling,
-                        command = buffer,
-                        frustumPlanes = null,
-                        isOrtho = false,
-                    };
                     SpotLight* allSpotLightPtr = spotLightArray.Ptr();
                     buffer.SetGlobalTexture(ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
                     spotBuffer.renderTarget = cbdr.spotArrayMap;
@@ -221,7 +206,7 @@ namespace MPipeline
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
                         if (mlight.UpdateFrame(Time.frameCount))
                         {
-                            SceneController.DrawSpotLight(ref opts, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
+                            SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
                             buffer.CopyTexture(cbdr.spotArrayMap, spot.shadowIndex, mlight.shadowMap, 0);
                         }
                         else

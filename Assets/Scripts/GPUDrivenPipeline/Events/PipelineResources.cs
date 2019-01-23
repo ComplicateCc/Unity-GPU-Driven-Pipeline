@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Reflection;
 namespace MPipeline
 {
     public class PipelineResources : ScriptableObject
@@ -15,6 +16,16 @@ namespace MPipeline
             public VolumetricLightEvent volumetricEvent;
             public FinalPostEvent postEvent;
             public TemporalAAEvent temporalEvent;
+            public PipelineEvent[] GetAllEvents()
+            {
+                FieldInfo[] infos = GetType().GetFields();
+                PipelineEvent[] allEvents = new PipelineEvent[infos.Length];
+                for (int i = 0; i < allEvents.Length; ++i)
+                {
+                    allEvents[i] = infos[i].GetValue(this) as PipelineEvent;
+                }
+                return allEvents;
+            }
         }
         [System.Serializable]
         public class Shaders

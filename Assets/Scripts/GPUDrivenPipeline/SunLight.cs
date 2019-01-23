@@ -17,7 +17,6 @@ public class SunLight : MonoBehaviour
     public Vector4 bias = new Vector4(0.01f, 0.02f, 0.04f, 0.08f);
     public Vector4 normalBias = new Vector4(0.001f, 0.002f, 0.003f, 0.005f);
     public Vector4 cascadeSoftValue = new Vector4(1.5f, 1.2f, 0.9f, 0.7f);
-    [System.NonSerialized] public Camera cameraComponent;
     [System.NonSerialized] public OrthoCam shadCam;
     [System.NonSerialized] public Material shadowDepthMaterial;
     [System.NonSerialized] public RenderTexture shadowmapTexture;
@@ -70,8 +69,7 @@ public class SunLight : MonoBehaviour
             useMipMap = false,
             volumeDepth = 4,
             vrUsage = VRTextureUsage.None
-        });
-        cameraComponent = shadowCam;
+        }); 
         shadowmapTexture.filterMode = FilterMode.Point;
         shadowDepthMaterial = new Material(Shader.Find("Hidden/ShadowDepth"));
         shadowFrustumPlanes = new NativeArray<AspectInfo>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);

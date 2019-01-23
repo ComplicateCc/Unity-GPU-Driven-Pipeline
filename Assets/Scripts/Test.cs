@@ -13,16 +13,11 @@ public unsafe class Test : MonoBehaviour
     [Button]
     public void Try()
     {
-        NativeDictionary<int, int> nativeDictionary = new NativeDictionary<int, int>(50, Allocator.Temp, (i, j) => i == j);
-        nativeDictionary.Add(1, 3);
-        nativeDictionary.Add(2, 4);
-        int result;
-        nativeDictionary.Get(1, out result);
-        Debug.Log(result);
-        nativeDictionary.Get(2, out result);
-        Debug.Log(result);
-        nativeDictionary.Get(3, out result);
-        Debug.Log(result);
-        nativeDictionary.Dispose();
+        Camera cam = GetComponent<Camera>();
+        Debug.Log(cam.ViewportToWorldPoint(new Vector3(0, 0, cam.farClipPlane)));
+        Debug.Log(cam.ViewportToWorldPoint(new Vector3(1, 0, cam.farClipPlane)));
+        Debug.Log(cam.ViewportToWorldPoint(new Vector3(0, 1, cam.farClipPlane)));
+        Debug.Log(cam.ViewportToWorldPoint(new Vector3(1, 1, cam.farClipPlane)));
+        float3* corners = stackalloc float3[4];
     }
 }

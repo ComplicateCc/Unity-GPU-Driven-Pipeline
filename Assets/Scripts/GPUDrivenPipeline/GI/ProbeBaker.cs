@@ -59,6 +59,37 @@ namespace MPipeline
             float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
             SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
         }
+        private void CalculateShadowmap()
+        {
+            RenderTextureDescriptor desc = new RenderTextureDescriptor
+            {
+                autoGenerateMips = false,
+                bindMS = false,
+                colorFormat = RenderTextureFormat.RHalf,
+                depthBufferBits = 16,
+                dimension = TextureDimension.Tex2D,
+                enableRandomWrite = false,
+                height = 1024,
+                memoryless = RenderTextureMemoryless.None,
+                msaaSamples = 1,
+                shadowSamplingMode = ShadowSamplingMode.None,
+                sRGB = false,
+                useMipMap = false,
+                volumeDepth = 1,
+                vrUsage = VRTextureUsage.None,
+                width = 1024
+            };
+            int _TempRT = Shader.PropertyToID("_TempRT");
+            cbuffer.GetTemporaryRT(_TempRT, desc);
+            if (SunLight.current)
+            {
+            }
+            else
+            {
+                cbuffer.SetRenderTarget(_TempRT);
+                cbuffer.ClearRenderTarget(false, true, Color.white);
+            }
+        }
         [EasyButtons.Button]
         public void DebugTry()
         {

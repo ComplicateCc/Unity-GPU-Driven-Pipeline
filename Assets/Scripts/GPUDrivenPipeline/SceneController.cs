@@ -15,7 +15,6 @@ namespace MPipeline
     {
         public Vector4[] frustumPlanes;
         public CommandBuffer command;
-        public bool isOrtho;
         public ComputeShader cullingShader;
         public ComputeShader terrainCompute;
     }
@@ -318,24 +317,24 @@ namespace MPipeline
                 options.command.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
                 options.command.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
                 PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
-                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.isOrtho, options.command);
+                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.command);
                 PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
             }
             RenderScene(ref data, cam);
 
         }
-        public static void DrawSpotLight(ref RenderClusterOptions options, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
+        public static void DrawSpotLight(CommandBuffer buffer, ComputeShader cullingShader, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
         {
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
 
             currentCam.worldToCameraMatrix = spotLightMatrix.worldToCamera;
             currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
-            options.command.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
-            options.command.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            options.command.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
-            options.command.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
-            options.command.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
+            buffer.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
+            buffer.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
+            buffer.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
+            buffer.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
+            buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
             CullResults.GetCullingParameters(currentCam, out data.cullParams);
             if (gpurpEnabled)
             {
@@ -345,9 +344,9 @@ namespace MPipeline
                     Plane p = data.cullParams.GetCullingPlane(i);
                     frustumPlanes[i] = new float4(-p.normal, -p.distance);
                 }
-                PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, frustumPlanes, options.command);
-                PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, false, options.command);
-                PipelineFunctions.RenderProceduralCommand(baseBuffer, spotcommand.clusterShadowMaterial, options.command);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, cullingShader, frustumPlanes, buffer);
+                PipelineFunctions.RunCullDispatching(baseBuffer, cullingShader, buffer);
+                PipelineFunctions.RenderProceduralCommand(baseBuffer, spotcommand.clusterShadowMaterial, buffer);
             }
 
             data.ExecuteCommandBuffer();
@@ -383,8 +382,7 @@ namespace MPipeline
 baseBuffer, gpuFrustumShader,
 buffer,
 hizOpts.hizData,
-options.frustumPlanes,
-options.isOrtho);
+options.frustumPlanes);
             //First Draw
             buffer.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
             buffer.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
@@ -432,9 +430,9 @@ options.isOrtho);
             {
                 PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref sunLight.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
                 float4* vec =(float4*)opts.frustumPlanes.Ptr();
-                sunLight.cameraComponent.worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix;
-                sunLight.cameraComponent.projectionMatrix = sunLight.shadCam.projectionMatrix;
-                CullResults.GetCullingParameters(sunLight.cameraComponent, out data.cullParams);
+                SunLight.shadowCam.worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix;
+                SunLight.shadowCam.projectionMatrix = sunLight.shadCam.projectionMatrix;
+                CullResults.GetCullingParameters(SunLight.shadowCam, out data.cullParams);
                 for(int i = 0; i < 6; ++i)
                 {
                     Plane p = data.cullParams.GetCullingPlane(i);
@@ -446,7 +444,7 @@ options.isOrtho);
                 if (gpurpEnabled)
                 {
                     PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, opts.frustumPlanes, opts.command);
-                    PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, true, opts.command);
+                    PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, opts.command);
                     opts.command.DrawProceduralIndirect(Matrix4x4.identity, sunLight.shadowDepthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
                 }
                 data.ExecuteCommandBuffer();
@@ -471,9 +469,8 @@ options.isOrtho);
             }
         }
 
-        public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, ref RenderClusterOptions opts, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
+        public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, CommandBuffer cb, ComputeShader cullingShader, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
         {
-            CommandBuffer cb = opts.command;
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
             cb.SetGlobalVector(ShaderIDs._LightPos, light.sphere);
             Matrix4x4 projMat = GL.GetGPUProjectionMatrix(vpMatrices.projMat, true);
@@ -507,8 +504,8 @@ options.isOrtho);
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             if (gpurpEnabled)
             {
-                PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, vpMatrices.frustumPlanes, cb);
-                PipelineFunctions.RunCullDispatching(baseBuffer, opts.cullingShader, true, cb);
+                PipelineFunctions.SetBaseBuffer(baseBuffer, cullingShader, vpMatrices.frustumPlanes, cb);
+                PipelineFunctions.RunCullDispatching(baseBuffer, cullingShader, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
@@ -607,7 +604,7 @@ options.isOrtho);
                 VectorUtility.GetPlane(float3(-1, 0, 0), perspCam.position - float3(perspCam.farClipPlane, 0, 0))
             };
             PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes, buffer);
-            PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, true, buffer);
+            PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, buffer);
             for (int i = 0; i < 6; ++i)
             {
                 float3x3 c = coords[i];
@@ -620,6 +617,65 @@ options.isOrtho);
                 buffer.ClearRenderTarget(true, true, Color.black);
                 buffer.DrawProceduralIndirect(Matrix4x4.identity, commonData.clusterMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
+        }
+        public static void DrawSunShadowForCubemap(NativeArray<float3> cubeVertex, int renderTarget, CommandBuffer buffer, out OrthoCam camData)
+        {
+            camData = new OrthoCam();
+            Transform tr = SunLight.current.transform;
+            camData.farClipPlane = 1000;
+            camData.forward = tr.forward;
+            camData.right = tr.right;
+            camData.up = tr.up;
+            float4x4 localToWorld = float4x4(float4(camData.right, 0), float4(camData.up, 0), float4(camData.forward, 0), float4(0, 0, 0, 1));
+            float3* vertPtr = cubeVertex.Ptr();
+            float3* localPoses = stackalloc float3[cubeVertex.Length];
+            for(int i = 0; i < cubeVertex.Length; ++i)
+            {
+                localPoses[i] = mul(localToWorld, float4(vertPtr[i], 1)).xyz;
+            }
+            int2 rightMostPoint = 0;
+            int2 upMostPoint = 0;
+            int2 forwardMostPoint = 0;
+            for(int i = 1; i < cubeVertex.Length; i++)
+            {
+                float3 p = localPoses[i];
+                if(p.x < localPoses[rightMostPoint.x].x)
+                {
+                    rightMostPoint.x = i;
+                }
+                if(p.x > localPoses[rightMostPoint.y].x)
+                {
+                    rightMostPoint.y = i;
+                }
+                if(p.y < localPoses[upMostPoint.x].y)
+                {
+                    upMostPoint.x = i;
+                }
+                if(p.y > localPoses[upMostPoint.y].y)
+                {
+                    upMostPoint.y = i;
+                }
+                if(p.z < localPoses[forwardMostPoint.x].z)
+                {
+                    forwardMostPoint.x = i;
+                }
+                if(p.z > localPoses[forwardMostPoint.y].z)
+                {
+                    forwardMostPoint.y = i;
+                }
+            }
+            float4 center = float4((localPoses[rightMostPoint.x].x + localPoses[rightMostPoint.y].x) * 0.5f, (localPoses[upMostPoint.x].y + localPoses[upMostPoint.y].y) * 0.5f, (localPoses[forwardMostPoint.x].z + localPoses[forwardMostPoint.y].z) * 0.5f, 1);
+            center = mul(center, localToWorld);
+            camData.position = center.xyz;
+            float width = localPoses[rightMostPoint.y].x - localPoses[rightMostPoint.x].x;
+            float up = localPoses[upMostPoint.y].y - localPoses[upMostPoint.x].y;
+            float length = localPoses[forwardMostPoint.y].z - localPoses[forwardMostPoint.x].z;
+            camData.size = max(width, up);
+            camData.nearClipPlane = -length * 0.5f;
+            camData.farClipPlane = -camData.nearClipPlane;
+            camData.UpdateProjectionMatrix();
+            camData.UpdateTRSMatrix();
+            
         }
     }
 }

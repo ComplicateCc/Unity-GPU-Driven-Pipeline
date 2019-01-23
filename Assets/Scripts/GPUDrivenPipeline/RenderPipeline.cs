@@ -49,16 +49,7 @@ namespace MPipeline
                 obj = arg
             });
         }
-        public static PipelineEvent[] GetAllEvents(object obj)
-        {
-            FieldInfo[] infos = obj.GetType().GetFields();
-            PipelineEvent[] allEvents = new PipelineEvent[infos.Length];
-            for(int i = 0; i < allEvents.Length; ++i)
-            {
-                allEvents[i] = infos[i].GetValue(obj) as PipelineEvent;
-            }
-            return allEvents;
-        }
+
         public RenderPipeline(PipelineResources resources)
         {
             MLight.ClearLightDict();
@@ -66,7 +57,7 @@ namespace MPipeline
             current = this;
             data.buffer = new CommandBuffer();
             data.frustumPlanes = new Vector4[6];
-            gpurpEvents = GetAllEvents(resources.gpurpEvents);
+            gpurpEvents = resources.gpurpEvents.GetAllEvents();
             foreach(var i in gpurpEvents)
             {
                 i.InitEvent(resources);
