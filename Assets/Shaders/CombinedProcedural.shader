@@ -19,6 +19,7 @@ CGINCLUDE
 #include "AutoLight.cginc"
 #include "UnityPBSLighting.cginc"
 #include "CGINC/Procedural.cginc"
+#pragma multi_compile _ EnableShadow
 
 	Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
 	StructuredBuffer<PropertyValue> _PropertiesBuffer;
@@ -30,11 +31,11 @@ CGINCLUDE
 		o.Alpha = 1;
 
 		o.Occlusion = lerp(1, c.a, prop._Occlusion);
-		half3 spec = prop.textureIndex.y >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.y)) : 1;
+		half3 spec = prop.textureIndex.z >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)) : 1;
 		o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity * spec.g); 
 		o.Smoothness = prop._Glossiness * spec.b;
-		if(prop.textureIndex.z >= 0){
-			o.Normal =  UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)));
+		if(prop.textureIndex.y >= 0){
+			o.Normal =  UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.y)));
 		}else{
 			o.Normal =  float3(0,0,1);
 		}
@@ -132,7 +133,9 @@ void frag_surf (v2f_surf IN,
   half2 screenUV = GetScreenPos(screenPos);
   outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);
 }
-float4 frag_gi (v2f_surf IN) : SV_TARGET{
+Texture2D<half> _ShadowmapForCubemap; SamplerState sampler_ShadowmapForCubemap;
+float4x4 _ShadowMapVP;
+float3 frag_gi (v2f_surf IN) : SV_TARGET{
   // prepare and unpack data
   float3 worldPos = float3(IN.worldTangent.w, IN.worldBinormal.w, IN.worldNormal.w);
   float3 worldViewDir = normalize(IN.worldViewDir);
@@ -141,7 +144,18 @@ float4 frag_gi (v2f_surf IN) : SV_TARGET{
   // call surface function
   surf (IN.pack0, IN.objectIndex, o);
   o.Normal = normalize(mul(o.Normal, wdMatrix));
-  return float4(o.Normal * 0.5 + 0.5, 1);
+  float4 shadowPos = mul(_ShadowMapVP, float4(worldPos, 1));
+  shadowPos /= shadowPos.w;
+  shadowPos.xy = shadowPos.xy * 0.5 + 0.5;
+  #if UNITY_REVERSED_Z
+  shadowPos.z = 1 - shadowPos.z;
+  #endif
+  float depth = _ShadowmapForCubemap.Sample(sampler_ShadowmapForCubemap, shadowPos.xy);
+  #if EnableShadow
+  return (depth + 0.001) > shadowPos.z;
+  #else
+  return 1;
+  #endif
   //TODO
 }
 
@@ -165,6 +179,7 @@ ENDCG
 
 Pass {
 ZTest Less
+Cull front
 CGPROGRAM
 
 #pragma vertex vert_gbuffer

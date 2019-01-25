@@ -23,7 +23,6 @@ CGINCLUDE
             StructuredBuffer<uint> _SpotLightIndexBuffer;
             
             float2 _CameraClipDistance; //X: Near Y: Far - Near
-
             float4x4 _InvVP;
 
             struct v2fScreen

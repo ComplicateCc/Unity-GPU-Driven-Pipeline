@@ -14,7 +14,7 @@ public class SunLight : MonoBehaviour
     public float secondLevelDistance = 25;
     public float thirdLevelDistance = 55;
     public float farestDistance = 100;
-    public Vector4 bias = new Vector4(0.01f, 0.02f, 0.04f, 0.08f);
+    public float bias = 0.1f;
     public Vector4 normalBias = new Vector4(0.001f, 0.002f, 0.003f, 0.005f);
     public Vector4 cascadeSoftValue = new Vector4(1.5f, 1.2f, 0.9f, 0.7f);
     [System.NonSerialized] public OrthoCam shadCam;

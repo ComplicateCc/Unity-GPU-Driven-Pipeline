@@ -201,6 +201,7 @@ namespace MPipeline
                 terrainMaterial = new Material(resources.shaders.terrainShader),
                 terrainDrawStreaming = new TerrainDrawStreaming(100, 16, resources.shaders.terrainCompute)
             };
+            commonData.texArray.wrapMode = TextureWrapMode.Repeat;
 
             for (int i = 0; i < propertyCapacity; ++i)
             {
@@ -426,21 +427,22 @@ options.frustumPlanes);
                 opts.command.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
                 opts.command.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             }
+            float bias = sunLight.bias / currentCam.farClipPlane;
+            opts.command.SetGlobalFloat(ShaderIDs._ShadowOffset, bias);
             for (int pass = 0; pass < CASCADELEVELCOUNT; ++pass)
             {
                 PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref sunLight.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
-                float4* vec =(float4*)opts.frustumPlanes.Ptr();
+                float4* vec = (float4*)opts.frustumPlanes.Ptr();
                 SunLight.shadowCam.worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix;
                 SunLight.shadowCam.projectionMatrix = sunLight.shadCam.projectionMatrix;
                 CullResults.GetCullingParameters(SunLight.shadowCam, out data.cullParams);
-                for(int i = 0; i < 6; ++i)
+                for (int i = 0; i < 6; ++i)
                 {
                     Plane p = data.cullParams.GetCullingPlane(i);
                     vec[i] = -float4(p.normal, p.distance);
                 }
-                float* biasList = (float*)UnsafeUtility.AddressOf(ref sunLight.bias);
                 Matrix4x4 vpMatrix;
-                PipelineFunctions.UpdateCascadeState(ref sunLight, opts.command, biasList[pass] / currentCam.farClipPlane, pass, out vpMatrix);
+                PipelineFunctions.UpdateCascadeState(ref sunLight, opts.command, pass, out vpMatrix);
                 if (gpurpEnabled)
                 {
                     PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, opts.frustumPlanes, opts.command);
@@ -458,9 +460,7 @@ options.frustumPlanes);
                 data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
                 data.defaultDrawSettings.sorting = new DrawRendererSortSettings
                 {
-                    flags = SortFlags.CommonOpaque,
-                    worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix,
-                    sortMode = DrawRendererSortMode.Orthographic
+                    flags = SortFlags.None
                 };
                 data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
                 CullResults results = CullResults.Cull(ref data.cullParams, data.context);
@@ -483,7 +483,7 @@ options.frustumPlanes);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.defaultDrawSettings.sorting = new DrawRendererSortSettings
             {
-                flags = SortFlags.None,
+                flags = SortFlags.None
             };
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
 
@@ -618,48 +618,47 @@ options.frustumPlanes);
                 buffer.DrawProceduralIndirect(Matrix4x4.identity, commonData.clusterMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
         }
-        public static void DrawSunShadowForCubemap(NativeArray<float3> cubeVertex, int renderTarget, CommandBuffer buffer, out OrthoCam camData)
+        public static void DrawSunShadowForCubemap(float3* cubeVertex, int renderTarget, SunLight sunLight, CommandBuffer buffer, out OrthoCam camData, ComputeShader cullingShader)
         {
             camData = new OrthoCam();
             Transform tr = SunLight.current.transform;
-            camData.farClipPlane = 1000;
+            camData.nearClipPlane = -500;
             camData.forward = tr.forward;
             camData.right = tr.right;
             camData.up = tr.up;
             float4x4 localToWorld = float4x4(float4(camData.right, 0), float4(camData.up, 0), float4(camData.forward, 0), float4(0, 0, 0, 1));
-            float3* vertPtr = cubeVertex.Ptr();
-            float3* localPoses = stackalloc float3[cubeVertex.Length];
-            for(int i = 0; i < cubeVertex.Length; ++i)
+            float3* localPoses = stackalloc float3[8];
+            for (int i = 0; i < 8; ++i)
             {
-                localPoses[i] = mul(localToWorld, float4(vertPtr[i], 1)).xyz;
+                localPoses[i] = mul(localToWorld, float4(cubeVertex[i], 1)).xyz;
             }
             int2 rightMostPoint = 0;
             int2 upMostPoint = 0;
             int2 forwardMostPoint = 0;
-            for(int i = 1; i < cubeVertex.Length; i++)
+            for (int i = 1; i < 8; i++)
             {
                 float3 p = localPoses[i];
-                if(p.x < localPoses[rightMostPoint.x].x)
+                if (p.x < localPoses[rightMostPoint.x].x)
                 {
                     rightMostPoint.x = i;
                 }
-                if(p.x > localPoses[rightMostPoint.y].x)
+                if (p.x > localPoses[rightMostPoint.y].x)
                 {
                     rightMostPoint.y = i;
                 }
-                if(p.y < localPoses[upMostPoint.x].y)
+                if (p.y < localPoses[upMostPoint.x].y)
                 {
                     upMostPoint.x = i;
                 }
-                if(p.y > localPoses[upMostPoint.y].y)
+                if (p.y > localPoses[upMostPoint.y].y)
                 {
                     upMostPoint.y = i;
                 }
-                if(p.z < localPoses[forwardMostPoint.x].z)
+                if (p.z < localPoses[forwardMostPoint.x].z)
                 {
                     forwardMostPoint.x = i;
                 }
-                if(p.z > localPoses[forwardMostPoint.y].z)
+                if (p.z > localPoses[forwardMostPoint.y].z)
                 {
                     forwardMostPoint.y = i;
                 }
@@ -670,12 +669,20 @@ options.frustumPlanes);
             float width = localPoses[rightMostPoint.y].x - localPoses[rightMostPoint.x].x;
             float up = localPoses[upMostPoint.y].y - localPoses[upMostPoint.x].y;
             float length = localPoses[forwardMostPoint.y].z - localPoses[forwardMostPoint.x].z;
-            camData.size = max(width, up);
-            camData.nearClipPlane = -length * 0.5f;
-            camData.farClipPlane = -camData.nearClipPlane;
-            camData.UpdateProjectionMatrix();
+            camData.size = max(width, up) * 0.5f;
+            camData.farClipPlane = length * 0.5f;
             camData.UpdateTRSMatrix();
-            
+            camData.UpdateProjectionMatrix();
+            float4* planes = stackalloc float4[6];
+            PipelineFunctions.GetOrthoCullingPlanes(ref camData, planes);
+            PipelineFunctions.SetBaseBuffer(baseBuffer, cullingShader, planes, buffer);
+            PipelineFunctions.RunCullDispatching(baseBuffer, cullingShader, buffer);
+            buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(camData.projectionMatrix, true) * (Matrix4x4)camData.worldToCameraMatrix);
+            buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+            buffer.SetRenderTarget(renderTarget);
+            buffer.ClearRenderTarget(true, true, Color.white);
+            buffer.DrawProceduralIndirect(Matrix4x4.identity, sunLight.shadowDepthMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
         }
     }
 }

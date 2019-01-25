@@ -330,7 +330,7 @@ namespace MPipeline
                     SceneController.commonData.texCopyBuffer.SetData(i.array);
                     RenderTexture rt = SceneController.commonData.texArray;
                     Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
-                    int pass = i.texType == "_MainTex" ? 0 : 1;
+                    int pass = i.texType == "_MainTex" ? 1 : 0;
                     SceneController.UpdateCopyMat();
                     SceneController.commonData.copyTextureMat.SetPass(pass);
 

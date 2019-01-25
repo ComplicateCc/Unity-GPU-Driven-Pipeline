@@ -30,7 +30,6 @@ float PlaneTest(ClusterMeshData info){
     float3 extent = info.extent;
     float result = 1;
     [unroll]
-    
     for(uint i = 0; i < 6; ++i)
     {
         float4 plane = planes[i];

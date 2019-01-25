@@ -7,28 +7,58 @@ namespace UnityEngine.Rendering.PostProcessing
     // control over how it looks at the expense of physical correctness.
     // Eventually we will need a "true" natural bloom effect with proper energy conservation.
 
+    /// <summary>
+    /// This class holds settings for the Bloom effect.
+    /// </summary>
     [Serializable]
     [PostProcess(typeof(BloomRenderer), "Unity/Bloom")]
     public sealed class Bloom : PostProcessEffectSettings
     {
-        [Min(0f), Tooltip("Strength of the bloom filter. Values higher than 1 will make bloom contribute more energy to the final render. Keep this under or equal to 1 if you want energy conservation.")]
+        /// <summary>
+        /// The strength of the bloom filter.
+        /// </summary>
+        [Min(0f), Tooltip("Strength of the bloom filter. Values higher than 1 will make bloom contribute more energy to the final render.")]
         public FloatParameter intensity = new FloatParameter { value = 0f };
 
+        /// <summary>
+        /// Filters out pixels under this level of brightness. This value is expressed in
+        /// gamma-space.
+        /// </summary>
         [Min(0f), Tooltip("Filters out pixels under this level of brightness. Value is in gamma-space.")]
         public FloatParameter threshold = new FloatParameter { value = 1f };
 
-        [Range(0f, 1f), Tooltip("Makes transition between under/over-threshold gradual (0 = hard threshold, 1 = soft threshold).")]
+        /// <summary>
+        /// Makes transition between under/over-threshold gradual (0 = hard threshold, 1 = soft
+        /// threshold).
+        /// </summary>
+        [Range(0f, 1f), Tooltip("Makes transitions between under/over-threshold gradual. 0 for a hard threshold, 1 for a soft threshold).")]
         public FloatParameter softKnee = new FloatParameter { value = 0.5f };
 
+        /// <summary>
+        /// Clamps pixels to control the bloom amount. This value is expressed in gamma-space.
+        /// </summary>
         [Tooltip("Clamps pixels to control the bloom amount. Value is in gamma-space.")]
         public FloatParameter clamp = new FloatParameter { value = 65472f };
 
-        [Range(1f, 10f), Tooltip("Changes the extent of veiling effects. For maximum quality stick to integer values. Because this value changes the internal iteration count, animating it isn't recommended as it may introduce small hiccups in the perceived radius.")]
+        /// <summary>
+        /// Changes extent of veiling effects in a screen resolution-independent fashion. For
+        /// maximum quality stick to integer values. Because this value changes the internal
+        /// iteration count, animating it isn't recommended as it may introduce small hiccups in
+        /// the perceived radius.
+        /// </summary>
+        [Range(1f, 10f), Tooltip("Changes the extent of veiling effects. For maximum quality, use integer values. Because this value changes the internal iteration count, You should not animating it as it may introduce issues with the perceived radius.")]
         public FloatParameter diffusion = new FloatParameter { value = 7f };
 
+        /// <summary>
+        /// Distorts the bloom to give an anamorphic look. Negative values distort vertically,
+        /// positive values distort horizontally.
+        /// </summary>
         [Range(-1f, 1f), Tooltip("Distorts the bloom to give an anamorphic look. Negative values distort vertically, positive values distort horizontally.")]
         public FloatParameter anamorphicRatio = new FloatParameter { value = 0f };
 
+        /// <summary>
+        /// The tint of the Bloom filter.
+        /// </summary>
 #if UNITY_2018_1_OR_NEWER
         [ColorUsage(false, true), Tooltip("Global tint of the bloom filter.")]
 #else
@@ -36,16 +66,26 @@ namespace UnityEngine.Rendering.PostProcessing
 #endif
         public ColorParameter color = new ColorParameter { value = Color.white };
 
+        /// <summary>
+        /// Boost performances by lowering the effect quality.
+        /// </summary>
         [FormerlySerializedAs("mobileOptimized")]
-        [Tooltip("Boost performances by lowering the effect quality. This settings is meant to be used on mobile and other low-end platforms but can also provide a nice performance boost on desktops and consoles.")]
+        [Tooltip("Boost performance by lowering the effect quality. This settings is meant to be used on mobile and other low-end platforms but can also provide a nice performance boost on desktops and consoles.")]
         public BoolParameter fastMode = new BoolParameter { value = false };
 
-        [Tooltip("Dirtiness texture to add smudges or dust to the bloom effect."), DisplayName("Texture")]
+        /// <summary>
+        /// The dirtiness texture to add smudges or dust to the lens.
+        /// </summary>
+        [Tooltip("The lens dirt texture used to add smudges or dust to the bloom effect."), DisplayName("Texture")]
         public TextureParameter dirtTexture = new TextureParameter { value = null };
 
-        [Min(0f), Tooltip("Amount of dirtiness."), DisplayName("Intensity")]
+        /// <summary>
+        /// The amount of lens dirtiness.
+        /// </summary>
+        [Min(0f), Tooltip("The intensity of the lens dirtiness."), DisplayName("Intensity")]
         public FloatParameter dirtIntensity = new FloatParameter { value = 0f };
 
+        /// <inheritdoc />
         public override bool IsEnabledAndSupported(PostProcessRenderContext context)
         {
             return enabled.value
@@ -69,9 +109,9 @@ namespace UnityEngine.Rendering.PostProcessing
         }
 
         // [down,up]
-        
-        const int k_MaxPyramidSize = 16; // Just to make sure we handle 64k screens... Future-proof!
         Level[] m_Pyramid;
+        const int k_MaxPyramidSize = 16; // Just to make sure we handle 64k screens... Future-proof!
+
         struct Level
         {
             internal int down;
@@ -97,13 +137,13 @@ namespace UnityEngine.Rendering.PostProcessing
             var uberSheet = context.uberSheet;
             if (!settings.active)
             {
-                if (settings.fastMode)
-                    uberSheet.DisableKeyword("BLOOM_LOW", context.command);
-                else
-                    uberSheet.DisableKeyword("BLOOM", context.command);
+                uberSheet.DisableKeyword("BLOOM_LOW", context.command);
+                uberSheet.DisableKeyword("BLOOM", context.command);
                 return;
             }
             var cmd = context.command;
+            cmd.BeginSample("BloomPyramid");
+
             var sheet = context.propertySheets.Get(context.resources.shaders.bloom);
 
             // Apply auto exposure adjustment in the prefiltering pass
@@ -112,19 +152,17 @@ namespace UnityEngine.Rendering.PostProcessing
             // Negative anamorphic ratio values distort vertically - positive is horizontal
             float ratio = Mathf.Clamp(settings.anamorphicRatio, -1, 1);
             float rw = ratio < 0 ? -ratio : 0f;
-            float rh = ratio > 0 ?  ratio : 0f;
+            float rh = ratio > 0 ? ratio : 0f;
 
             // Do bloom on a half-res buffer, full-res doesn't bring much and kills performances on
             // fillrate limited platforms
             int tw = Mathf.FloorToInt(context.screenWidth / (2f - rw));
             int th = Mathf.FloorToInt(context.screenHeight / (2f - rh));
-            bool singlePassDoubleWide = (context.stereoActive && (context.camera.stereoTargetEye == StereoTargetEyeMask.Both));
-            int tw_stereo = singlePassDoubleWide ? tw * 2 : tw; 
 
             // Determine the iteration count
             int s = Mathf.Max(tw, th);
             float logs = Mathf.Log(s, 2f) + Mathf.Min(settings.diffusion.value, 10f) - 10f;
-            int logs_i = Mathf.FloorToInt(logs); 
+            int logs_i = Mathf.FloorToInt(logs);
             int iterations = Mathf.Clamp(logs_i, 1, k_MaxPyramidSize);
             float sampleScale = 0.5f + logs - logs_i;
             sheet.properties.SetFloat(ShaderIDs.SampleScale, sampleScale);
@@ -149,13 +187,13 @@ namespace UnityEngine.Rendering.PostProcessing
                     ? (int)Pass.Prefilter13 + qualityOffset
                     : (int)Pass.Downsample13 + qualityOffset;
 
-                context.GetScreenSpaceTemporaryRT(cmd, mipDown, 0, context.sourceFormat, RenderTextureReadWrite.Default, FilterMode.Bilinear, tw_stereo, th);
-                context.GetScreenSpaceTemporaryRT(cmd, mipUp, 0, context.sourceFormat, RenderTextureReadWrite.Default, FilterMode.Bilinear, tw_stereo, th);
+                context.GetScreenSpaceTemporaryRT(cmd, mipDown, 0, context.sourceFormat, RenderTextureReadWrite.Default, FilterMode.Bilinear, tw, th);
+                context.GetScreenSpaceTemporaryRT(cmd, mipUp, 0, context.sourceFormat, RenderTextureReadWrite.Default, FilterMode.Bilinear, tw, th);
                 cmd.BlitFullscreenTriangle(lastDown, mipDown, sheet, pass);
 
                 lastDown = mipDown;
-                tw_stereo = (singlePassDoubleWide && ((tw_stereo / 2) % 2 > 0)) ? 1 + tw_stereo / 2 : tw_stereo / 2;
-                tw_stereo = Mathf.Max(tw_stereo, 1);
+                tw = tw / 2;
+                tw = Mathf.Max(tw, 1);
                 th = Mathf.Max(th / 2, 1);
             }
 
@@ -197,7 +235,7 @@ namespace UnityEngine.Rendering.PostProcessing
             }
 
             // Shader properties
-            
+
             if (settings.fastMode)
                 uberSheet.EnableKeyword("BLOOM_LOW", context.command);
             else
@@ -216,6 +254,8 @@ namespace UnityEngine.Rendering.PostProcessing
                 if (m_Pyramid[i].up != lastUp)
                     cmd.ReleaseTemporaryRT(m_Pyramid[i].up);
             }
+
+            cmd.EndSample("BloomPyramid");
 
             context.bloomBufferNameID = lastUp;
         }

@@ -464,11 +464,6 @@ namespace UnityEngine.Rendering.PostProcessing
             }
         }
 
-        void PushDebug(PostProcessRenderContext context)
-        {
-            if (context.IsDebugOverlayEnabled(DebugOverlay.AmbientOcclusion))
-                context.PushDebugOverlay(context.command, m_AmbientOnlyAO, m_PropertySheet, (int)Pass.DebugOverlay);
-        }
 
         public void RenderAfterOpaque(PostProcessRenderContext context)
         {
@@ -490,7 +485,6 @@ namespace UnityEngine.Rendering.PostProcessing
             }
 
             GenerateAOMap(cmd, context.camera, m_AmbientOnlyAO, null, false, false);
-            PushDebug(context);
             cmd.SetGlobalTexture(ShaderIDs.MSVOcclusionTexture, m_AmbientOnlyAO);
             cmd.BlitFullscreenTriangle(BuiltinRenderTextureType.None, BuiltinRenderTextureType.CameraTarget, m_PropertySheet, (int)Pass.CompositionForward, RenderBufferLoadAction.Load);
             cmd.EndSample("Ambient Occlusion");
@@ -504,7 +498,6 @@ namespace UnityEngine.Rendering.PostProcessing
             PreparePropertySheet(context);
             CheckAOTexture(context);
             GenerateAOMap(cmd, context.camera, m_AmbientOnlyAO, null, false, false);
-            PushDebug(context);
             cmd.EndSample("Ambient Occlusion Render");
         }
 

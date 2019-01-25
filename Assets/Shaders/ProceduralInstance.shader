@@ -196,7 +196,6 @@ ENDCG
 			#include "UnityCG.cginc"
 			#include "CGINC/Procedural.cginc"
 			float4x4 _ShadowMapVP;
-			float4  _ShadowCamDirection;
 			float4 _NormalBiases;
 			struct appdata_shadow
 			{
@@ -220,9 +219,9 @@ ENDCG
 			float frag (v2f i) : SV_Target
 			{
 				#if UNITY_REVERSED_Z
-				return 1 - i.vertex.z + _ShadowCamDirection.w;
+				return 1 - i.vertex.z;
 				#else
-				return i.vertex.z + _ShadowCamDirection.w;
+				return i.vertex.z;
 				#endif
 			}
 

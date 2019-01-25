@@ -6,7 +6,6 @@ public static partial class ShaderIDs
 {
     public static readonly int _Count = Shader.PropertyToID("_Count");
     public static readonly int planes = Shader.PropertyToID("planes");
-    public static readonly int _ShadowCamDirection = Shader.PropertyToID("_ShadowCamDirection");
     public static readonly int _DirShadowMap = Shader.PropertyToID("_DirShadowMap");
     public static readonly int _CubeShadowMap = Shader.PropertyToID("_CubeShadowMap");
     public static readonly int _InvVP = Shader.PropertyToID("_InvVP");
@@ -21,6 +20,7 @@ public static partial class ShaderIDs
     public static readonly int _MainTex = Shader.PropertyToID("_MainTex");
     public static readonly int _SoftParam = Shader.PropertyToID("_SoftParam");
     public static readonly int _OffsetIndex = Shader.PropertyToID("_OffsetIndex");
+    public static readonly int _ShadowOffset = Shader.PropertyToID("_ShadowOffset");
     public static readonly int _IndexBuffer = Shader.PropertyToID("_IndexBuffer");
     public static readonly int clusterBuffer = Shader.PropertyToID("clusterBuffer");
     public static readonly int _RemoveVar = Shader.PropertyToID("_RemoveVar");

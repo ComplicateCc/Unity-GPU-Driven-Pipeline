@@ -47,6 +47,21 @@ public unsafe static class PipelineFunctions
     {
         float3* corners = stackalloc float3[4];
         GetFrustumCorner(ref perspCam, perspCam.farClipPlane, corners);
+        planes[0] = VectorUtility.GetPlane(corners[1], corners[0], perspCam.position);
+        planes[1] = VectorUtility.GetPlane(corners[2], corners[3], perspCam.position);
+        planes[2] = VectorUtility.GetPlane(corners[0], corners[2], perspCam.position);
+        planes[3] = VectorUtility.GetPlane(corners[3], corners[1], perspCam.position);
+        planes[4] = VectorUtility.GetPlane(perspCam.forward, perspCam.position + perspCam.forward * perspCam.farClipPlane);
+        planes[5] = VectorUtility.GetPlane(-perspCam.forward, perspCam.position + perspCam.forward * perspCam.nearClipPlane);
+    }
+    public static void GetFrustumPlanes(ref OrthoCam ortho, float4* planes)
+    {
+        planes[0] = VectorUtility.GetPlane(ortho.up, ortho.position + ortho.up * ortho.size);
+        planes[1] = VectorUtility.GetPlane(-ortho.up, ortho.position - ortho.up * ortho.size);
+        planes[2] = VectorUtility.GetPlane(ortho.right, ortho.position + ortho.right * ortho.size);
+        planes[3] = VectorUtility.GetPlane(-ortho.right, ortho.position - ortho.right * ortho.size);
+        planes[4] = VectorUtility.GetPlane(ortho.forward, ortho.position + ortho.forward * ortho.farClipPlane);
+        planes[5] = VectorUtility.GetPlane(-ortho.forward, ortho.position + ortho.forward * ortho.nearClipPlane);
     }
 
     //TODO: Streaming Loading
@@ -173,12 +188,10 @@ public unsafe static class PipelineFunctions
     /// <summary>
     /// Initialize per cascade shadowmap buffers
     /// </summary>
-    public static void UpdateCascadeState(ref SunLight comp, CommandBuffer buffer, float bias, int pass, out Matrix4x4 rtVp)
+    public static void UpdateCascadeState(ref SunLight comp, CommandBuffer buffer, int pass, out Matrix4x4 rtVp)
     {
-        float4 shadowcamDir = new float4(comp.shadCam.forward, bias);
         buffer.SetRenderTarget(comp.shadowmapTexture, 0, CubemapFace.Unknown, depthSlice: pass);
         buffer.ClearRenderTarget(true, true, Color.white);
-        buffer.SetGlobalVector(ShaderIDs._ShadowCamDirection, shadowcamDir);
         rtVp = GL.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true) * (Matrix4x4)comp.shadCam.worldToCameraMatrix;
         buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, rtVp);
     }
@@ -214,17 +227,6 @@ public unsafe static class PipelineFunctions
         buffer.DispatchCompute(compute, 1, 1, 1, 1);
         buffer.SetComputeBufferParam(compute, 0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
     }
-    public static void SetBaseBuffer(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, float4* frustumCullingPlanes)
-    {
-        var compute = gpuFrustumShader;
-        UnsafeUtility.MemCpy(backupFrustumArray.Ptr(), frustumCullingPlanes, sizeof(float4) * 6);
-        compute.SetVectorArray(ShaderIDs.planes, backupFrustumArray);
-        compute.SetBuffer(0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-        compute.SetBuffer(0, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-        compute.SetBuffer(1, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-        compute.Dispatch(1, 1, 1, 1);
-        compute.SetBuffer(0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-    }
     private static Vector4[] backupFrustumArray = new Vector4[6];
 
     public static void SetBaseBuffer(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, float4* frustumCullingPlanes, CommandBuffer buffer)
@@ -258,11 +260,6 @@ public unsafe static class PipelineFunctions
     public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, CommandBuffer buffer)
     {
         ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 64);
-    }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader)
-    {
-        ComputeShaderUtility.Dispatch(computeShader, 0, baseBuffer.clusterCount, 64);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material, CommandBuffer cb)

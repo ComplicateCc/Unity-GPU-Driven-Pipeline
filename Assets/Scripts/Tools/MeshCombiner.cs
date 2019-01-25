@@ -42,7 +42,7 @@ namespace MPipeline
         string[] textureName = new string[]{"_MainTex",
     "_BumpMap",
     "_SpecularMap" };
-        public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int materialIndex, Transform transform)
+        public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int* allMaterialsIndex, Transform transform)
         {
             int originLength = points.Length;
             Vector3[] vertices = targetMesh.vertices;
@@ -91,14 +91,18 @@ namespace MPipeline
                 SetNormal(normal, points, i, len);
                 SetTangent(tangents, points, i, len);
                 SetUV(uv, points, i, len);
-                pt.objIndex = (uint)materialIndex;
             }
-            int[] triangleArray = targetMesh.triangles;
-            for (int i = 0; i < triangleArray.Length; ++i)
+            for (int subCount = 0; subCount < targetMesh.subMeshCount; ++subCount)
             {
-                triangleArray[i] += originLength;
+                int[] triangleArray = targetMesh.GetTriangles(subCount);
+                for (int i = 0; i < triangleArray.Length; ++i)
+                {
+                    triangleArray[i] += originLength;
+                    points[triangleArray[i]].objIndex = (uint)allMaterialsIndex[subCount];
+                }
+                triangles.AddRange(triangleArray);
             }
-            triangles.AddRange(triangleArray);
+
         }
         public CombinedModel ProcessCluster(params MeshRenderer[] allRenderers)
         {
@@ -117,12 +121,15 @@ namespace MPipeline
             for (int i = 0; i < allFilters.Length; ++i)
             {
                 Mesh mesh = allFilters[i].sharedMesh;
-                Material mat = allRenderers[i].sharedMaterial;
-                int index;
-                if ((index = allMat.IndexOf(mat)) < 0)
+                Material[] mats = allRenderers[i].sharedMaterials;
+                int* index = stackalloc int[mats.Length];
+                for (int a = 0; a < mats.Length; ++a)
                 {
-                    index = allMat.Count;
-                    allMat.Add(mat);
+                    if ((index[a] = allMat.IndexOf(mats[a])) < 0)
+                    {
+                        index[a] = allMat.Count;
+                        allMat.Add(mats[a]);
+                    }
                 }
                 GetPoints(points, triangles, mesh, index, allFilters[i].transform);
             }
@@ -194,7 +201,7 @@ namespace MPipeline
         {
             PropertyValue[] values = new PropertyValue[mats.Count];
             PropertyValue* pointer = (PropertyValue*)UnsafeUtility.AddressOf(ref values[0]);
-            for(int i = 0; i < values.Length; ++i)
+            for (int i = 0; i < values.Length; ++i)
             {
                 pointer[i].textureIndex = Vector3Int.one * -1;
             }
@@ -218,23 +225,21 @@ namespace MPipeline
                     *currentPointer = kv.value[i];
                 }
             }
-
             return values;
         }
-        public TexturePaths[] GetTextures(List<Material> mats, out Texture[][] allTextures)
+        public TexturePaths[] GetTextures(List<Material> mats, out Texture[,] allTextures)
         {
             TexturePaths[] texs = new TexturePaths[textureName.Length];
-            allTextures = new Texture[textureName.Length][];
+            allTextures = new Texture[textureName.Length, mats.Count];
             for (int a = 0; a < textureName.Length; ++a)
             {
-                allTextures[a] = new Texture[mats.Count];
                 TexturePaths curt = new TexturePaths();
                 curt.texName = textureName[a];
                 curt.instancingIDs = new string[mats.Count];
                 for (int i = 0; i < mats.Count; ++i)
                 {
                     Texture tex = mats[i].GetTexture(curt.texName);
-                    allTextures[a][i] = tex;
+                    allTextures[a, i] = tex;
                     curt.instancingIDs[i] = tex ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(tex)) : "";
                 }
                 texs[a] = curt;
@@ -242,7 +247,7 @@ namespace MPipeline
             return texs;
         }
 
-        public void SaveTextures(TexturePaths[] pathes, Texture[][] textures)
+        public void SaveTextures(TexturePaths[] pathes, Texture[, ] textures)
         {
             Dictionary<string, bool> dict = new Dictionary<string, bool>();
             for (int i = 0; i < pathes.Length; ++i)
@@ -253,7 +258,7 @@ namespace MPipeline
                     if (!string.IsNullOrEmpty(pt.instancingIDs[j]) && !dict.ContainsKey(pt.instancingIDs[j]))
                     {
                         dict.Add(pt.instancingIDs[j], true);
-                        byte[] bytes = TextureStreaming.GetBytes((Texture2D)textures[i][j]);
+                        byte[] bytes = TextureStreaming.GetBytes((Texture2D)textures[i, j]);
                         File.WriteAllBytes("Assets/BinaryData/Textures/" + pt.instancingIDs[j] + ".txt", bytes);
                     }
                 }
@@ -301,7 +306,7 @@ namespace MPipeline
             CombinedModel model = ProcessCluster(GetComponentsInChildren<MeshRenderer>());
             property.clusterCount = ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName);
             PropertyValue[] value = GetProperty(model.containedMaterial);
-            Texture[][] textures;
+            Texture[, ] textures;
             TexturePaths[] texs = GetTextures(model.containedMaterial, out textures);
             SaveTextures(texs, textures);
             property.properties = value;

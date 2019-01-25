@@ -166,10 +166,6 @@ namespace UnityEngine.Rendering.PostProcessing
             cmd.BlitFullscreenTriangle(ShaderIDs.DepthOfFieldTemp, ShaderIDs.DepthOfFieldTex, sheet, (int)Pass.PostFilter);
             cmd.ReleaseTemporaryRT(ShaderIDs.DepthOfFieldTemp);
 
-            // Debug overlay pass
-            if (context.IsDebugOverlayEnabled(DebugOverlay.DepthOfField))
-                context.PushDebugOverlay(cmd, context.source, sheet, (int)Pass.DebugOverlay);
-
             // Combine pass
             cmd.BlitFullscreenTriangle(context.source, context.destination, sheet, (int)Pass.Combine);
             cmd.ReleaseTemporaryRT(ShaderIDs.DepthOfFieldTex);

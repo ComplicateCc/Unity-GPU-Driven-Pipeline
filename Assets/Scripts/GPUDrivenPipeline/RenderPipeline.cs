@@ -58,7 +58,7 @@ namespace MPipeline
             data.buffer = new CommandBuffer();
             data.frustumPlanes = new Vector4[6];
             gpurpEvents = resources.gpurpEvents.GetAllEvents();
-            foreach(var i in gpurpEvents)
+            foreach (var i in gpurpEvents)
             {
                 i.InitEvent(resources);
             }
@@ -75,10 +75,10 @@ namespace MPipeline
             }
             PipelineSharedData.DisposeAll();
         }
-
         public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
-            foreach(var i in beforeRenderFrame)
+
+            foreach (var i in beforeRenderFrame)
             {
                 i.func(i.obj);
             }
@@ -96,7 +96,7 @@ namespace MPipeline
                 PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
                 data.ExecuteCommandBuffer();
             }
-            foreach(var i in bufferAfterFrame)
+            foreach (var i in bufferAfterFrame)
             {
                 renderContext.ExecuteCommandBuffer(i);
                 i.Clear();
@@ -121,7 +121,7 @@ namespace MPipeline
             data.defaultDrawSettings = new DrawRendererSettings(cam, new ShaderPassName(""));
             data.context = context;
             data.cullResults = CullResults.Cull(ref data.cullParams, context);
-            
+
             PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, data.buffer);
             data.resources = resources;
             PipelineFunctions.GetViewProjectMatrix(cam, out data.vp, out data.inverseVP);
@@ -139,8 +139,9 @@ namespace MPipeline
                     break;
             }
             currentRenderingPath = pipelineCam.renderingPath;
-            foreach (var e in events) {
-                if(e.enabled && e.preEnable)
+            foreach (var e in events)
+            {
+                if (e.enabled && e.preEnable)
                 {
                     e.PreRenderFrame(pipelineCam, ref data);
                 }

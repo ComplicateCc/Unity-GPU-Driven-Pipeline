@@ -57,9 +57,19 @@ namespace MPipeline
             float3 left = transform.position - transform.lossyScale * 0.5f;
             float3 right = transform.position + transform.lossyScale * 0.5f;
             float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
+            if (CalculateShadowmap(transform.position, (float3)transform.lossyScale * 0.5f + float3(considerRange)))
+            {
+                cbuffer.EnableShaderKeyword("EnableShadow");
+            }
+            else
+            {
+                cbuffer.DisableShaderKeyword("EnableShadow");
+            }
             SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
         }
-        private void CalculateShadowmap()
+        static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
+        private OrthoCam shadowCam;
+        private bool CalculateShadowmap(float3 center, float3 extent)
         {
             RenderTextureDescriptor desc = new RenderTextureDescriptor
             {
@@ -79,15 +89,28 @@ namespace MPipeline
                 vrUsage = VRTextureUsage.None,
                 width = 1024
             };
-            int _TempRT = Shader.PropertyToID("_TempRT");
-            cbuffer.GetTemporaryRT(_TempRT, desc);
-            if (SunLight.current)
+            
+            float3* allVert = stackalloc float3[]
             {
+                center + extent,
+                center + float3(extent.x, -extent.y, extent.z),
+                center + float3(extent.x, extent.y, -extent.z),
+                center + float3(extent.x, -extent.y, -extent.z),
+                center + float3(-extent.x, extent.y, extent.z),
+                center + float3(-extent.x, -extent.y, extent.z),
+                center + float3(-extent.x, extent.y, -extent.z),
+                center - extent
+            };
+            if (SunLight.current && SunLight.current.enableShadow)
+            {
+                cbuffer.GetTemporaryRT(_ShadowmapForCubemap, desc);
+                SceneController.DrawSunShadowForCubemap(allVert, _ShadowmapForCubemap, SunLight.current, cbuffer, out shadowCam, resources.shaders.gpuFrustumCulling);
+                cbuffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(shadowCam.projectionMatrix, false) * (Matrix4x4)shadowCam.worldToCameraMatrix);
+                return true;
             }
             else
             {
-                cbuffer.SetRenderTarget(_TempRT);
-                cbuffer.ClearRenderTarget(false, true, Color.white);
+                return false;
             }
         }
         [EasyButtons.Button]

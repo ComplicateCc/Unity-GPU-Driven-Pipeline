@@ -160,13 +160,6 @@ namespace UnityEngine.Rendering.PostProcessing
             autoExposure = null;
             bloomBufferNameID = -1;
         }
-
-        // Checks if a specific debug overlay is enabled
-        public bool IsDebugOverlayEnabled(DebugOverlay overlay)
-        {
-            return debugLayer.debugOverlay == overlay;
-        }
-
         // Shortcut function
         public void PushDebugOverlay(CommandBuffer cmd, RenderTargetIdentifier source, PropertySheet sheet, int pass)
         {
