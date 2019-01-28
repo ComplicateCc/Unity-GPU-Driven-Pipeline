@@ -36,8 +36,22 @@ namespace MPipeline
         private List<Light> addMLightCommandList = new List<Light>(30);
         private List<Light> allLights = new List<Light>(30);
         private JobHandle lightingHandle;
+        public override bool CheckProperty()
+        {
+            if(cbdr != null && !cbdr.CheckAvailiable())
+            {
+                try
+                {
+                    cbdr.Dispose();
+                }
+                catch { }
+                PipelineSharedData.Remove<CBDRSharedData>(RenderPipeline.currentRenderingPath);
+                return false;
+            }
+            return pointLightMaterial != null && cubeDepthMaterial != null;
+        }
         #endregion
-        protected override void Init(PipelineResources resources)
+        public override void Init(PipelineResources resources)
         {
             cbdr = PipelineSharedData.Get(RenderPipeline.currentRenderingPath, resources, (a) => new CBDRSharedData(a));
             shadMaskMaterial = new Material(resources.shaders.shadowMaskShader);
@@ -61,7 +75,7 @@ namespace MPipeline
             spotBuffer.Init(resources.shaders.spotLightDepthShader);
         }
 
-        protected override void Dispose()
+        public override void Dispose()
         {
             Object.DestroyImmediate(shadMaskMaterial);
             Object.DestroyImmediate(pointLightMaterial);

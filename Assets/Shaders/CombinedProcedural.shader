@@ -135,6 +135,8 @@ void frag_surf (v2f_surf IN,
 }
 Texture2D<half> _ShadowmapForCubemap; SamplerState sampler_ShadowmapForCubemap;
 float4x4 _ShadowMapVP;
+float3 _DirLightPos;
+float3 _DirLightFinalColor;
 float3 frag_gi (v2f_surf IN) : SV_TARGET{
   // prepare and unpack data
   float3 worldPos = float3(IN.worldTangent.w, IN.worldBinormal.w, IN.worldNormal.w);
@@ -151,10 +153,12 @@ float3 frag_gi (v2f_surf IN) : SV_TARGET{
   shadowPos.z = 1 - shadowPos.z;
   #endif
   float depth = _ShadowmapForCubemap.Sample(sampler_ShadowmapForCubemap, shadowPos.xy);
+  float ndl = dot(o.Normal, _DirLightPos);
+  float3 color = ndl * _DirLightFinalColor * o.Albedo;
   #if EnableShadow
-  return (depth + 0.001) > shadowPos.z;
+  return ((depth + 0.001) > shadowPos.z) * color;
   #else
-  return 1;
+  return color;
   #endif
   //TODO
 }

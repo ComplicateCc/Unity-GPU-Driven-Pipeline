@@ -70,7 +70,7 @@
                 else if(i.uv.x < 0.5)
                     i.uv.x += 0.5;
                 half4 value = ((half4)GetValues(_TextureBuffer[i.uv.y * _TextureSize.y * _TextureSize.x + i.uv.x * _TextureSize.x])) / 255.0;
-                value.xyz = pow(value.xyz, 2.2);
+                value = lerp(pow((value+0.055)/1.055, 2.4), value / 12.92, step(value, 0.0404482362771082));
                 return value;
             }
             ENDCG

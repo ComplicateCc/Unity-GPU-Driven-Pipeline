@@ -10,6 +10,17 @@ namespace MPipeline
     {
         public Material skyboxMaterial;
         public RenderTargetIdentifier[] skyboxIdentifier = new RenderTargetIdentifier[2];
+        public override void Dispose()
+        {
+        }
+        public override void Init(PipelineResources resources)
+        {
+        }
+
+        public override bool CheckProperty()
+        {
+            return true;
+        }
         public override void FrameUpdate(PipelineCamera camera, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;

@@ -35,12 +35,15 @@ namespace MPipeline
         private const int k_SampleCount = 8;
         private Material taaMat;
         private RenderTexture historyTex;
-        protected override void Init(PipelineResources resources)
+        public override void Init(PipelineResources resources)
         {
             taaMat = new Material(resources.shaders.taaShader);
         }
-
-        protected override void Dispose()
+        public override bool CheckProperty()
+        {
+            return taaMat != null;
+        }
+        public override void Dispose()
         {
             UnityEngine.Object.DestroyImmediate(taaMat);
         }

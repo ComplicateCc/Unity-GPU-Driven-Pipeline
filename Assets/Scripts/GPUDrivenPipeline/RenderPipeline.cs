@@ -13,7 +13,7 @@ namespace MPipeline
         #region STATIC_AREA
         public enum CameraRenderingPath
         {
-            Unlit, Forward, GPUDeferred
+            Unlit = 0, Forward = 1, GPUDeferred = 2
         }
         public static RenderPipeline current;
         public static PipelineCommandData data;
@@ -77,7 +77,12 @@ namespace MPipeline
         }
         public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
-
+            bool* propertyCheckedFlags = stackalloc bool[]
+            {
+                false,
+                false,
+                false
+            };
             foreach (var i in beforeRenderFrame)
             {
                 i.func(i.obj);
@@ -92,7 +97,7 @@ namespace MPipeline
                     pipelineCam = Camera.main.GetComponent<PipelineCamera>();
                     if (!pipelineCam) continue;
                 }
-                Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam);
+                Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam, propertyCheckedFlags);
                 PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
                 data.ExecuteCommandBuffer();
             }
@@ -110,7 +115,7 @@ namespace MPipeline
             renderContext.Submit();
         }
 
-        private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam)
+        private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam, bool* pipelineChecked)
         {
             CameraRenderingPath path = pipelineCam.renderingPath;
             pipelineCam.cam = cam;
@@ -139,6 +144,20 @@ namespace MPipeline
                     break;
             }
             currentRenderingPath = pipelineCam.renderingPath;
+#if UNITY_EDITOR
+            //Need only check for Unity Editor's bug!
+            if (!pipelineChecked[(int)pipelineCam.renderingPath])
+            {
+                pipelineChecked[(int)pipelineCam.renderingPath] = true;
+                foreach(var e in events)
+                {
+                    if (!e.CheckProperty())
+                    {
+                        e.Init(resources);
+                    }
+                }
+            }
+#endif
             foreach (var e in events)
             {
                 if (e.enabled && e.preEnable)

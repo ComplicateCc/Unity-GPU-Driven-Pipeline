@@ -79,7 +79,7 @@ namespace MPipeline
                 depthBufferBits = 16,
                 dimension = TextureDimension.Tex2D,
                 enableRandomWrite = false,
-                height = 1024,
+                height = 2048,
                 memoryless = RenderTextureMemoryless.None,
                 msaaSamples = 1,
                 shadowSamplingMode = ShadowSamplingMode.None,
@@ -87,7 +87,7 @@ namespace MPipeline
                 useMipMap = false,
                 volumeDepth = 1,
                 vrUsage = VRTextureUsage.None,
-                width = 1024
+                width = 2048
             };
             
             float3* allVert = stackalloc float3[]

@@ -25,8 +25,11 @@ namespace MPipeline
         private JobHandle jobHandle;
         private NativeArray<FogVolume> resultVolume;
         private int fogCount = 0;
-
-        protected override void Init(PipelineResources resources)
+        public override bool CheckProperty()
+        {
+            return volumeMat != null;
+        }
+        public override void Init(PipelineResources resources)
         {
             randomBuffer = new ComputeBuffer(downSampledSize.x * downSampledSize.y * downSampledSize.z, sizeof(uint));
             NativeArray<uint> randomArray = new NativeArray<uint>(randomBuffer.count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
@@ -160,7 +163,7 @@ namespace MPipeline
             cbdr.useFroxel = false;
         }
 
-        protected override void Dispose()
+        public override void Dispose()
         {
             Object.DestroyImmediate(volumeMat);
             randomBuffer.Dispose();

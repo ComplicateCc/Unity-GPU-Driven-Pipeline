@@ -14,7 +14,7 @@ namespace MPipeline
             }
             allEvents.Clear();
         }
-
+        
         private static List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>> allEvents = new List<Pair<RenderPipeline.CameraRenderingPath, PipelineSharedData>>(10);
         public static bool Get<T>(RenderPipeline.CameraRenderingPath path, out T value) where T: PipelineSharedData
         {
@@ -28,6 +28,23 @@ namespace MPipeline
             }
             value = null;
             return false;
+        }
+        public static void Remove<T>(RenderPipeline.CameraRenderingPath path) where T : PipelineSharedData
+        {
+            int index = -1;
+            for(int i = 0; i < allEvents.Count; ++i)
+            {
+                var e = allEvents[i];
+                if (e.key == path && e.value.GetType() == typeof(T))
+                {
+                    index = i;
+                    break;
+                }
+            }
+            if(index >= 0)
+            {
+                allEvents.RemoveAt(index);
+            }
         }
         public static T Get<T>(RenderPipeline.CameraRenderingPath path, Func<T> getFunc) where T : PipelineSharedData
         {

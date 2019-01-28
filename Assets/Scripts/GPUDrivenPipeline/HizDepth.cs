@@ -8,6 +8,10 @@ namespace MPipeline
     {
         private RenderTexture backupMip;
         private Material getLodMat;
+        public bool Check()
+        {
+            return backupMip != null && getLodMat != null;
+        }
         public void InitHiZ(PipelineResources resources)
         {
             const int depthRes = 256;

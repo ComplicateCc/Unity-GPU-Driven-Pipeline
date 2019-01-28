@@ -13,15 +13,17 @@ namespace MPipeline
         HizDepth hizDepth;
         Material linearMat;
         public bool enableOcclusionCulling;
-        protected override void Init(PipelineResources resources)
+        public override void Init(PipelineResources resources)
         {
             hizDepth = new HizDepth();
             hizDepth.InitHiZ(resources);
             linearMat = new Material(resources.shaders.linearDepthShader);
-            Application.targetFrameRate = int.MaxValue;
         }
-
-        protected override void Dispose()
+        public override bool CheckProperty()
+        {
+            return hizDepth.Check() && linearMat != null;
+        }
+        public override void Dispose()
         {
             hizDepth.DisposeHiZ();
         }

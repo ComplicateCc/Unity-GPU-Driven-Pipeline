@@ -31,9 +31,11 @@
         {
             Dispose();
         }
-        protected virtual void Init(PipelineResources resources) { }
-        protected virtual void Dispose() { }
+        public abstract void Init(PipelineResources resources);
+        public abstract void Dispose();
+        public abstract bool CheckProperty();
         public virtual void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data) { }
         public virtual void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data) { }
+
     }
 }

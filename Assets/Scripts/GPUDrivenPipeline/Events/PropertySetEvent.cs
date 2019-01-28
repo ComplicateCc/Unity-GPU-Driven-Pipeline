@@ -24,6 +24,17 @@ namespace MPipeline
             lastVp = nonJitterVP;
             
         }
+        public override void Init(PipelineResources resources)
+        {
+
+        }
+        public override void Dispose()
+        {
+        }
+        public override bool CheckProperty()
+        {
+            return true;
+        }
     }
 
     public class LastVPData : IPerCameraData

@@ -26,7 +26,11 @@ namespace MPipeline
         private int[] _ModelBones = new int[2];
         private int bindPoseCount;
         #endregion
-        protected override void Init(PipelineResources resources)
+        public override bool CheckProperty()
+        {
+            return animationMaterial != null;
+        }
+        public override void Init(PipelineResources resources)
         {
             block = new MaterialPropertyBlock();
             objBuffer = new ComputeBuffer(characterPoints.Length, sizeof(AnimState));
@@ -80,7 +84,7 @@ namespace MPipeline
             allAnimState.Dispose();
         }
 
-        protected override void Dispose()
+        public override void Dispose()
         {
             objBuffer.Dispose();
             bonesBuffer.Dispose();

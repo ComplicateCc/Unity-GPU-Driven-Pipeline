@@ -22,7 +22,7 @@ namespace MPipeline
             allEvents.Add(typeof(S), renderer);
             return renderer;
         }
-        protected override void Init(PipelineResources res)
+        public override void Init(PipelineResources res)
         {
             allEvents = new Dictionary<Type, PostProcessEffectRenderer>(7);
             AddEvents<Bloom, BloomRenderer>();
@@ -34,7 +34,12 @@ namespace MPipeline
             postContext.uberSheet = new PropertySheet(new Material(resources.shaders.uber));
         }
 
-        protected override void Dispose()
+        public override bool CheckProperty()
+        {
+            return postContext != null && postContext.uberSheet.material != null;
+        }
+
+        public override void Dispose()
         {
             var values = allEvents.Values;
             foreach(var i in values)

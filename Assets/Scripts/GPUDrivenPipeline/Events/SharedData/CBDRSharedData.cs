@@ -76,6 +76,10 @@ namespace MPipeline
         public const int MAXIMUMSPOTLIGHTCOUNT = 8;
         public int spotShadowCount;
         public int pointshadowCount;
+        public bool CheckAvailiable()
+        {
+            return spotArrayMap != null && cubeArrayMap != null;
+        }
         public CBDRSharedData(PipelineResources res)
         {
             cbdrShader = res.shaders.cbdrShader;
