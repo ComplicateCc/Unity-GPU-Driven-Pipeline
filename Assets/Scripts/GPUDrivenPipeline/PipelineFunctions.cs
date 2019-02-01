@@ -105,8 +105,19 @@ public unsafe static class PipelineFunctions
             frustumCorners[2 + index] = cam.ViewportToWorldPoint(new Vector3(1, 1, p));
             frustumCorners[3 + index] = cam.ViewportToWorldPoint(new Vector3(1, 0, p));
         }
+        
     }
 
+    public static int DownDimension(int3 coord, int2 xysize)
+    {
+        return coord.z * xysize.y * xysize.x + coord.y * xysize.x + coord.x;
+    }
+
+    public static int3 UpDimension(int coord, int2 xysize)
+    {
+        int xy = (xysize.x * xysize.y);
+        return int3(coord % xysize.y, (coord % xy) / xysize.x, coord / xy);
+    }
 
     public static bool FrustumCulling(ref Matrix4x4 ObjectToWorld, Vector3 extent, Vector4* frustumPlanes)
     {
@@ -183,7 +194,7 @@ public unsafe static class PipelineFunctions
         shadCam.position = targetPosition;
         shadCam.UpdateProjectionMatrix();
         shadCam.UpdateTRSMatrix();
-        shadowVP = GL.GetGPUProjectionMatrix(shadCam.projectionMatrix, false) * (Matrix4x4)shadCam.worldToCameraMatrix;
+        shadowVP = mul(GraphicsUtility.GetGPUProjectionMatrix(shadCam.projectionMatrix, false), shadCam.worldToCameraMatrix);
     }
     /// <summary>
     /// Initialize per cascade shadowmap buffers
@@ -192,7 +203,7 @@ public unsafe static class PipelineFunctions
     {
         buffer.SetRenderTarget(comp.shadowmapTexture, 0, CubemapFace.Unknown, depthSlice: pass);
         buffer.ClearRenderTarget(true, true, Color.white);
-        rtVp = GL.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true) * (Matrix4x4)comp.shadCam.worldToCameraMatrix;
+        rtVp = mul(GraphicsUtility.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true), comp.shadCam.worldToCameraMatrix);
         buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, rtVp);
     }
     /// <summary>
@@ -271,7 +282,8 @@ public unsafe static class PipelineFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void GetViewProjectMatrix(Camera currentCam, out Matrix4x4 vp, out Matrix4x4 invVP)
     {
-        vp = GL.GetGPUProjectionMatrix(currentCam.projectionMatrix, false) * currentCam.worldToCameraMatrix;
+
+        vp = mul(GraphicsUtility.GetGPUProjectionMatrix(currentCam.projectionMatrix, false), (float4x4)currentCam.worldToCameraMatrix);
         invVP = vp.inverse;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

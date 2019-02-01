@@ -2,22 +2,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 using EasyButtons;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Collections;
+using Unity.Burst;
+using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Collections.LowLevel.Unsafe;
+using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
 using static Unity.Mathematics.math;
-using System.IO;
-using MPipeline;
+
 public unsafe class Test : MonoBehaviour
 {
-    [Button]
-    public void Try()
+    [EasyButtons.Button]
+    public void Run()
     {
         Camera cam = GetComponent<Camera>();
-        Debug.Log(cam.ViewportToWorldPoint(new Vector3(0, 0, cam.farClipPlane)));
-        Debug.Log(cam.ViewportToWorldPoint(new Vector3(1, 0, cam.farClipPlane)));
-        Debug.Log(cam.ViewportToWorldPoint(new Vector3(0, 1, cam.farClipPlane)));
-        Debug.Log(cam.ViewportToWorldPoint(new Vector3(1, 1, cam.farClipPlane)));
-        float3* corners = stackalloc float3[4];
+        GraphicsUtility.UpdatePlatform();
+        Debug.Log((Matrix4x4)GraphicsUtility.GetGPUProjectionMatrix(cam.projectionMatrix, false));
+        Debug.Log(GL.GetGPUProjectionMatrix(cam.projectionMatrix, false));
+        Debug.Log((Matrix4x4)GraphicsUtility.GetGPUProjectionMatrix(cam.projectionMatrix, true));
+        Debug.Log(GL.GetGPUProjectionMatrix(cam.projectionMatrix, true));
     }
 }

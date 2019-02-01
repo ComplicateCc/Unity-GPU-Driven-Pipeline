@@ -64,7 +64,8 @@ namespace MPipeline
                 {
                     allVolume = resultVolume.Ptr(),
                     frustumPlanes = frustumPlanes,
-                    fogVolumeCount = fogCount.Ptr()
+                    fogVolumeCount = fogCount.Ptr(),
+                    fogVolume = FogVolumeComponent.allVolumes.unsafePtr
                 }).Schedule(FogVolumeComponent.allVolumes.Length, 1);
             }
         }
@@ -168,6 +169,7 @@ namespace MPipeline
             Object.DestroyImmediate(volumeMat);
             randomBuffer.Dispose();
         }
+        [Unity.Burst.BurstCompile]
         public unsafe struct FogVolumeCalculate : IJobParallelFor
         {
             [NativeDisableUnsafePtrRestriction]
@@ -176,6 +178,8 @@ namespace MPipeline
             public int* fogVolumeCount;
             [NativeDisableUnsafePtrRestriction]
             public float4* frustumPlanes;
+            [NativeDisableUnsafePtrRestriction]
+            public FogVolumeComponent.FogVolumeContainer* fogVolume;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static bool BoxUnderPlane(ref float4 plane, ref FogVolume fog, int i)
             {
@@ -184,7 +188,7 @@ namespace MPipeline
             }
             public void Execute(int index)
             {
-                ref FogVolume vol = ref FogVolumeComponent.allVolumes[index].volume;
+                ref FogVolume vol = ref fogVolume[index].volume;
                 for(int i = 0; i < 6; ++i)
                 {
                     if (!BoxUnderPlane(ref frustumPlanes[i], ref vol, i))

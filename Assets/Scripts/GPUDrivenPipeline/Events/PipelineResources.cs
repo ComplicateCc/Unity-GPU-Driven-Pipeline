@@ -2,20 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Reflection;
+using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
 namespace MPipeline
 {
-    public class PipelineResources : ScriptableObject
+    public unsafe class PipelineResources : ScriptableObject
     {
-        [System.Serializable]
-        public class GPURPEvents
+        public abstract class EventsCollection
         {
-            public PropertySetEvent propertyEvent;
-            public GeometryEvent geometryEvent;
-            public LightingEvent lightingEvent;
-            public SkyboxEvent skyboxEvent;
-            public VolumetricLightEvent volumetricEvent;
-            public FinalPostEvent postEvent;
-            public TemporalAAEvent temporalEvent;
             public PipelineEvent[] GetAllEvents()
             {
                 FieldInfo[] infos = GetType().GetFields();
@@ -28,7 +21,18 @@ namespace MPipeline
             }
         }
         [System.Serializable]
-        public class Shaders
+        public class GPURPEvents : EventsCollection
+        {
+            public PropertySetEvent propertyEvent;
+            public GeometryEvent geometryEvent;
+            public LightingEvent lightingEvent;
+            public SkyboxEvent skyboxEvent;
+            public VolumetricLightEvent volumetricEvent;
+            public FinalPostEvent postEvent;
+            public TemporalAAEvent temporalEvent;
+        }
+        [System.Serializable]
+        public struct Shaders
         {
             public ComputeShader cbdrShader;
             public ComputeShader gpuFrustumCulling;
@@ -37,6 +41,7 @@ namespace MPipeline
             public ComputeShader pointLightFrustumCulling;
             public ComputeShader terrainCompute;
             public ComputeShader volumetricScattering;
+            public ComputeShader probeCoeffShader;
             public Shader copyShader;
             public Shader taaShader;
             public Shader indirectDepthShader;

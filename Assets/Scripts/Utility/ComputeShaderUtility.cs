@@ -75,6 +75,7 @@ public unsafe static class MUnsafeUtility
             MemCpy(dest, source, length * sizeof(T));
         }
     }
+
     private struct PtrKeeper<T>
     {
         public T value;

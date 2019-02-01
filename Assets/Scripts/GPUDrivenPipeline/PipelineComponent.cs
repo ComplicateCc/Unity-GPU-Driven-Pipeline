@@ -28,13 +28,12 @@ namespace MPipeline
     {
         public int2 index;
         public void* mLightPtr;
-        public Matrix4x4 forwardView;
-        public Matrix4x4 backView;
-        public Matrix4x4 upView;
-        public Matrix4x4 downView;
-        public Matrix4x4 rightView;
-        public Matrix4x4 leftView;
-        public Matrix4x4 projMat;
+        public Matrix4x4 forwardProjView;
+        public Matrix4x4 backProjView;
+        public Matrix4x4 upProjView;
+        public Matrix4x4 downProjView;
+        public Matrix4x4 rightProjView;
+        public Matrix4x4 leftProjView;
         public float4* frustumPlanes;
     }
 

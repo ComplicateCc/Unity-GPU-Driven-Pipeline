@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
 using UnityEngine.Rendering;
 
 public static class GraphicsUtility
@@ -101,8 +102,13 @@ new Vector3(1f, 0f, 0f)
             return m_cubeMesh;
         }
     }
+    private static bool isD3D = true;
     private static Mesh m_cubeMesh;
     private static Mesh m_mesh;
+    public static void UpdatePlatform()
+    {
+        isD3D = SystemInfo.graphicsDeviceVersion.IndexOf("Direct3D") > -1;
+    }
     public static void BlitMRT(this CommandBuffer buffer, RenderTargetIdentifier[] colorIdentifier, RenderTargetIdentifier depthIdentifier, Material mat, int pass)
     {
         buffer.SetRenderTarget(colorIdentifier, depthIdentifier);
@@ -166,5 +172,35 @@ new Vector3(1f, 0f, 0f)
     {
         buffer.SetRenderTarget(colorBuffer, depthStencilBuffer);
         buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass);
+    }
+    public static float4x4 GetGPUProjectionMatrix(float4x4 projection, bool renderTexture)
+    {
+        if (isD3D)
+        {
+            if (projection.c3.w < 0.5f)
+            {
+                float m22 = -projection.c2.z;
+                float m32 = -projection.c3.z;
+                float far = (2.0f * m32) / (2.0f * m22 - 2.0f);
+                float near = ((m22 - 1.0f) * far) / (m22 + 1.0f);
+                projection.c2.z = m22 * (near / (near + far));
+                projection.c3.z = m32 * 0.5f;
+                if (renderTexture)
+                {
+                    projection.c1 = -projection.c1;
+                }
+            }
+            else
+            {
+                projection.c2.z *= -0.5f;
+                projection.c3.z = (-projection.c3.z - 1) * 0.5f + 1;
+                if (renderTexture)
+                {
+                    projection.c1 = -projection.c1;
+                }
+            }
+            return projection;
+        }
+        return projection;
     }
 }

@@ -338,7 +338,6 @@ namespace MPipeline
                 spotLightCount = 0;
                 allLights = null;
                 allVisibleLight = null;
-                allMLightCommandList = null;
             }
             public static void CalculateCubemapMatrix(PointLightStruct* allLights, CubemapViewProjMatrix* allMatrix, int index)
             {
@@ -356,41 +355,40 @@ namespace MPipeline
                 cam.up = Vector3.down;
                 cam.right = Vector3.left;
                 cam.UpdateTRSMatrix();
-
-                cube.forwardView = cam.worldToCameraMatrix;
+                cam.UpdateProjectionMatrix();
+                float4x4 proj = GraphicsUtility.GetGPUProjectionMatrix(cam.projectionMatrix, true);
+                cube.forwardProjView = mul(proj, cam.worldToCameraMatrix);
                 //Back
                 cam.forward = Vector3.back;
                 cam.up = Vector3.down;
                 cam.right = Vector3.right;
                 cam.UpdateTRSMatrix();
 
-                cube.backView = cam.worldToCameraMatrix;
+                cube.backProjView = mul(proj, cam.worldToCameraMatrix);
                 //Up
                 cam.forward = Vector3.up;
                 cam.up = Vector3.back;
                 cam.right = Vector3.right;
                 cam.UpdateTRSMatrix();
-                cube.upView = cam.worldToCameraMatrix;
+                cube.upProjView = mul(proj, cam.worldToCameraMatrix);
                 //Down
                 cam.forward = Vector3.down;
                 cam.up = Vector3.forward;
                 cam.right = Vector3.right;
                 cam.UpdateTRSMatrix();
-                cube.downView = cam.worldToCameraMatrix;
+                cube.downProjView = mul(proj, cam.worldToCameraMatrix);
                 //Right
                 cam.forward = Vector3.right;
                 cam.up = Vector3.down;
                 cam.right = Vector3.forward;
                 cam.UpdateTRSMatrix();
-                cube.rightView = cam.worldToCameraMatrix;
+                cube.rightProjView = mul(proj, cam.worldToCameraMatrix);
                 //Left
                 cam.forward = Vector3.left;
                 cam.up = Vector3.down;
                 cam.right = Vector3.back;
                 cam.UpdateTRSMatrix();
-                cam.UpdateProjectionMatrix();
-                cube.projMat = cam.projectionMatrix;
-                cube.leftView = cam.worldToCameraMatrix;
+                cube.leftProjView = mul(proj, cam.worldToCameraMatrix);
                 NativeArray<float4> frustumArray = new NativeArray<float4>(6, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                 cube.frustumPlanes = frustumArray.Ptr();
                 cube.frustumPlanes[0] = VectorUtility.GetPlane(float3(0, 1, 0), str.sphere.xyz + float3(0, str.sphere.w, 0));
@@ -417,6 +415,7 @@ namespace MPipeline
                 matrices.projectionMatrix = cam.projectionMatrix;
                 matrices.worldToCamera = cam.worldToCameraMatrix;
             }
+
             public void Execute(int index)
             {
                 const float LUMENRATE = (4 * Mathf.PI);

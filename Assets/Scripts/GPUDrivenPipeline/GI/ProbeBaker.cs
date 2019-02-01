@@ -13,13 +13,14 @@ namespace MPipeline
     {
         public int3 probeCount = new int3(10, 10, 10);
         public float considerRange = 5;
-        public ComputeShader decodeShader;
         public string path = "Assets/Test.txt";
         public PipelineResources resources;
-        private const int RESOLUTION = 128;
+        private const int RESOLUTION = 32;
         private CommandBuffer cbuffer;
-        public RenderTexture rt;
-        private void Awake()
+        private ComputeBuffer coeffTemp;
+        private ComputeBuffer coeff;
+        private RenderTexture rt;
+        private void Initialize()
         {
             cbuffer = new CommandBuffer();
             rt = new RenderTexture(new RenderTextureDescriptor
@@ -28,7 +29,7 @@ namespace MPipeline
                 bindMS = false,
                 colorFormat = RenderTextureFormat.ARGB32,
                 depthBufferBits = 16,
-                dimension = TextureDimension.Cube,
+                dimension = TextureDimension.Tex2DArray,
                 enableRandomWrite = false,
                 height = RESOLUTION,
                 width = RESOLUTION,
@@ -37,15 +38,19 @@ namespace MPipeline
                 shadowSamplingMode = ShadowSamplingMode.None,
                 sRGB = false,
                 useMipMap = false,
-                volumeDepth = 1,
+                volumeDepth = 6,
                 vrUsage = VRTextureUsage.None
             });
+            coeffTemp = new ComputeBuffer(9, 12);
+            coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
             rt.Create();
         }
-        private void OnDestroy()
+        private void Dispose()
         {
             cbuffer.Dispose();
-            rt.Release();
+            coeff.Dispose();
+            coeffTemp.Dispose();
+            DestroyImmediate(rt);
         }
         private void OnDrawGizmos()
         {
@@ -57,14 +62,6 @@ namespace MPipeline
             float3 left = transform.position - transform.lossyScale * 0.5f;
             float3 right = transform.position + transform.lossyScale * 0.5f;
             float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
-            if (CalculateShadowmap(transform.position, (float3)transform.lossyScale * 0.5f + float3(considerRange)))
-            {
-                cbuffer.EnableShaderKeyword("EnableShadow");
-            }
-            else
-            {
-                cbuffer.DisableShaderKeyword("EnableShadow");
-            }
             SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
         }
         static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
@@ -89,7 +86,7 @@ namespace MPipeline
                 vrUsage = VRTextureUsage.None,
                 width = 2048
             };
-            
+
             float3* allVert = stackalloc float3[]
             {
                 center + extent,
@@ -114,15 +111,45 @@ namespace MPipeline
             }
         }
         [EasyButtons.Button]
-        public void DebugTry()
+        public void BakeLightmap()
         {
-            if(!SceneController.gpurpEnabled)
+            Initialize();
+            ComputeShader shader = resources.shaders.probeCoeffShader;
+            cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
+            cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
+            cbuffer.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
+            cbuffer.SetComputeTextureParam(shader, 0, "_SourceCubemap", rt);
+            if (CalculateShadowmap(transform.position, (float3)transform.lossyScale * 0.5f + float3(considerRange)))
             {
-                Debug.Log("Cluster Rendering not enabled!");
-                return;
+                cbuffer.EnableShaderKeyword("EnableShadow");
             }
-            BakeMap(0);
-            RenderPipeline.ExecuteBufferAtFrameEnding(cbuffer);
+            else
+            {
+                cbuffer.DisableShaderKeyword("EnableShadow");
+            }
+            for (int x = 0; x < probeCount.x; ++x)
+            {
+                for (int y = 0; y < probeCount.y; ++y)
+                {
+                    for (int z = 0; z < probeCount.z; ++z)
+                    {
+                        BakeMap(int3(x, y, z));
+                        cbuffer.SetComputeIntParam(shader, "_OffsetIndex", PipelineFunctions.DownDimension(int3(x, y, z), probeCount.xy));
+                        cbuffer.DispatchCompute(shader, 0, 1, 1, 6);
+                        cbuffer.DispatchCompute(shader, 1, 1, 1, 1);
+                    }
+                }
+            }
+            Graphics.ExecuteCommandBuffer(cbuffer);
+            cbuffer.Clear();
+            Debug.Log(coeff.count);
+            float3[] coeffArray = new float3[coeff.count];
+            coeff.GetData(coeffArray);
+            foreach(var i in coeffArray)
+            {
+                Debug.Log(i);
+            }
+            Dispose();
         }
     }
 

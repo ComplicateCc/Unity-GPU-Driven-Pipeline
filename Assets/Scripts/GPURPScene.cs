@@ -98,6 +98,7 @@ namespace MPipeline
             loadingThread.Dispose();
             current = null;
         }
+        [Unity.Burst.BurstCompile]
         private struct MoveTransform : IJobParallelForTransform
         {
             public Vector3 offset;

@@ -186,7 +186,7 @@ ENDCG
 		Pass
 		{
 			ZTest less
-			Cull back
+			Cull front
 			Tags {"LightMode" = "DirectionalLight"}
 			CGPROGRAM
 			#pragma vertex vert

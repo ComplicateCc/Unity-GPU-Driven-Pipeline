@@ -52,6 +52,7 @@ namespace MPipeline
 
         public RenderPipeline(PipelineResources resources)
         {
+            GraphicsUtility.UpdatePlatform();
             MLight.ClearLightDict();
             this.resources = resources;
             current = this;
