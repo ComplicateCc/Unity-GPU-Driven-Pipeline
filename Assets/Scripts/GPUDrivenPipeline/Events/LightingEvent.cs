@@ -36,6 +36,11 @@ namespace MPipeline
         private List<Light> addMLightCommandList = new List<Light>(30);
         private List<Light> allLights = new List<Light>(30);
         private JobHandle lightingHandle;
+        private JobHandle csmHandle;
+        private StaticFit staticFit;
+        private float* clipDistances;
+        private float4x4* cascadeWorldToCamera;
+        private float4x4* cascadeProjection;
         public override bool CheckProperty()
         {
             if(cbdr != null && !cbdr.CheckAvailiable())
@@ -83,7 +88,19 @@ namespace MPipeline
             sphereBuffer.Dispose();
             spotBuffer.Dispose();
         }
-
+        private static StaticFit DirectionalShadowStaticFit(Camera cam, SunLight sunlight, float* outClipDistance)
+        {
+            StaticFit staticFit;
+            staticFit.resolution = sunlight.resolution;
+            staticFit.mainCamTrans = cam;
+            staticFit.frustumCorners = new NativeArray<float3>((SunLight.CASCADELEVELCOUNT + 1) * 4, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            outClipDistance[0] = cam.nearClipPlane;
+            outClipDistance[1] = sunlight.firstLevelDistance;
+            outClipDistance[2] = sunlight.secondLevelDistance;
+            outClipDistance[3] = sunlight.thirdLevelDistance;
+            outClipDistance[4] = sunlight.farestDistance;
+            return staticFit;
+        }
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
             LightFilter.allVisibleLight = data.cullResults.visibleLights;
@@ -104,6 +121,25 @@ namespace MPipeline
             LightFilter.cubemapVPMatrices = cubemapVPMatrices;
             LightFilter.spotLightMatrices = spotLightMatrices;
             lightingHandle = (new LightFilter()).Schedule(allLights.Count, 1);
+            if (SunLight.current != null && SunLight.current.enabled && SunLight.current.enableShadow)
+            {
+                clipDistances = (float*)UnsafeUtility.Malloc(SunLight.CASCADECLIPSIZE * sizeof(float), 16, Allocator.Temp);
+                staticFit = DirectionalShadowStaticFit(cam.cam, SunLight.current, clipDistances);
+                cascadeWorldToCamera = (float4x4*)UnsafeUtility.Malloc(SunLight.CASCADELEVELCOUNT * sizeof(float4x4), 16, Allocator.Temp);
+                cascadeProjection = (float4x4*)UnsafeUtility.Malloc(SunLight.CASCADELEVELCOUNT * sizeof(float4x4), 16, Allocator.Temp);
+                PipelineFunctions.GetfrustumCorners(clipDistances, SunLight.CASCADELEVELCOUNT + 1, cam.cam, staticFit.frustumCorners.Ptr());
+                csmHandle = new CascadeShadowmap
+                {
+                    cascadeShadowmapVPs = (float4x4*)cascadeShadowMapVP.Ptr(),
+                    cascadeProjection = cascadeProjection,
+                    cascadeWorldToCamera = cascadeWorldToCamera,
+                    orthoCam = (OrthoCam*)UnsafeUtility.AddressOf(ref SunLight.current.shadCam),
+                    farClipPlane = staticFit.mainCamTrans.farClipPlane,
+                    frustumCorners = staticFit.frustumCorners.Ptr(),
+                    resolution = staticFit.resolution,
+                    isD3D = GraphicsUtility.platformIsD3D
+                }.Schedule(SunLight.CASCADELEVELCOUNT, 1);
+            }
         }
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
@@ -137,10 +173,12 @@ namespace MPipeline
                     SunLight.current.thirdLevelDistance,
                     SunLight.current.farestDistance));//Only Mask
                 buffer.SetGlobalVector(ShaderIDs._SoftParam, SunLight.current.cascadeSoftValue / SunLight.current.resolution);
-                SceneController.DrawDirectionalShadow(cam.cam, ref data, ref opts, SunLight.current, cascadeShadowMapVP);
+                csmHandle.Complete();
+                SceneController.DrawDirectionalShadow(cam.cam, ref staticFit, ref data, ref opts, clipDistances, cascadeWorldToCamera, cascadeProjection);
                 buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
                 buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.current.shadowmapTexture);
                 cbdr.dirLightShadowmap = SunLight.current.shadowmapTexture;
+                staticFit.frustumCorners.Dispose();
                 pass = 0;
             }
             else
@@ -320,6 +358,71 @@ namespace MPipeline
             buffer.SetGlobalBuffer(ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
             buffer.SetGlobalBuffer(ShaderIDs._SpotLightIndexBuffer, cbdr.spotlightIndexBuffer);
         }
+        [Unity.Burst.BurstCompile]
+        public unsafe struct CascadeShadowmap : IJobParallelFor
+        {
+            public int resolution;
+            public float farClipPlane;
+            [NativeDisableUnsafePtrRestriction]
+            public OrthoCam* orthoCam;
+            [NativeDisableUnsafePtrRestriction]
+            public float4x4* cascadeShadowmapVPs;
+            [NativeDisableUnsafePtrRestriction]
+            public float3* frustumCorners;
+            [NativeDisableUnsafePtrRestriction]
+            public float4x4* cascadeWorldToCamera;
+            [NativeDisableUnsafePtrRestriction]
+            public float4x4* cascadeProjection;
+            public bool isD3D;
+            public void Execute(int index)
+            {
+                OrthoCam shadCam = new OrthoCam
+                {
+                    forward = orthoCam->forward,
+                    up = orthoCam->up,
+                    right = orthoCam->right
+                };
+                float range = 0;
+                double3 averagePos = double3(0, 0, 0);
+                int frustumStartPos = index * 4;
+                for (int i = 0; i < 8; ++i)
+                {
+                    averagePos += frustumCorners[i + frustumStartPos];
+                }
+                averagePos /= 8;
+                for (int i = 0; i < 8; ++i)
+                {
+                    double dist = distance(averagePos, frustumCorners[i + frustumStartPos]);
+                    if (range < dist)
+                    {
+                        range = (float)dist;
+                    }
+                }
+                shadCam.size = range;
+                float3 targetPosition = (float3)averagePos - shadCam.forward * farClipPlane * 0.5f;
+                shadCam.nearClipPlane = 0;
+                shadCam.farClipPlane = farClipPlane;
+                ref float4x4 shadowVP = ref cascadeShadowmapVPs[index];
+                float4x4 invShadowVP = inverse(shadowVP);
+
+                float4 ndcPos = mul(shadowVP, new float4(targetPosition, 1));
+                ndcPos /= ndcPos.w;
+                float2 uv = new float2(ndcPos.x, ndcPos.y) * 0.5f + new float2(0.5f, 0.5f);
+                uv.x = (int)(uv.x * resolution + 0.5);
+                uv.y = (int)(uv.y * resolution + 0.5);
+                uv /= resolution;
+                uv = uv * 2f - 1;
+                ndcPos = new float4(uv.x, uv.y, ndcPos.z, 1);
+                float4 targetPos_4 = mul(invShadowVP, ndcPos);
+                targetPosition = targetPos_4.xyz / targetPos_4.w;
+                shadCam.position = targetPosition;
+                shadCam.UpdateProjectionMatrix();
+                shadCam.UpdateTRSMatrix();
+                shadowVP = mul(GraphicsUtility.GetGPUProjectionMatrix(shadCam.projectionMatrix, false, isD3D), shadCam.worldToCameraMatrix);
+                cascadeWorldToCamera[index] = shadCam.worldToCameraMatrix;
+                cascadeProjection[index] = shadCam.projectionMatrix;
+            }
+        }
 
         public unsafe struct LightFilter : IJobParallelFor
         {
@@ -415,7 +518,6 @@ namespace MPipeline
                 matrices.projectionMatrix = cam.projectionMatrix;
                 matrices.worldToCamera = cam.worldToCameraMatrix;
             }
-
             public void Execute(int index)
             {
                 const float LUMENRATE = (4 * Mathf.PI);

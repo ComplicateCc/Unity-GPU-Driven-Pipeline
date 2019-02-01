@@ -128,8 +128,6 @@ namespace MPipeline
             public RendererConfiguration configure;
             public Material clusterMat;
         }
-        private const int CASCADELEVELCOUNT = 4;
-        private const int CASCADECLIPSIZE = CASCADELEVELCOUNT + 1;
         public static SceneCommonData commonData;
         public static bool gpurpEnabled { get; private set; }
         private static bool singletonReady = false;
@@ -403,25 +401,10 @@ options.frustumPlanes);
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
-        private static StaticFit DirectionalShadowStaticFit(Camera cam, SunLight sunlight, float* outClipDistance)
+
+        public static void DrawDirectionalShadow(Camera currentCam, ref StaticFit staticFit, ref PipelineCommandData data, ref RenderClusterOptions opts, float* clipDistances, float4x4* worldToCamMatrices, float4x4* projectionMatrices)
         {
-            StaticFit staticFit;
-            staticFit.resolution = sunlight.resolution;
-            staticFit.mainCamTrans = cam;
-            staticFit.frustumCorners = new NativeArray<float3>((CASCADELEVELCOUNT + 1) * 4, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            outClipDistance[0] = cam.nearClipPlane;
-            outClipDistance[1] = sunlight.firstLevelDistance;
-            outClipDistance[2] = sunlight.secondLevelDistance;
-            outClipDistance[3] = sunlight.thirdLevelDistance;
-            outClipDistance[4] = sunlight.farestDistance;
-            return staticFit;
-        }
-        public static void DrawDirectionalShadow(Camera currentCam, ref PipelineCommandData data, ref RenderClusterOptions opts, SunLight sunLight, Matrix4x4[] cascadeShadowMapVP)
-        {
-            float* clipDistances = stackalloc float[CASCADECLIPSIZE];
-            StaticFit staticFit = DirectionalShadowStaticFit(currentCam, sunLight, clipDistances);
-            //   PipelineFunctions.GetfrustumCorners(farClipDistance, ref shadMap, currentCam);
-            PipelineFunctions.GetfrustumCorners(clipDistances, CASCADELEVELCOUNT + 1, currentCam, (float3*)staticFit.frustumCorners.GetUnsafePtr());
+            SunLight sunLight = SunLight.current;
             if (gpurpEnabled)
             {
                 opts.command.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
@@ -429,12 +412,11 @@ options.frustumPlanes);
             }
             float bias = sunLight.bias / currentCam.farClipPlane;
             opts.command.SetGlobalFloat(ShaderIDs._ShadowOffset, bias);
-            for (int pass = 0; pass < CASCADELEVELCOUNT; ++pass)
+            for (int pass = 0; pass < SunLight.CASCADELEVELCOUNT; ++pass)
             {
-                PipelineFunctions.SetShadowCameraPositionStaticFit(ref staticFit, ref sunLight.shadCam, pass, (float4x4*)cascadeShadowMapVP.Ptr());
                 float4* vec = (float4*)opts.frustumPlanes.Ptr();
-                SunLight.shadowCam.worldToCameraMatrix = sunLight.shadCam.worldToCameraMatrix;
-                SunLight.shadowCam.projectionMatrix = sunLight.shadCam.projectionMatrix;
+                SunLight.shadowCam.worldToCameraMatrix = worldToCamMatrices[pass];
+                SunLight.shadowCam.projectionMatrix = projectionMatrices[pass];
                 CullResults.GetCullingParameters(SunLight.shadowCam, out data.cullParams);
                 for (int i = 0; i < 6; ++i)
                 {
@@ -442,7 +424,7 @@ options.frustumPlanes);
                     vec[i] = -float4(p.normal, p.distance);
                 }
                 Matrix4x4 vpMatrix;
-                PipelineFunctions.UpdateCascadeState(ref sunLight, opts.command, pass, out vpMatrix);
+                PipelineFunctions.UpdateCascadeState(sunLight, ref projectionMatrices[pass], ref worldToCamMatrices[pass], opts.command, pass, out vpMatrix);
                 if (gpurpEnabled)
                 {
                     PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, opts.frustumPlanes, opts.command);

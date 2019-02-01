@@ -249,8 +249,8 @@ namespace MPipeline
     public struct StaticFit
     {
         public int resolution;
-        public Camera mainCamTrans;
         public NativeArray<float3> frustumCorners;
+        public Camera mainCamTrans;
     }
     public struct RenderTargets
     {

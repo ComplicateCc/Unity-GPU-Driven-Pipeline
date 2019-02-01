@@ -12,6 +12,7 @@ using MPipeline;
 
 public unsafe static class PipelineFunctions
 {
+
     public static void GetOrthoCullingPlanes(ref OrthoCam orthoCam, float4* planes)
     {
         planes[0] = VectorUtility.GetPlane(orthoCam.forward, orthoCam.position + orthoCam.forward * orthoCam.farClipPlane);
@@ -105,7 +106,7 @@ public unsafe static class PipelineFunctions
             frustumCorners[2 + index] = cam.ViewportToWorldPoint(new Vector3(1, 1, p));
             frustumCorners[3 + index] = cam.ViewportToWorldPoint(new Vector3(1, 0, p));
         }
-        
+
     }
 
     public static int DownDimension(int3 coord, int2 xysize)
@@ -155,55 +156,14 @@ public unsafe static class PipelineFunctions
         return true;
     }
 
-    public static void SetShadowCameraPositionStaticFit(ref StaticFit fit, ref OrthoCam shadCam, int pass, float4x4* vpMatrices)
-    {
-        float range = 0;
-        double3 averagePos = double3(0, 0, 0);
-        int frustumStartPos = pass * 4;
-        for (int i = 0; i < 8; ++i)
-        {
-            averagePos += fit.frustumCorners[i + frustumStartPos];
-        }
-        averagePos /= 8;
-        for (int i = 0; i < 8; ++i)
-        {
-            double dist = distance(averagePos, fit.frustumCorners[i + frustumStartPos]);
-            if (range < dist)
-            {
-                range = (float)dist;
-            }
-        }
-        shadCam.size = range;
-        float farClipPlane = fit.mainCamTrans.farClipPlane;
-        float3 targetPosition = (float3)averagePos - shadCam.forward * farClipPlane * 0.5f;
-        shadCam.nearClipPlane = 0;
-        shadCam.farClipPlane = farClipPlane;
-        ref float4x4 shadowVP = ref vpMatrices[pass];
-        float4x4 invShadowVP = inverse(shadowVP);
-
-        float4 ndcPos = mul(shadowVP, new float4(targetPosition, 1));
-        ndcPos /= ndcPos.w;
-        float2 uv = new float2(ndcPos.x, ndcPos.y) * 0.5f + new float2(0.5f, 0.5f);
-        uv.x = (int)(uv.x * fit.resolution + 0.5);
-        uv.y = (int)(uv.y * fit.resolution + 0.5);
-        uv /= fit.resolution;
-        uv = uv * 2f - 1;
-        ndcPos = new float4(uv.x, uv.y, ndcPos.z, 1);
-        float4 targetPos_4 = mul(invShadowVP, ndcPos);
-        targetPosition = targetPos_4.xyz / targetPos_4.w;
-        shadCam.position = targetPosition;
-        shadCam.UpdateProjectionMatrix();
-        shadCam.UpdateTRSMatrix();
-        shadowVP = mul(GraphicsUtility.GetGPUProjectionMatrix(shadCam.projectionMatrix, false), shadCam.worldToCameraMatrix);
-    }
     /// <summary>
     /// Initialize per cascade shadowmap buffers
     /// </summary>
-    public static void UpdateCascadeState(ref SunLight comp, CommandBuffer buffer, int pass, out Matrix4x4 rtVp)
+    public static void UpdateCascadeState(SunLight comp, ref float4x4 projection, ref float4x4 worldToCamera, CommandBuffer buffer, int pass, out Matrix4x4 rtVp)
     {
         buffer.SetRenderTarget(comp.shadowmapTexture, 0, CubemapFace.Unknown, depthSlice: pass);
         buffer.ClearRenderTarget(true, true, Color.white);
-        rtVp = mul(GraphicsUtility.GetGPUProjectionMatrix(comp.shadCam.projectionMatrix, true), comp.shadCam.worldToCameraMatrix);
+        rtVp = mul(GraphicsUtility.GetGPUProjectionMatrix(projection, true), worldToCamera);
         buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, rtVp);
     }
     /// <summary>
