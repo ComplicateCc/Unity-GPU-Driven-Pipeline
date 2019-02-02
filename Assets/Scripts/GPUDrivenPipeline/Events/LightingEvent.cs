@@ -358,6 +358,7 @@ namespace MPipeline
             buffer.SetGlobalBuffer(ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
             buffer.SetGlobalBuffer(ShaderIDs._SpotLightIndexBuffer, cbdr.spotlightIndexBuffer);
         }
+        
         [Unity.Burst.BurstCompile]
         public unsafe struct CascadeShadowmap : IJobParallelFor
         {

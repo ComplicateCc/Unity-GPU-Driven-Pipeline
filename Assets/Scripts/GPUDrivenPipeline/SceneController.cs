@@ -417,7 +417,8 @@ options.frustumPlanes);
                 float4* vec = (float4*)opts.frustumPlanes.Ptr();
                 SunLight.shadowCam.worldToCameraMatrix = worldToCamMatrices[pass];
                 SunLight.shadowCam.projectionMatrix = projectionMatrices[pass];
-                CullResults.GetCullingParameters(SunLight.shadowCam, out data.cullParams);
+                if (!CullResults.GetCullingParameters(SunLight.shadowCam, out data.cullParams))
+                    return;
                 for (int i = 0; i < 6; ++i)
                 {
                     Plane p = data.cullParams.GetCullingPlane(i);

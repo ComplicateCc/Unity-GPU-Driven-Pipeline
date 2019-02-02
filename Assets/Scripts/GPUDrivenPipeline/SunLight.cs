@@ -42,6 +42,9 @@ public class SunLight : MonoBehaviour
         }
         light = GetComponent<Light>();
         current = this;
+        shadCam.forward = transform.forward;
+        shadCam.up = transform.up;
+        shadCam.right = transform.right;
         light.enabled = false;
         if(!shadowCam)
         {
