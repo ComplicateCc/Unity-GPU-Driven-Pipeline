@@ -243,7 +243,7 @@ public unsafe static class PipelineFunctions
     public static void GetViewProjectMatrix(Camera currentCam, out Matrix4x4 vp, out Matrix4x4 invVP)
     {
 
-        vp = mul(GraphicsUtility.GetGPUProjectionMatrix(currentCam.projectionMatrix, false), (float4x4)currentCam.worldToCameraMatrix);
+        vp = mul(GraphicsUtility.GetGPUProjectionMatrix(currentCam.projectionMatrix, false), currentCam.worldToCameraMatrix);
         invVP = vp.inverse;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
