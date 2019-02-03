@@ -29,7 +29,7 @@ inline float frand(int n)
 inline float2 cellNoise(int2 p)
 {
 	int i = p.y*256 + p.x;
-	return sin(float2(frand(i), frand(i + 57)) * _RandomSeed.xy + _RandomSeed.zw) * 0.5;
+	return sin(float2(frand(i), frand(i + 57)) * _RandomSeed.xy + _RandomSeed.zw) * 0.8;
 }
 
 float4 Fog(float linear01Depth, float2 screenuv)
@@ -38,7 +38,8 @@ float4 Fog(float linear01Depth, float2 screenuv)
 	z = (z - _NearFarClip.y) / (1 - _NearFarClip.y);
 	if (z < 0.0)
 		return float4(0, 0, 0, 1);
-	float3 uvw = float3(screenuv.x, screenuv.y, pow(z, 1/1.5));
+    z = pow(z, 1 / 1.5);
+	float3 uvw = float3(screenuv.x, screenuv.y, z);
 	uvw.xy += cellNoise(uvw.xy * _Screen_TexelSize.zw) / ((float2)_ScreenSize.xy);
 	return _VolumeTex.Sample(sampler_VolumeTex, uvw);
 }

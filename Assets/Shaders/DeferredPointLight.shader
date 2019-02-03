@@ -5,13 +5,16 @@
 
 CGINCLUDE
 #pragma target 5.0
+            #pragma multi_compile _ ENABLESH
+            #pragma multi_compile _ POINTLIGHT
+            #pragma multi_compile _ SPOTLIGHT
             #include "UnityCG.cginc"
             #include "CGINC/VoxelLight.cginc"
             #include "CGINC/Shader_Include/Common.hlsl"
             #include "CGINC/Shader_Include/BSDF_Library.hlsl"
             #include "CGINC/Shader_Include/AreaLight.hlsl"
-            #pragma multi_compile _ POINTLIGHT
-            #pragma multi_compile _ SPOTLIGHT
+            #include "GI/GlobalIllumination.cginc"
+            #include "GI/SHRuntime.cginc"
             Texture2D _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
             Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
             Texture2D<float4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
@@ -21,6 +24,7 @@ CGINCLUDE
             StructuredBuffer<uint> _PointLightIndexBuffer;
             StructuredBuffer<SpotLight> _AllSpotLight;
             StructuredBuffer<uint> _SpotLightIndexBuffer;
+
             
             float2 _CameraClipDistance; //X: Near Y: Far - Near
             float4x4 _InvVP;
@@ -74,11 +78,12 @@ ENDCG
                 float ShadowTrem;
                 float3 ShadingColor = 0;
                 float rate = saturate((LinearEyeDepth(SceneDepth) - _CameraClipDistance.x) / _CameraClipDistance.y);
-                uint3 voxelValue =uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
+                uint3 voxelValue = uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
                 uint sb = GetIndex(voxelValue, VOXELSIZE,  (MAXLIGHTPERCLUSTER + 1));
                 uint2 LightIndex;// = uint2(sb + 1, _PointLightIndexBuffer[sb]);
                 uint c;
                 float3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
+                ShadingColor += GetSHColor(WorldNormal, WorldPos.xyz) * AlbedoColor;
                 #if SPOTLIGHT
                 
                 LightIndex = uint2(sb + 1, _SpotLightIndexBuffer[sb]);

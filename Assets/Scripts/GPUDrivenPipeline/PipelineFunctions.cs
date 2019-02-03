@@ -117,7 +117,7 @@ public unsafe static class PipelineFunctions
     public static int3 UpDimension(int coord, int2 xysize)
     {
         int xy = (xysize.x * xysize.y);
-        return int3(coord % xysize.y, (coord % xy) / xysize.x, coord / xy);
+        return int3(coord % xysize.x, (coord % xy) / xysize.x, coord / xy);
     }
 
     public static bool FrustumCulling(ref Matrix4x4 ObjectToWorld, Vector3 extent, Vector4* frustumPlanes)

@@ -20,9 +20,10 @@ CGINCLUDE
 #include "UnityPBSLighting.cginc"
 #include "CGINC/Procedural.cginc"
 #pragma multi_compile _ EnableShadow
-
 	Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
 	StructuredBuffer<PropertyValue> _PropertiesBuffer;
+
+
 	
 	void surf (float2 uv, uint index, inout SurfaceOutputStandardSpecular o) {
 		PropertyValue prop = _PropertiesBuffer[index];

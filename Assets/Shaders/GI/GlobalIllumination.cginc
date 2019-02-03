@@ -52,6 +52,18 @@ SH9 SHCosineLobe(float3 dir)
     return sh;
 }
 
+
+    int DownDimension(int3 coord, int2 xysize)
+    {
+        return coord.z * xysize.y * xysize.x + coord.y * xysize.x + coord.x;
+    }
+
+    int3 UpDimension(int coord, int2 xysize)
+    {
+        int xy = (xysize.x * xysize.y);
+        return int3(coord % xysize.x, (coord % xy) / xysize.x, coord / xy);
+    }
+
 float3 DirFromCube(uint face, float2 uv){
     float3 dir = float3(1, uv * 2 - 1);
     switch(face){

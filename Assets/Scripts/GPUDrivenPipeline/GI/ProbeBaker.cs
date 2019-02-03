@@ -20,9 +20,41 @@ namespace MPipeline
         private ComputeBuffer coeffTemp;
         private ComputeBuffer coeff;
         private RenderTexture rt;
-        private void Initialize()
+        private NativeList<int> _CoeffIDs;
+        private RenderTexture[] coeffTextures;
+        private void OnEnable()
         {
             cbuffer = new CommandBuffer();
+            _CoeffIDs = new NativeList<int>(7, Allocator.Persistent);
+            coeffTextures = new RenderTexture[7];
+            string str = "_CoeffTexture0";
+            for (int i = 0; i < 7; ++i)
+            {
+                fixed(char* chr = str)
+                {
+                    chr[13] = (char)(i + 48);
+                }
+                _CoeffIDs.Add(Shader.PropertyToID(str));
+                coeffTextures[i] = new RenderTexture(new RenderTextureDescriptor
+                {
+                    autoGenerateMips = false,
+                    bindMS = false,
+                    colorFormat = RenderTextureFormat.ARGBHalf,
+                    depthBufferBits = 0,
+                    dimension = TextureDimension.Tex3D,
+                    enableRandomWrite = true,
+                    height = probeCount.y,
+                    width = probeCount.x,
+                    volumeDepth = probeCount.z,
+                    memoryless = RenderTextureMemoryless.None,
+                    msaaSamples = 1,
+                    shadowSamplingMode = ShadowSamplingMode.None,
+                    sRGB = false,
+                    useMipMap = false,
+                    vrUsage = VRTextureUsage.None
+                });
+                coeffTextures[i].Create();
+            }
             rt = new RenderTexture(new RenderTextureDescriptor
             {
                 autoGenerateMips = false,
@@ -45,12 +77,18 @@ namespace MPipeline
             coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
             rt.Create();
         }
-        private void Dispose()
+        private void OnDisable()
         {
             cbuffer.Dispose();
             coeff.Dispose();
             coeffTemp.Dispose();
             DestroyImmediate(rt);
+            _CoeffIDs.Dispose();
+            foreach(var i in coeffTextures)
+            {
+                DestroyImmediate(i);
+            }
+            Shader.DisableKeyword("ENABLESH");
         }
         private void OnDrawGizmos()
         {
@@ -62,6 +100,7 @@ namespace MPipeline
             float3 left = transform.position - transform.lossyScale * 0.5f;
             float3 right = transform.position + transform.lossyScale * 0.5f;
             float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
+            
             SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
         }
         static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
@@ -76,7 +115,7 @@ namespace MPipeline
                 depthBufferBits = 16,
                 dimension = TextureDimension.Tex2D,
                 enableRandomWrite = false,
-                height = 2048,
+                height = 4096,
                 memoryless = RenderTextureMemoryless.None,
                 msaaSamples = 1,
                 shadowSamplingMode = ShadowSamplingMode.None,
@@ -84,7 +123,7 @@ namespace MPipeline
                 useMipMap = false,
                 volumeDepth = 1,
                 vrUsage = VRTextureUsage.None,
-                width = 2048
+                width = 4096
             };
 
             float3* allVert = stackalloc float3[]
@@ -113,12 +152,21 @@ namespace MPipeline
         [EasyButtons.Button]
         public void BakeLightmap()
         {
-            Initialize();
             ComputeShader shader = resources.shaders.probeCoeffShader;
             cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
             cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
             cbuffer.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
+            cbuffer.SetComputeBufferParam(shader, 2, "_Coeff", coeff);
             cbuffer.SetComputeTextureParam(shader, 0, "_SourceCubemap", rt);
+            for(int i = 0; i < 7; ++i)
+            {
+                cbuffer.SetGlobalTexture(_CoeffIDs[i], coeffTextures[i]);
+                cbuffer.SetComputeTextureParam(shader, 2, _CoeffIDs[i], coeffTextures[i]);
+            }
+            cbuffer.SetGlobalVector("_Tex3DSize", new Vector4(probeCount.x + 0.01f, probeCount.y + 0.01f, probeCount.z + 0.01f));
+            cbuffer.SetGlobalVector("_SHSize", transform.localScale);
+            cbuffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
+            cbuffer.EnableShaderKeyword("ENABLESH");
             if (CalculateShadowmap(transform.position, (float3)transform.lossyScale * 0.5f + float3(considerRange)))
             {
                 cbuffer.EnableShaderKeyword("EnableShadow");
@@ -127,6 +175,7 @@ namespace MPipeline
             {
                 cbuffer.DisableShaderKeyword("EnableShadow");
             }
+            SceneController.GICubeCull(transform.position, transform.localScale * 0.5f, considerRange, cbuffer, resources.shaders.gpuFrustumCulling);
             for (int x = 0; x < probeCount.x; ++x)
             {
                 for (int y = 0; y < probeCount.y; ++y)
@@ -140,17 +189,11 @@ namespace MPipeline
                     }
                 }
             }
+            ComputeShaderUtility.Dispatch(shader, cbuffer, 2, probeCount.x * probeCount.y * probeCount.z, 64);
             Graphics.ExecuteCommandBuffer(cbuffer);
             cbuffer.Clear();
-            Debug.Log(coeff.count);
-            float3[] coeffArray = new float3[coeff.count];
-            coeff.GetData(coeffArray);
-            foreach(var i in coeffArray)
-            {
-                Debug.Log(i);
-            }
-            Dispose();
         }
+
     }
 
 }

@@ -548,6 +548,21 @@ options.frustumPlanes);
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
+        public static void GICubeCull(float3 position, float3 extent, float range, CommandBuffer buffer, ComputeShader cullingshader)
+        {
+            extent += range;
+            float4* cullingPlanes = stackalloc float4[]
+            {
+                VectorUtility.GetPlane(float3(0, 0, 1), position + float3(0, 0, extent.z)),
+                VectorUtility.GetPlane(float3(0, 0, -1), position - float3(0, 0, extent.z)),
+                VectorUtility.GetPlane(float3(0, 1, 0), position + float3(0, extent.y, 0)),
+                VectorUtility.GetPlane(float3(0, -1, 0), position - float3(0, extent.y, 0)),
+                VectorUtility.GetPlane(float3(1, 0, 0), position + float3(extent.x, 0, 0)),
+                VectorUtility.GetPlane(float3(-1, 0, 0), position - float3(extent.x, 0, 0))
+            };
+            PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes, buffer);
+            PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, buffer);
+        }
         public static void DrawGIBuffer(RenderTexture targetRT, float4 renderCube, ComputeShader cullingshader, CommandBuffer buffer)
         {
             if (!gpurpEnabled) return;
@@ -567,17 +582,6 @@ options.frustumPlanes);
                 float3x3(float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1)),
                 float3x3(float3(-1, 0, 0), float3(0, 1, 0), float3(0, 0, -1))
             };
-            float4* cullingPlanes = stackalloc float4[]
-            {
-                VectorUtility.GetPlane(float3(0, 0, 1), perspCam.position + float3(0, 0, perspCam.farClipPlane)),
-                VectorUtility.GetPlane(float3(0, 0, -1), perspCam.position - float3(0, 0, perspCam.farClipPlane)),
-                VectorUtility.GetPlane(float3(0, 1, 0), perspCam.position + float3(0, perspCam.farClipPlane, 0)),
-                VectorUtility.GetPlane(float3(0, -1, 0), perspCam.position - float3(0, perspCam.farClipPlane, 0)),
-                VectorUtility.GetPlane(float3(1, 0, 0), perspCam.position + float3(perspCam.farClipPlane, 0, 0)),
-                VectorUtility.GetPlane(float3(-1, 0, 0), perspCam.position - float3(perspCam.farClipPlane, 0, 0))
-            };
-            PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes, buffer);
-            PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, buffer);
             for (int i = 0; i < 6; ++i)
             {
                 float3x3 c = coords[i];

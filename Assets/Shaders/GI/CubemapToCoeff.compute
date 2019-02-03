@@ -1,0 +1,65 @@
+﻿#pragma kernel Collect
+#pragma kernel Scatter
+#pragma kernel SetToTex3D
+#include "GlobalIllumination.cginc"
+Texture2DArray<float3> _SourceCubemap;
+RWStructuredBuffer<uint3> _CoeffTemp;
+RWStructuredBuffer<float3> _Coeff;
+uint _OffsetIndex;
+[numthreads(RESOLUTION, RESOLUTION,1)]
+void Collect (uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = (float2)id.xy / RESOLUTION;
+    float3 dir = DirFromCube(id.z, uv);
+    float3 radians = _SourceCubemap[id];
+    SH9 sh = SHCosineLobe(dir);
+    [unroll]
+    for(uint i = 0; i < 9; ++i)
+    {
+        uint3 value = (uint3)(sh.c[i] * radians * 256.0);
+        InterlockedAdd(_CoeffTemp[i].x, value.x);
+        InterlockedAdd(_CoeffTemp[i].y, value.y);
+        InterlockedAdd(_CoeffTemp[i].z, value.z);
+    }
+}
+
+[numthreads(9, 1, 1)]
+void Scatter(uint id : SV_DISPATCHTHREADID)
+{
+    const float count = RESOLUTION * RESOLUTION * 6;
+    _Coeff[id + _OffsetIndex * 9] = (_CoeffTemp[id] / 256.0) * ((4.0 * Pi) / count);
+    _CoeffTemp[id] = 0;
+}
+RWTexture3D<float4> _CoeffTexture0;
+RWTexture3D<float4> _CoeffTexture1;
+RWTexture3D<float4> _CoeffTexture2;
+RWTexture3D<float4> _CoeffTexture3;
+RWTexture3D<float4> _CoeffTexture4;
+RWTexture3D<float4> _CoeffTexture5;
+RWTexture3D<float4> _CoeffTexture6;
+float3 _Tex3DSize;
+uint _Count;
+[numthreads(64, 1, 1)]
+void SetToTex3D(uint id : SV_DISPATCHTHREADID)
+{
+    if(id >= _Count) return;
+    uint2 xySize = (uint2)(_Tex3DSize.xy);
+    int3 targetCoord = UpDimension(id, xySize);
+    uint startID = id * 9;
+    float3 first = _Coeff[startID];
+    float3 second = _Coeff[startID + 1];
+    _CoeffTexture0[targetCoord] = float4(first, second.r);
+    first = _Coeff[startID + 2];
+    _CoeffTexture1[targetCoord] = float4(second.gb, first.rg);
+    second = _Coeff[startID + 3];
+    _CoeffTexture2[targetCoord] = float4(first.b, second.rgb);
+    first = _Coeff[startID + 4];
+    second = _Coeff[startID + 5];
+    _CoeffTexture3[targetCoord] = float4(first, second.r);
+    first = _Coeff[startID + 6];
+    _CoeffTexture4[targetCoord] = float4(second.gb, first.rg);
+    second = _Coeff[startID + 7];
+    _CoeffTexture5[targetCoord] = float4(first.b, second.rgb);
+    first = _Coeff[startID + 8];
+    _CoeffTexture6[targetCoord] = float4(first, 0);
+}

@@ -56,7 +56,7 @@ MonoBehaviour:
       skyboxMaterial: {fileID: 2100000, guid: 87bd98501acd9484197588ce7afd4d19, type: 2}
     volumetricEvent:
       enabled: 1
-      availableDistance: 32
+      availableDistance: 30
     postEvent:
       enabled: 1
       profile: {fileID: 11400000, guid: 6d0d1a1ad21c9604896988c0fd15fc68, type: 2}
@@ -67,5 +67,5 @@ MonoBehaviour:
       sharpness: 0.25
       stationaryBlending: 0.95
       motionBlending: 0.85
-      stationaryAABBScale: 3
-      motionAABBScale: 1
+      stationaryAABBScale: 2
+      motionAABBScale: 1.25
