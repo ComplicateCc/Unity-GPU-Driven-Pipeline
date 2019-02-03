@@ -12,7 +12,6 @@ CGINCLUDE
 
 Texture3D<float4> _VolumeTex; SamplerState sampler_VolumeTex;
 Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
-
 float4 _Screen_TexelSize;
 
 float4 _RandomSeed;
@@ -30,7 +29,7 @@ inline float frand(int n)
 inline float2 cellNoise(int2 p)
 {
 	int i = p.y*256 + p.x;
-	return sin(float2(frand(i), frand(i + 57)) * _RandomSeed.xy + _RandomSeed.zw);
+	return sin(float2(frand(i), frand(i + 57)) * _RandomSeed.xy + _RandomSeed.zw) * 0.5;
 }
 
 float4 Fog(float linear01Depth, float2 screenuv)
@@ -39,8 +38,7 @@ float4 Fog(float linear01Depth, float2 screenuv)
 	z = (z - _NearFarClip.y) / (1 - _NearFarClip.y);
 	if (z < 0.0)
 		return float4(0, 0, 0, 1);
-
-	float3 uvw = float3(screenuv.x, screenuv.y, z);
+	float3 uvw = float3(screenuv.x, screenuv.y, pow(z, 1/1.5));
 	uvw.xy += cellNoise(uvw.xy * _Screen_TexelSize.zw) / ((float2)_ScreenSize.xy);
 	return _VolumeTex.Sample(sampler_VolumeTex, uvw);
 }
@@ -66,7 +64,7 @@ ENDCG
         pass
         {
             Cull off ZWrite off ZTest Always
-            Blend oneMinusSrcAlpha srcAlpha
+            Blend OneMinusSrcAlpha SrcAlpha
             CGPROGRAM
             #pragma vertex screenVert
             #pragma fragment frag

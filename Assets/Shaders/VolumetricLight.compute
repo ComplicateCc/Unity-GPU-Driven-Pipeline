@@ -174,16 +174,18 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
-    float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z) ;
+    float lerpPos = pow((id.z+  jitterCoord.z) / ((float)_ScreenSize.z), 1.5);
+    
     float linearDepth = lerp(_NearFarClip.z, _MaxDistance, lerpPos);
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
     targetWorldPos /= targetWorldPos.w;
     float4 lastWorldPos = float4(targetWorldPos.xyz - _SceneOffset.xyz, 1);
     float4 lastFrameClip = mul(_LastVp, lastWorldPos);
     lastFrameClip /= lastFrameClip.w;
-    float3 lastFrameUV = float3(lastFrameClip.xy * 0.5 + 0.5, (LinearEyeDepth(lastFrameClip.z) - _NearFarClip.z) / (_MaxDistance - _NearFarClip.z));
+    float3 lastFrameUV = float3(lastFrameClip.xy * 0.5 + 0.5, pow((LinearEyeDepth(lastFrameClip.z) - _NearFarClip.z) / (_MaxDistance - _NearFarClip.z), 1 / 1.5));
     float4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
     float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
+    col.rgb *= col.a;
    float reprojectionValid = lerp(_TemporalWeight * (abs(dot(lastFrameUV - saturate(lastFrameUV), 1)) < 1e-4), 0.999, _SceneOffset.w);
     _VolumeTex[id] = float4(lerp(col.xyz, lastFrameColor.xyz, reprojectionValid) , col.w);
 }
@@ -193,11 +195,15 @@ void Scatter(uint2 id : SV_DISPATCHTHREADID)
 {
 	float4 accum = float4(0, 0, 0, 1);
 	uint3 pos = uint3(id.xy, 0);
+    float lastDist = 0;
 	for(uint z = 0; z < _ScreenSize.z; z++)
 	{
 		pos.z = z;
 		float4 slice = _VolumeTex[pos];
-		accum = ScatterStep(accum.rgb, accum.a, slice.rgb, slice.a);
+        float currentDist = (z + 1.0) / _ScreenSize.z;
+        currentDist *= currentDist;
+		accum = ScatterStep(accum.rgb, accum.a, slice.rgb, slice.a * (currentDist - lastDist) * _ScreenSize.z);
+        lastDist = currentDist;
 		_VolumeTex[pos] = accum;
 	}
 }
