@@ -548,17 +548,16 @@ options.frustumPlanes);
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
         }
-        public static void GICubeCull(float3 position, float3 extent, float range, CommandBuffer buffer, ComputeShader cullingshader)
+        public static void GICubeCull(float3 position, float extent, CommandBuffer buffer, ComputeShader cullingshader)
         {
-            extent += range;
             float4* cullingPlanes = stackalloc float4[]
             {
-                VectorUtility.GetPlane(float3(0, 0, 1), position + float3(0, 0, extent.z)),
-                VectorUtility.GetPlane(float3(0, 0, -1), position - float3(0, 0, extent.z)),
-                VectorUtility.GetPlane(float3(0, 1, 0), position + float3(0, extent.y, 0)),
-                VectorUtility.GetPlane(float3(0, -1, 0), position - float3(0, extent.y, 0)),
-                VectorUtility.GetPlane(float3(1, 0, 0), position + float3(extent.x, 0, 0)),
-                VectorUtility.GetPlane(float3(-1, 0, 0), position - float3(extent.x, 0, 0))
+                VectorUtility.GetPlane(float3(0, 0, 1), position + float3(0, 0, extent)),
+                VectorUtility.GetPlane(float3(0, 0, -1), position - float3(0, 0, extent)),
+                VectorUtility.GetPlane(float3(0, 1, 0), position + float3(0, extent, 0)),
+                VectorUtility.GetPlane(float3(0, -1, 0), position - float3(0, extent, 0)),
+                VectorUtility.GetPlane(float3(1, 0, 0), position + float3(extent, 0, 0)),
+                VectorUtility.GetPlane(float3(-1, 0, 0), position - float3(extent, 0, 0))
             };
             PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes, buffer);
             PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, buffer);
@@ -595,7 +594,7 @@ options.frustumPlanes);
                 buffer.DrawProceduralIndirect(Matrix4x4.identity, commonData.clusterMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
         }
-        public static void DrawSunShadowForCubemap(float3* cubeVertex, int renderTarget, SunLight sunLight, CommandBuffer buffer, out OrthoCam camData, ComputeShader cullingShader)
+        public static void DrawSunShadowForCubemap(float3* cubeVertex, RenderTexture renderTarget, SunLight sunLight, CommandBuffer buffer, out OrthoCam camData, ComputeShader cullingShader)
         {
             camData = new OrthoCam();
             Transform tr = SunLight.current.transform;

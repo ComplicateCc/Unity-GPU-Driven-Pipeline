@@ -8,14 +8,19 @@ using Unity.Mathematics;
 using Unity.Collections.LowLevel.Unsafe;
 using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
 using static Unity.Mathematics.math;
-
+using UnityEngine.Rendering;
 public unsafe class Test : MonoBehaviour
 {
-    [Button]
-    void Run()
+    CommandBuffer buffer;
+    ComputeBuffer cb;
+    public Material mat;
+    private void Awake()
     {
-        int3 voxel = PipelineFunctions.UpDimension(1000, int2(12, 5));
-        Debug.Log(voxel);
-        Debug.Log(PipelineFunctions.DownDimension(voxel, int2(12, 5)));
+        cb = new ComputeBuffer(12, 4);
+        buffer = new CommandBuffer();
+    }
+    void Update()
+    {
+        buffer.DrawProceduralIndirect(Matrix4x4.identity, mat, 0, MeshTopology.Triangles, cb);
     }
 }

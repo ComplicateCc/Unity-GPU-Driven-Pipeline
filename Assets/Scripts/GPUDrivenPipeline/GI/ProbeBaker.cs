@@ -22,6 +22,9 @@ namespace MPipeline
         private RenderTexture rt;
         private NativeList<int> _CoeffIDs;
         private RenderTexture[] coeffTextures;
+        private bool isRendering = false;
+        public RenderTexture shadowmap;
+        public UnityEngine.UI.Text testText;
         private void OnEnable()
         {
             cbuffer = new CommandBuffer();
@@ -30,7 +33,7 @@ namespace MPipeline
             string str = "_CoeffTexture0";
             for (int i = 0; i < 7; ++i)
             {
-                fixed(char* chr = str)
+                fixed (char* chr = str)
                 {
                     chr[13] = (char)(i + 48);
                 }
@@ -84,7 +87,7 @@ namespace MPipeline
             coeffTemp.Dispose();
             DestroyImmediate(rt);
             _CoeffIDs.Dispose();
-            foreach(var i in coeffTextures)
+            foreach (var i in coeffTextures)
             {
                 DestroyImmediate(i);
             }
@@ -100,11 +103,12 @@ namespace MPipeline
             float3 left = transform.position - transform.lossyScale * 0.5f;
             float3 right = transform.position + transform.lossyScale * 0.5f;
             float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
-            
+            SceneController.GICubeCull(position, considerRange, cbuffer, resources.shaders.gpuFrustumCulling);
             SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
         }
         static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
         private OrthoCam shadowCam;
+        private Matrix4x4 shadowVP;
         private bool CalculateShadowmap(float3 center, float3 extent)
         {
             RenderTextureDescriptor desc = new RenderTextureDescriptor
@@ -139,18 +143,27 @@ namespace MPipeline
             };
             if (SunLight.current && SunLight.current.enableShadow)
             {
-                cbuffer.GetTemporaryRT(_ShadowmapForCubemap, desc);
-                SceneController.DrawSunShadowForCubemap(allVert, _ShadowmapForCubemap, SunLight.current, cbuffer, out shadowCam, resources.shaders.gpuFrustumCulling);
-                cbuffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(shadowCam.projectionMatrix, false) * (Matrix4x4)shadowCam.worldToCameraMatrix);
+                shadowmap = new RenderTexture(desc);
+                cbuffer.SetGlobalTexture(_ShadowmapForCubemap, shadowmap);
+                SceneController.DrawSunShadowForCubemap(allVert, shadowmap, SunLight.current, cbuffer, out shadowCam, resources.shaders.gpuFrustumCulling);
+                shadowVP = GL.GetGPUProjectionMatrix(shadowCam.projectionMatrix, false) * (Matrix4x4)shadowCam.worldToCameraMatrix;
                 return true;
             }
             else
             {
+                shadowmap = null;
                 return false;
             }
         }
+
         [EasyButtons.Button]
-        public void BakeLightmap()
+        public void BakeProbe()
+        {
+            if (isRendering) return;
+            isRendering = true;
+            StartCoroutine(BakeLightmap());
+        }
+        public IEnumerator BakeLightmap()
         {
             ComputeShader shader = resources.shaders.probeCoeffShader;
             cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
@@ -158,7 +171,7 @@ namespace MPipeline
             cbuffer.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
             cbuffer.SetComputeBufferParam(shader, 2, "_Coeff", coeff);
             cbuffer.SetComputeTextureParam(shader, 0, "_SourceCubemap", rt);
-            for(int i = 0; i < 7; ++i)
+            for (int i = 0; i < 7; ++i)
             {
                 cbuffer.SetGlobalTexture(_CoeffIDs[i], coeffTextures[i]);
                 cbuffer.SetComputeTextureParam(shader, 2, _CoeffIDs[i], coeffTextures[i]);
@@ -167,33 +180,46 @@ namespace MPipeline
             cbuffer.SetGlobalVector("_SHSize", transform.localScale);
             cbuffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
             cbuffer.EnableShaderKeyword("ENABLESH");
-            if (CalculateShadowmap(transform.position, (float3)transform.lossyScale * 0.5f + float3(considerRange)))
-            {
+            bool useShadow = CalculateShadowmap(transform.position, (float3)transform.lossyScale * 0.5f + float3(considerRange));
+            Debug.Log(useShadow);
+            if (useShadow)
                 cbuffer.EnableShaderKeyword("EnableShadow");
-            }
             else
-            {
                 cbuffer.DisableShaderKeyword("EnableShadow");
-            }
-            SceneController.GICubeCull(transform.position, transform.localScale * 0.5f, considerRange, cbuffer, resources.shaders.gpuFrustumCulling);
+            int count = 0;
+            int target = probeCount.x * probeCount.y * probeCount.z;
             for (int x = 0; x < probeCount.x; ++x)
             {
                 for (int y = 0; y < probeCount.y; ++y)
                 {
                     for (int z = 0; z < probeCount.z; ++z)
                     {
+
+                        cbuffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, shadowVP);
                         BakeMap(int3(x, y, z));
                         cbuffer.SetComputeIntParam(shader, "_OffsetIndex", PipelineFunctions.DownDimension(int3(x, y, z), probeCount.xy));
                         cbuffer.DispatchCompute(shader, 0, 1, 1, 6);
                         cbuffer.DispatchCompute(shader, 1, 1, 1, 1);
+                        testText.text = count.ToString() + " " + target.ToString();
+                        count++;
+                        if (count % 50 == 0)
+                        {
+                            RenderPipeline.ExecuteBufferAtFrameEnding(cbuffer);
+                            yield return null;
+                        }
                     }
                 }
             }
             ComputeShaderUtility.Dispatch(shader, cbuffer, 2, probeCount.x * probeCount.y * probeCount.z, 64);
-            Graphics.ExecuteCommandBuffer(cbuffer);
-            cbuffer.Clear();
-        }
+            RenderPipeline.ExecuteBufferAtFrameEnding(cbuffer);
+            if (shadowmap != null)
+            {
+                Destroy(shadowmap);
+                shadowmap = null;
+            }
+            isRendering = false;
 
+        }
     }
 
 }
