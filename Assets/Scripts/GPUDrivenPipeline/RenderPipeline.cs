@@ -27,8 +27,17 @@ namespace MPipeline
         private static List<Command> afterRenderFrame = new List<Command>(10);
         private static List<Command> beforeRenderFrame = new List<Command>(10);
         private static List<CommandBuffer> bufferAfterFrame = new List<CommandBuffer>(10);
-        public static CameraRenderingPath currentRenderingPath { get; private set; }
-        private PipelineEvent[] gpurpEvents;
+        private static Dictionary<CameraRenderingPath, PipelineEvent[]> allEvents;
+        public static T GetEvent<T>(CameraRenderingPath path) where T : PipelineEvent
+        {
+            PipelineEvent[] events = allEvents[path];
+            for(int i = 0; i < events.Length; ++i)
+            {
+                PipelineEvent evt = events[i];
+                if (evt.GetType() == typeof(T)) return (T)evt;
+            }
+            return null;
+        }
         public static void AddCommandAfterFrame(object arg, Action<object> func)
         {
             afterRenderFrame.Add(new Command
@@ -58,10 +67,15 @@ namespace MPipeline
             current = this;
             data.buffer = new CommandBuffer();
             data.frustumPlanes = new Vector4[6];
-            gpurpEvents = resources.gpurpEvents.GetAllEvents();
-            foreach (var i in gpurpEvents)
+            allEvents = resources.GetAllEvents();
+            var keys = allEvents.Keys;
+            foreach(var i in keys)
             {
-                i.InitEvent(resources);
+                PipelineEvent[] events = allEvents[i];
+                foreach(var j in events)
+                {
+                    j.InitEvent(resources, i);
+                }
             }
         }
 
@@ -70,11 +84,14 @@ namespace MPipeline
             if (current != this) return;
             current = null;
             data.buffer.Dispose();
-            foreach (var i in gpurpEvents)
+            var values = allEvents.Values;
+            foreach (var i in values)
             {
-                i.DisposeEvent();
+                foreach (var j in i)
+                {
+                    j.DisposeEvent();
+                }
             }
-            PipelineSharedData.DisposeAll();
         }
         public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
@@ -101,6 +118,7 @@ namespace MPipeline
                 Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam, propertyCheckedFlags);
                 PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
                 data.ExecuteCommandBuffer();
+                renderContext.Submit();
             }
             foreach (var i in bufferAfterFrame)
             {
@@ -138,13 +156,7 @@ namespace MPipeline
                 data.frustumPlanes[i] = new Vector4(-p.normal.x, -p.normal.y, -p.normal.z, -p.distance);
             }
             PipelineEvent[] events = null;
-            switch (pipelineCam.renderingPath)
-            {
-                case CameraRenderingPath.GPUDeferred:
-                    events = gpurpEvents;
-                    break;
-            }
-            currentRenderingPath = pipelineCam.renderingPath;
+            events = allEvents[pipelineCam.renderingPath];
 #if UNITY_EDITOR
             //Need only check for Unity Editor's bug!
             if (!pipelineChecked[(int)pipelineCam.renderingPath])

@@ -22,7 +22,9 @@ namespace MPipeline
         private static int[] _Count = new int[2];
         private Matrix4x4[] cascadeShadowMapVP = new Matrix4x4[4];
         private Vector4[] shadowFrustumVP = new Vector4[6];
-        private CBDRSharedData cbdr;
+        public CBDRSharedData cbdr;
+        [System.NonSerialized]
+        private VolumetricLightEvent volumetricEvent;
         #endregion
         #region POINT_LIGHT
         private Material pointLightMaterial;
@@ -43,14 +45,13 @@ namespace MPipeline
         private float4x4* cascadeProjection;
         public override bool CheckProperty()
         {
-            if(cbdr != null && !cbdr.CheckAvailiable())
+            if(!cbdr.CheckAvailiable())
             {
                 try
                 {
                     cbdr.Dispose();
                 }
                 catch { }
-                PipelineSharedData.Remove<CBDRSharedData>(RenderPipeline.currentRenderingPath);
                 return false;
             }
             return pointLightMaterial != null && cubeDepthMaterial != null;
@@ -58,7 +59,8 @@ namespace MPipeline
         #endregion
         public override void Init(PipelineResources resources)
         {
-            cbdr = PipelineSharedData.Get(RenderPipeline.currentRenderingPath, resources, (a) => new CBDRSharedData(a));
+            cbdr = new CBDRSharedData(resources);
+            volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>(renderingPath);
             shadMaskMaterial = new Material(resources.shaders.shadowMaskShader);
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
             {
@@ -87,6 +89,7 @@ namespace MPipeline
             Object.DestroyImmediate(cubeDepthMaterial);
             sphereBuffer.Dispose();
             spotBuffer.Dispose();
+            cbdr.Dispose();
         }
         private static StaticFit DirectionalShadowStaticFit(Camera cam, SunLight sunlight, float* outClipDistance)
         {
@@ -105,7 +108,8 @@ namespace MPipeline
         {
             LightFilter.allVisibleLight = data.cullResults.visibleLights;
             allLights.Clear();
-            foreach(var i in LightFilter.allVisibleLight)
+            cbdr.UpdateFroxel(volumetricEvent.enabled);
+            foreach (var i in LightFilter.allVisibleLight)
             {
                 allLights.Add(i.light);
             }

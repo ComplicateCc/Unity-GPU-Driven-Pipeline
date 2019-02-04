@@ -60,6 +60,14 @@ namespace MPipeline
             public Mesh sphereMesh;
         }
         public Shaders shaders = new Shaders();
-        public GPURPEvents gpurpEvents = new GPURPEvents();
+        [SerializeField]
+        private GPURPEvents gpurpEvents = new GPURPEvents();
+        public Dictionary<RenderPipeline.CameraRenderingPath, PipelineEvent[]> GetAllEvents()
+        {
+            Dictionary<RenderPipeline.CameraRenderingPath, PipelineEvent[]> result = new Dictionary<RenderPipeline.CameraRenderingPath, PipelineEvent[]>();
+            PipelineEvent[] evts = gpurpEvents.GetAllEvents();
+            result.Add(RenderPipeline.CameraRenderingPath.GPUDeferred, evts);
+            return result;
+        }
     }
 }

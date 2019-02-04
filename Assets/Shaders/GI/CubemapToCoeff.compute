@@ -6,7 +6,7 @@ Texture2DArray<float3> _SourceCubemap;
 RWStructuredBuffer<uint3> _CoeffTemp;
 RWStructuredBuffer<float3> _Coeff;
 uint _OffsetIndex;
-[numthreads(RESOLUTION, RESOLUTION,1)]
+[numthreads(32, 32, 1)]
 void Collect (uint3 id : SV_DispatchThreadID)
 {
     float2 uv = (float2)id.xy / RESOLUTION;

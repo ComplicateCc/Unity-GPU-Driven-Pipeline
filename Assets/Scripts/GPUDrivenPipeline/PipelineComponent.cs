@@ -24,6 +24,46 @@ namespace MPipeline
         }
     }
 
+
+    public struct PointLightStruct
+    {
+        public float3 lightColor;
+        public float4 sphere;
+        public int shadowIndex;
+    }
+    public struct Cone
+    {
+        public float3 vertex;
+        public float height;
+        public float3 direction;
+        public float radius;
+        public Cone(float3 position, float distance, float3 direction, float angle)
+        {
+            vertex = position;
+            height = distance;
+            this.direction = direction;
+            radius = math.tan(angle) * height;
+        }
+    }
+    public struct Capsule
+    {
+        public float3 direction;
+        public float3 position;
+        public float radius;
+    }
+    public struct SpotLight
+    {
+        public float3 lightColor;
+        public Cone lightCone;
+        public float angle;
+        public Matrix4x4 vpMatrix;
+        public float smallAngle;
+        public float nearClip;
+        public float aspect;
+        public float3 lightRight;
+        public int shadowIndex;
+    };
+
     public unsafe struct CubemapViewProjMatrix
     {
         public int2 index;

@@ -568,7 +568,7 @@ options.frustumPlanes);
             PerspCam perspCam = new PerspCam();
             perspCam.aspect = 1;
             perspCam.farClipPlane = renderCube.w;
-            perspCam.nearClipPlane = 0.1f;
+            perspCam.nearClipPlane = 0.05f;
             perspCam.fov = 90;
             perspCam.position = renderCube.xyz;
             perspCam.UpdateProjectionMatrix();

@@ -6,7 +6,7 @@
         public bool enabled = false;
         public bool preEnable { get; private set; }
         public bool postEnable { get; private set; }
-
+        public RenderPipeline.CameraRenderingPath renderingPath { get; private set; }
         public void GetDomainName()
         {
             var dnAttribute = GetType().GetCustomAttributes(
@@ -22,8 +22,9 @@
             preEnable = false;
             postEnable = false;
         }
-        public void InitEvent(PipelineResources resources)
+        public void InitEvent(PipelineResources resources, RenderPipeline.CameraRenderingPath renderingPath)
         {
+            this.renderingPath = renderingPath;
             GetDomainName();
             Init(resources);
         }

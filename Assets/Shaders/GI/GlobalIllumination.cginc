@@ -1,6 +1,6 @@
 #ifndef LIGHTBAKER
 #define LIGHTBAKER
-#define RESOLUTION 32
+#define RESOLUTION 128
 half4 Decode(uint value)
 {
     uint4 values = 0;

@@ -14,7 +14,6 @@ namespace MPipeline
     [PipelineEvent(true, true)]
     public unsafe class VolumetricLightEvent : PipelineEvent
     {
-        private CBDRSharedData cbdr;
         private Material volumeMat;
         public float availableDistance = 64;
         const int marchStep = 64;
@@ -25,12 +24,15 @@ namespace MPipeline
         private JobHandle jobHandle;
         private NativeArray<FogVolume> resultVolume;
         private int fogCount = 0;
+        [System.NonSerialized]
+        private LightingEvent lightingData;
         public override bool CheckProperty()
         {
             return volumeMat != null;
         }
         public override void Init(PipelineResources resources)
         {
+            lightingData = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
             randomBuffer = new ComputeBuffer(downSampledSize.x * downSampledSize.y * downSampledSize.z, sizeof(uint));
             NativeArray<uint> randomArray = new NativeArray<uint>(randomBuffer.count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             uint* randPtr = randomArray.Ptr();
@@ -41,14 +43,12 @@ namespace MPipeline
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();
-            cbdr = PipelineSharedData.Get(RenderPipeline.currentRenderingPath, resources, (res) => new CBDRSharedData(res));
             volumeMat = new Material(resources.shaders.volumetricShader);
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
-            cbdr.useFroxel = true;
-            cbdr.availiableDistance = availableDistance;
+            ref CBDRSharedData cbdr = ref lightingData.cbdr;
             fogCount = 0;
             if (FogVolumeComponent.allVolumes.isCreated && FogVolumeComponent.allVolumes.Length > 0)
             {
@@ -74,7 +74,7 @@ namespace MPipeline
         {
             CommandBuffer buffer = data.buffer;
             ComputeShader scatter = data.resources.shaders.volumetricScattering;
-
+            ref CBDRSharedData cbdr = ref lightingData.cbdr;
             if (cbdr.lightFlag == 0)
             {
                 cbdr.dirLightShadowmap = null;
@@ -161,7 +161,6 @@ namespace MPipeline
             buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 0);
             buffer.ReleaseTemporaryRT(ShaderIDs._VolumeTex);
             cbdr.lightFlag = 0;
-            cbdr.useFroxel = false;
         }
 
         public override void Dispose()

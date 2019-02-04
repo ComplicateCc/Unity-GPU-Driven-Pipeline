@@ -3,45 +3,7 @@ using Unity.Mathematics;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    public struct PointLightStruct
-    {
-        public float3 lightColor;
-        public float4 sphere;
-        public int shadowIndex;
-    }
-    public struct Cone
-    {
-        public float3 vertex;
-        public float height;
-        public float3 direction;
-        public float radius;
-        public Cone(float3 position, float distance, float3 direction, float angle)
-        {
-            vertex = position;
-            height = distance;
-            this.direction = direction;
-            radius = math.tan(angle) * height;
-        }
-    }
-    public struct Capsule
-    {
-        public float3 direction;
-        public float3 position;
-        public float radius;
-    }
-    public struct SpotLight
-    {
-        public float3 lightColor;
-        public Cone lightCone;
-        public float angle;
-        public Matrix4x4 vpMatrix;
-        public float smallAngle;
-        public float nearClip;
-        public float aspect;
-        public float3 lightRight;
-        public int shadowIndex;
-    };
-    public unsafe class CBDRSharedData : PipelineSharedData
+    public unsafe struct CBDRSharedData
     {
         public ComputeShader cbdrShader;
         public RenderTexture spotArrayMap;
@@ -69,19 +31,28 @@ namespace MPipeline
         public const int MAXFOGVOLUMEPERTILE = 16;
         public const int pointLightInitCapacity = 50;
         public const int spotLightInitCapacity = 50;
-        public uint lightFlag = 0;
-        public bool useFroxel = false;
-        public float availiableDistance;
+        public const int SetXYPlaneKernel = 0;
+        public const int SetZPlaneKernel = 1;
+        public const int DeferredCBDR = 2;
         public const int MAXIMUMPOINTLIGHTCOUNT = 4;
         public const int MAXIMUMSPOTLIGHTCOUNT = 8;
+        public uint lightFlag;
+        public float availiableDistance;
         public int spotShadowCount;
         public int pointshadowCount;
+        public bool useFroxel { get; private set; }
         public bool CheckAvailiable()
         {
             return spotArrayMap != null && cubeArrayMap != null;
         }
         public CBDRSharedData(PipelineResources res)
         {
+            dirLightShadowmap = null;
+            useFroxel = false;
+            availiableDistance = 0;
+            spotShadowCount = 0;
+            pointshadowCount = 0;
+            lightFlag = 0;
             cbdrShader = res.shaders.cbdrShader;
             RenderTextureDescriptor desc = new RenderTextureDescriptor
             {
@@ -141,7 +112,6 @@ namespace MPipeline
             });
             spotArrayMap.filterMode = FilterMode.Point;
             spotArrayMap.Create();
-
             xyPlaneTexture = new RenderTexture(desc);
             xyPlaneTexture.filterMode = FilterMode.Point;
             xyPlaneTexture.Create();
@@ -179,9 +149,10 @@ namespace MPipeline
             buffer.Dispose();
             buffer = new ComputeBuffer(newCapacity, buffer.stride);
         }
-        public const int SetXYPlaneKernel = 0;
-        public const int SetZPlaneKernel = 1;
-        public const int DeferredCBDR = 2;
+        public void UpdateFroxel(bool froxelEnabled)
+        {
+            useFroxel = froxelEnabled;
+        }
         public int TBDRPointKernel
         {
             get
@@ -206,7 +177,7 @@ namespace MPipeline
             }
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             xyPlaneTexture.Release();
             zPlaneTexture.Release();

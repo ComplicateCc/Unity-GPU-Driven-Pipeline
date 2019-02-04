@@ -15,7 +15,7 @@ namespace MPipeline
         public float considerRange = 5;
         public string path = "Assets/Test.txt";
         public PipelineResources resources;
-        private const int RESOLUTION = 32;
+        private const int RESOLUTION = 128;
         private CommandBuffer cbuffer;
         private ComputeBuffer coeffTemp;
         private ComputeBuffer coeff;
@@ -198,7 +198,7 @@ namespace MPipeline
                         cbuffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, shadowVP);
                         BakeMap(int3(x, y, z));
                         cbuffer.SetComputeIntParam(shader, "_OffsetIndex", PipelineFunctions.DownDimension(int3(x, y, z), probeCount.xy));
-                        cbuffer.DispatchCompute(shader, 0, 1, 1, 6);
+                        cbuffer.DispatchCompute(shader, 0, RESOLUTION / 32, RESOLUTION / 32, 6);
                         cbuffer.DispatchCompute(shader, 1, 1, 1, 1);
                         testText.text = count.ToString() + " " + target.ToString();
                         count++;
