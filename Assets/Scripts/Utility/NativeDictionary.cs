@@ -34,16 +34,46 @@ namespace MPipeline
         {
             return (K**)data->start + index;
         }
+        public int Length
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get { return data->length; }
+        }
+        public int Capacity
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get { return data->capacity; }
+        }
         private DictData* data;
         public bool isCreated { get; private set; }
         public Func<K, K, bool> equalsFunc;
-        private NativeList<ulong> container;
-        private T* Malloc<T>(int size, Allocator alloc) where T : unmanaged
+        private void Resize(int targetSize)
         {
-            T* result =(T*)UnsafeUtility.Malloc(size, 16, alloc);
-            container.Add((ulong)result);
-            return result;
+            K** newData = (K**)UnsafeUtility.Malloc(targetSize * 8, 16, data->alloc);
+            UnsafeUtility.MemClear(newData, targetSize * 8);
+            K** oldPtr = (K**)data->start;
+            for (int i = 0; i < data->capacity; ++i)
+            {
+                K* currentPtr = oldPtr[i];
+                while (currentPtr != null)
+                {
+                    AddTo(*currentPtr, *GetV(currentPtr), targetSize, newData);
+                    currentPtr = *GetNextPtr(currentPtr);
+                }
+                currentPtr = oldPtr[i];
+                while (currentPtr != null)
+                {
+                    K* next = *GetNextPtr(currentPtr);
+                    UnsafeUtility.Free(currentPtr, data->alloc);
+
+                    currentPtr = next;
+                }
+            }
+            UnsafeUtility.Free(data->start, data->alloc);
+            data->start = newData;
+            data->capacity = targetSize;
         }
+
         public NativeDictionary(int capacity, Allocator alloc, Func<K, K, bool> equals)
         {
             equalsFunc = equals;
@@ -54,35 +84,112 @@ namespace MPipeline
             data->alloc = alloc;
             data->start = UnsafeUtility.Malloc(8 * capacity, 16, alloc);
             UnsafeUtility.MemClear(data->start, 8 * capacity);
-            container = new NativeList<ulong>(capacity, alloc);
         }
 
-        public void Add(K key, V value)
+        private void AddTo(K key, V value, int capacity, K** origin)
         {
-            //TODO
-            //Resize
-            int index = key.GetHashCode() % data->capacity;
-            K** currentPos = GetK(index);
-            while((*currentPos) != null)
+            int index = key.GetHashCode() % capacity;
+            K** currentPos = origin + index;
+            while ((*currentPos) != null)
             {
                 currentPos = GetNextPtr(*currentPos);
             }
-            (*currentPos) = Malloc<K>(stride, data->alloc);
+            (*currentPos) = (K*)UnsafeUtility.Malloc(stride, 16, data->alloc);
             (**currentPos) = key;
             (*GetV(*currentPos)) = value;
             (*GetNextPtr(*currentPos)) = null;
         }
 
+        public void Remove(K key)
+        {
+            int index = key.GetHashCode() % data->capacity;
+            K** currentPtr = GetK(index);
+            while ((*currentPtr) != null)
+            {
+                K** next = GetNextPtr(*currentPtr);
+                if (equalsFunc(**currentPtr, key))
+                {
+                    K* prev = *currentPtr;
+                    *currentPtr = *next;
+                    UnsafeUtility.Free(prev, data->alloc);
+                    data->length--;
+                    return;
+                }
+                else
+                {
+                    currentPtr = next;
+                }
+            }
+            Debug.Log("Not found " + key);
+        }
+
+        public V this[K key]
+        {
+            get
+            {
+                int index = key.GetHashCode() % data->capacity;
+                K** currentPos = GetK(index);
+                while ((*currentPos) != null)
+                {
+                    if (equalsFunc(**currentPos, key))
+                    {
+                        return *GetV(*currentPos);
+                    }
+                    currentPos = GetNextPtr(*currentPos);
+                }
+                return default;
+            }
+            set
+            {
+                int index = key.GetHashCode() % data->capacity;
+                K** currentPos = GetK(index);
+                while ((*currentPos) != null)
+                {
+                    if (equalsFunc(**currentPos, key))
+                    {
+                        *GetV(*currentPos) = value;
+                        return;
+                    }
+                    currentPos = GetNextPtr(*currentPos);
+                }
+                Add(key, value);
+            }
+        }
+
+        public void Add(K key, V value)
+        {
+            if (data->capacity <= data->length)
+            {
+                Resize(Mathf.Max(data->length + 1, (int)(data->length * 1.5f)));
+            }
+            int index = key.GetHashCode() % data->capacity;
+            K** currentPos = GetK(index);
+            while ((*currentPos) != null)
+            {
+                currentPos = GetNextPtr(*currentPos);
+            }
+            (*currentPos) = (K*)UnsafeUtility.Malloc(stride, 16, data->alloc);
+            (**currentPos) = key;
+            (*GetV(*currentPos)) = value;
+            (*GetNextPtr(*currentPos)) = null;
+            data->length++;
+        }
+
         public void Dispose()
         {
             Allocator alloc = data->alloc;
-            foreach(var i in container)
+            for (int i = 0; i < data->capacity; ++i)
             {
-                UnsafeUtility.Free((void*)i, alloc);
+                K* currentPtr = *GetK(i);
+                while (currentPtr != null)
+                {
+                    K* next = *GetNextPtr(currentPtr);
+                    UnsafeUtility.Free(currentPtr, alloc);
+                    currentPtr = next;
+                }
             }
             UnsafeUtility.Free(data->start, alloc);
             UnsafeUtility.Free(data, alloc);
-            container.Dispose();
             isCreated = false;
         }
 
@@ -90,9 +197,9 @@ namespace MPipeline
         {
             int index = key.GetHashCode() % data->capacity;
             K** currentPos = GetK(index);
-            while((*currentPos) != null)
+            while ((*currentPos) != null)
             {
-                if(equalsFunc(**currentPos, key))
+                if (equalsFunc(**currentPos, key))
                 {
                     value = *GetV(*currentPos);
                     return true;

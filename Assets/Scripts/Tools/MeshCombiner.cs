@@ -42,7 +42,7 @@ namespace MPipeline
         string[] textureName = new string[]{"_MainTex",
     "_BumpMap",
     "_SpecularMap" };
-        public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int* allMaterialsIndex, Transform transform)
+        public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int* allMaterialsIndex, Transform transform, Material[] allMats)
         {
             int originLength = points.Length;
             Vector3[] vertices = targetMesh.vertices;
@@ -95,10 +95,14 @@ namespace MPipeline
             for (int subCount = 0; subCount < targetMesh.subMeshCount; ++subCount)
             {
                 int[] triangleArray = targetMesh.GetTriangles(subCount);
+                Vector2 scale = allMats[subCount].GetTextureScale("_MainTex");
+                Vector2 offset = allMats[subCount].GetTextureOffset("_MainTex");
                 for (int i = 0; i < triangleArray.Length; ++i)
                 {
                     triangleArray[i] += originLength;
-                    points[triangleArray[i]].objIndex = (uint)allMaterialsIndex[subCount];
+                    ref Point pt = ref points[triangleArray[i]];
+                    pt.objIndex = (uint)allMaterialsIndex[subCount];
+                    pt.texcoord = pt.texcoord * scale + offset;
                 }
                 triangles.AddRange(triangleArray);
             }
@@ -131,7 +135,7 @@ namespace MPipeline
                         allMat.Add(mats[a]);
                     }
                 }
-                GetPoints(points, triangles, mesh, index, allFilters[i].transform);
+                GetPoints(points, triangles, mesh, index, allFilters[i].transform, mats);
             }
             Vector3 less = points[0].vertex;
             Vector3 more = points[0].vertex;

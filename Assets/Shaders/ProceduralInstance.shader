@@ -46,18 +46,7 @@ CGINCLUDE
 		float _VertexOffset;
 		sampler2D _BumpMap;
 		sampler2D _SpecularMap;
-		sampler2D _MainTex;
-CBUFFER_START(UnityVelocityPass)
-    float4x4 unity_MatrixNonJitteredVP;
-    float4x4 unity_MatrixPreviousVP;
-    float4x4 unity_MatrixPreviousM;
-	float4x4 unity_MatrixPreviousMI;
-    //X : Use last frame positions (right now skinned meshes are the only objects that use this
-    //Y : Force No Motion
-    //Z : Z bias value
-    float4 unity_MotionVectorsParams;
-CBUFFER_END
-
+		sampler2D _MainTex; float4 _MainTex_ST;
 
 		float _Glossiness;
 		float4 _Color;
@@ -66,6 +55,7 @@ CBUFFER_END
 		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
 			// Albedo comes from a texture tinted by color
 			float2 uv = IN.uv_MainTex;// - parallax_mapping(IN.uv_MainTex,IN.viewDir);
+			uv = TRANSFORM_TEX(uv, _MainTex);
 			half4 c = tex2D (_MainTex, uv) * _Color;
 			o.Albedo = c.rgb;
 			o.Alpha = 1;
