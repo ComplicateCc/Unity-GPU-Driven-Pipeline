@@ -65,6 +65,15 @@ public unsafe class MLight : MonoBehaviour
         else
             mp = light.gameObject.AddComponent<MLight>();
     }
+    private void ReleaseShadowCache()
+    {
+        shadowMap.Release();
+        if (Application.isPlaying)
+            Destroy(shadowMap);
+        else
+            DestroyImmediate(shadowMap);
+        shadowMap = null;
+    }
     public void UpdateShadowCacheType(bool useCubemap)
     {
         if (useCubemap == this.useCubemap)
@@ -72,8 +81,7 @@ public unsafe class MLight : MonoBehaviour
         this.useCubemap = useCubemap;
         if (shadowMap)
         {
-            shadowMap.Release();
-            shadowMap = null;
+            ReleaseShadowCache();
         }
         if (useCubemap)
         {
@@ -186,8 +194,7 @@ public unsafe class MLight : MonoBehaviour
     {
         if (shadowMap)
         {
-            shadowMap.Release();
-            shadowMap = null;
+            ReleaseShadowCache();
         }
         if (light)
             lightDict.Remove(light);

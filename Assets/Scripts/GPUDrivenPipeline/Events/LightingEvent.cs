@@ -29,7 +29,6 @@ namespace MPipeline
         #region POINT_LIGHT
         private Material pointLightMaterial;
         private Material cubeDepthMaterial;
-        private ComputeBuffer sphereBuffer;
         private RenderSpotShadowCommand spotBuffer;
         private NativeList<CubemapViewProjMatrix> cubemapVPMatrices;
         private NativeArray<PointLightStruct> pointLightArray;
@@ -68,16 +67,6 @@ namespace MPipeline
             }
             pointLightMaterial = new Material(resources.shaders.pointLightShader);
             cubeDepthMaterial = new Material(resources.shaders.cubeDepthShader);
-            Vector3[] vertices = resources.shaders.sphereMesh.vertices;
-            int[] triangle = resources.shaders.sphereMesh.triangles;
-            NativeArray<Vector3> allVertices = new NativeArray<Vector3>(triangle.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            for (int i = 0; i < allVertices.Length; ++i)
-            {
-                allVertices[i] = vertices[triangle[i]];
-            }
-            sphereBuffer = new ComputeBuffer(allVertices.Length, sizeof(Vector3));
-            sphereBuffer.SetData(allVertices);
-            allVertices.Dispose();
             spotBuffer = new RenderSpotShadowCommand();
             spotBuffer.Init(resources.shaders.spotLightDepthShader);
         }
@@ -87,7 +76,6 @@ namespace MPipeline
             Object.DestroyImmediate(shadMaskMaterial);
             Object.DestroyImmediate(pointLightMaterial);
             Object.DestroyImmediate(cubeDepthMaterial);
-            sphereBuffer.Dispose();
             spotBuffer.Dispose();
             cbdr.Dispose();
         }
@@ -197,7 +185,6 @@ namespace MPipeline
         private void PointLight(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            pointLightMaterial.SetBuffer(ShaderIDs.verticesBuffer, sphereBuffer);
             VoxelLightCommonData(buffer, cam.cam);
             ClearDispatch(buffer);
             lightingHandle.Complete();

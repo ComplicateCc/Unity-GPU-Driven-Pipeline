@@ -41,6 +41,7 @@ MonoBehaviour:
     terrainShader: {fileID: 4800000, guid: 6fb475602d94ae848a82d502a93ade30, type: 3}
     spotLightDepthShader: {fileID: 4800000, guid: bed89509ad0b6d844a4a9086fbabac3c,
       type: 3}
+    lightmapShader: {fileID: 7200000, guid: f6e116db19c13064cad38faa281ae1c4, type: 3}
     occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   gpurpEvents:

@@ -176,7 +176,7 @@ ENDCG
 		Pass
 		{
 			ZTest less
-			Cull front
+			Cull back
 			Tags {"LightMode" = "DirectionalLight"}
 			CGPROGRAM
 			#pragma vertex vert
@@ -222,7 +222,7 @@ ENDCG
         {
 			Tags {"LightMode"="PointLightPass"}
 			ZTest less
-			Cull front
+			Cull back
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -259,7 +259,7 @@ ENDCG
 		{
 			Tags {"LightMode"="SpotLightPass"}
 			ZTest less
-			Cull Front
+			Cull back
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag

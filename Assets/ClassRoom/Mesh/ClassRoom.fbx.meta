@@ -1,9 +1,7 @@
 fileFormatVersion: 2
 guid: aef9f64c780c921449205bf4951f9475
-timeCreated: 1511955418
-licenseType: Free
 ModelImporter:
-  serializedVersion: 21
+  serializedVersion: 23
   fileIDToRecycleName:
     100000: acad_polyFaceMesh110
     100002: acad_polyFaceMesh120
@@ -342,10 +340,117 @@ ModelImporter:
     4300128: pCube157
     4300130: acad_polyFaceMesh620
     4300132: acad_polyFaceMesh621
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayBlendMtl1
+    second: {fileID: 2100000, guid: 0bb05785452bb064ab8ba1a9baeab38c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl10
+    second: {fileID: 2100000, guid: 0db741bd5afaa7c4099b018379b32814, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl11
+    second: {fileID: 2100000, guid: c4d56f1558e8ca64ab6b2759d8cb8f6c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl12
+    second: {fileID: 2100000, guid: fff76fdc4eadd744c994ae0afee4a32e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl14
+    second: {fileID: 2100000, guid: ff913b50571fd644e9ed66270aee43ae, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl15
+    second: {fileID: 2100000, guid: 31711c618d0853b4d8668bd2d82d710c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl16
+    second: {fileID: 2100000, guid: a8ec55a30e07f53499093362361d40c1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl17
+    second: {fileID: 2100000, guid: 198254d03f5137b438124df79b76d03e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl18
+    second: {fileID: 2100000, guid: 03e105fe6b25be44586495550add9529, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl19
+    second: {fileID: 2100000, guid: 739c7622b3d2a8a428c9a4fb32cb2da3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl2
+    second: {fileID: 2100000, guid: 6a83d1489e79e8d449e91d058965db4b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl21
+    second: {fileID: 2100000, guid: d70a0c28182f29f4ca9985fa5938d759, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl22
+    second: {fileID: 2100000, guid: b40366e0595cb9f4689c81b098eea54c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl24
+    second: {fileID: 2100000, guid: 72e48cfe62bc79f4facdcc2c15348421, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl3
+    second: {fileID: 2100000, guid: 43f63a75e0e4373429d308701a28c46d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl4
+    second: {fileID: 2100000, guid: 3f657a5de7824e34596e2b74cf878099, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl5
+    second: {fileID: 2100000, guid: 838bca8aa3603f940b48e00aecc9a5d2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl6
+    second: {fileID: 2100000, guid: fd886522f91d6724fa61cf5bdaa55f97, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl7
+    second: {fileID: 2100000, guid: 401fc3d29c354fa45bae9ce5fd43bad0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl8
+    second: {fileID: 2100000, guid: 47869ae539071504b88c86641d873960, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: VRayMtl9
+    second: {fileID: 2100000, guid: c7b30ea580e9a884d9fe8e176fb35689, type: 2}
   materials:
     importMaterials: 1
     materialName: 0
     materialSearch: 1
+    materialLocation: 0
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
@@ -358,6 +463,8 @@ ModelImporter:
     animationImportWarnings: 
     animationRetargetingWarnings: 
     animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
     animationCompression: 1
     animationRotationError: 0.5
     animationPositionError: 0.5
@@ -372,6 +479,7 @@ ModelImporter:
     globalScale: 1
     meshCompression: 0
     addColliders: 0
+    useSRGBMaterialColor: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
@@ -382,16 +490,23 @@ ModelImporter:
     optimizeMeshForGPU: 1
     keepQuads: 0
     weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 2
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
     secondaryUVPackMargin: 4
     useFileScale: 1
+    previousCalculatedGlobalScale: 1
+    hasPreviousCalculatedGlobalScale: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
     tangentImportMode: 3
     normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
   importAnimation: 1
   copyAvatar: 0
   humanDescription:
@@ -406,7 +521,6 @@ ModelImporter:
     legStretch: 0.05
     feetSpacing: 0
     rootMotionBoneName: 
-    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1

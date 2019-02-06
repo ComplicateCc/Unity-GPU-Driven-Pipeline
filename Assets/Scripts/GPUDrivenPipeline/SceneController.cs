@@ -326,7 +326,7 @@ namespace MPipeline
         {
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
-
+            buffer.SetInvertCulling(true);
             currentCam.worldToCameraMatrix = spotLightMatrix.worldToCamera;
             currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
             buffer.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
@@ -364,6 +364,7 @@ namespace MPipeline
             CullResults results = CullResults.Cull(ref data.cullParams, data.context);
             data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            buffer.SetInvertCulling(false);
         }
 
         public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
@@ -410,6 +411,7 @@ options.frustumPlanes);
                 opts.command.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
                 opts.command.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             }
+            opts.command.SetInvertCulling(true);
             float bias = sunLight.bias / currentCam.farClipPlane;
             opts.command.SetGlobalFloat(ShaderIDs._ShadowOffset, bias);
             for (int pass = 0; pass < SunLight.CASCADELEVELCOUNT; ++pass)
@@ -450,12 +452,14 @@ options.frustumPlanes);
                 data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
                 data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             }
+            opts.command.SetInvertCulling(false);
         }
 
         public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, CommandBuffer cb, ComputeShader cullingShader, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
         {
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
             cb.SetGlobalVector(ShaderIDs._LightPos, light.sphere);
+            cb.SetInvertCulling(true);
             FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
             {
                 renderQueueRange = RenderQueueRange.opaque,
@@ -547,6 +551,7 @@ options.frustumPlanes);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
             cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
+            cb.SetInvertCulling(false);
         }
         public static void GICubeCull(float3 position, float extent, CommandBuffer buffer, ComputeShader cullingshader)
         {

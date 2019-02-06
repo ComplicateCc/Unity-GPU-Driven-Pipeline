@@ -13,24 +13,31 @@ using MPipeline;
 public unsafe class Test : MonoBehaviour
 {
     public int i;
+    const int MAX_BRIGHTNESS = 4;
+    uint EncodeColor(float3 rgb)
+    {
+        float y = max(max(rgb.x, rgb.y), rgb.z);
+        y = clamp(ceil(y * 255 / MAX_BRIGHTNESS), 1, 255);
+        rgb *= 255 * 255 / (y * MAX_BRIGHTNESS);
+        uint4 i = (uint4)float4(rgb, y);
+        return i.x | (i.y << 8) | (i.z << 16) | (i.w << 24);
+    }
+
+    float3 DecodeColor(uint data)
+    {
+        float r = (data) & 0xff;
+        float g = (data >> 8) & 0xff;
+        float b = (data >> 16) & 0xff;
+        float a = (data >> 24) & 0xff;
+        return float3(r, g, b) * a * MAX_BRIGHTNESS / (255 * 255);
+    }
     [Button]
     public void Run()
     {
-        //   for (int a = 0; a < 10000; ++a)
-        //   {
-        NativeDictionary<int, int> nativeDictionary = new NativeDictionary<int, int>(50, Unity.Collections.Allocator.Persistent, (i, j) => i == j);
-        for (int i = 0; i < 5000; ++i)
-        {
-            nativeDictionary.Add(i, i + 10);
-        }
-
-        for (int i = 0; i < 5000; ++i)
-        {
-            if (nativeDictionary[i] == 0)
-                Debug.Log(i);
-
-        }
-        nativeDictionary.Dispose();
-        //  }
+        float3 test = float3(2.324f, 3.1348f, 6.1384f);
+        Debug.Log(test);
+        uint encoded = EncodeColor(test);
+        Debug.Log(encoded);
+        Debug.Log(DecodeColor(encoded));
     }
 }

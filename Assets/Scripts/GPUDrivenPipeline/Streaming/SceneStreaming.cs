@@ -47,6 +47,15 @@ namespace MPipeline
             allTextureDatas = new List<TextureInfos>();
         }
         static string[] allStrings = new string[3];
+        private static byte[] bytesArray = new byte[8192];
+        private static byte[] GetByteArray(int length)
+        {
+            if (bytesArray == null || bytesArray.Length < length)
+            {
+                bytesArray = new byte[length];
+            }
+            return bytesArray;
+        }
         public void GenerateAsync(bool listCommand = true)
         {
             clusterBuffer = new NativeArray<CullBox>(property.clusterCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
@@ -63,22 +72,27 @@ namespace MPipeline
             allStrings[1] = property.name;
             allStrings[2] = ".txt";
             sb.Combine(allStrings);
-            using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
+            // FileStream fileStream = new FileStream(sb.str, FileMode.Open, FileAccess.Read);
+            using (FileStream reader = new FileStream(sb.str, FileMode.Open, FileAccess.Read))
             {
-                byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
+                int length = (int)reader.Length;
+                byte[] bytes = GetByteArray(length);
+                reader.Read(bytes,0,length);
                 fixed (byte* b = bytes)
                 {
-                    UnsafeUtility.MemCpy(clusterData, b, bytes.Length);
+                    UnsafeUtility.MemCpy(clusterData, b, length);
                 }
             }
             allStrings[0] = pointsPath;
             sb.Combine(allStrings);
-            using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
+            using (FileStream reader = new FileStream(sb.str, FileMode.Open, FileAccess.Read))
             {
-                byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
+                int length = (int)reader.Length;
+                byte[] bytes = GetByteArray(length);
+                reader.Read(bytes, 0, length);
                 fixed (byte* b = bytes)
                 {
-                    UnsafeUtility.MemCpy(verticesData, b, bytes.Length);
+                    UnsafeUtility.MemCpy(verticesData, b, length);
                 }
             }
             int* indicesPtr = indicesBuffer.Ptr();
@@ -153,14 +167,16 @@ namespace MPipeline
                                 texType = texType
                             });
                         }
-                        using (BinaryReader reader = new BinaryReader(File.Open(sb.str, FileMode.Open)))
+                        using (FileStream reader = new FileStream(sb.str, FileMode.Open, FileAccess.Read))
                         {
-                            byte[] bytes = reader.ReadBytes((int)reader.BaseStream.Length);
+                            int length = (int)reader.Length;
+                            byte[] bytes = GetByteArray(length);
+                            reader.Read(bytes, 0, length);
                             int res = SceneController.resolution;
                             NativeArray<Color32> allColors = new NativeArray<Color32>(res * res, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                             fixed (byte* source = bytes)
                             {
-                                UnsafeUtility.MemCpy(allColors.GetUnsafePtr(), source, Mathf.Min(allColors.Length * sizeof(Color32), bytes.Length));
+                                UnsafeUtility.MemCpy(allColors.GetUnsafePtr(), source, Mathf.Min(allColors.Length * sizeof(Color32), length));
                             }
                             allTextureDatas.Add(new TextureInfos
                             {
@@ -213,7 +229,7 @@ namespace MPipeline
         {
             GenerateAsync(false);
             IEnumerator syncFunc = GenerateRun();
-            while (syncFunc.MoveNext());
+            while (syncFunc.MoveNext()) ;
         }
 
         public void DeleteAsync(bool listCommand = true)

@@ -42,6 +42,7 @@ namespace MPipeline
             public ComputeShader terrainCompute;
             public ComputeShader volumetricScattering;
             public ComputeShader probeCoeffShader;
+            public ComputeShader lightmapShader;
             public Shader copyShader;
             public Shader taaShader;
             public Shader indirectDepthShader;

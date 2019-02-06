@@ -4,7 +4,7 @@
     {
         Tags { "RenderType"="Opaque" }
         ZTest less
-        Cull front
+        Cull back
         Pass
         {
             CGPROGRAM
@@ -38,7 +38,7 @@
         Pass
         {
 			ZTest less
-            Cull front
+            Cull back
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag

@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Runtime.CompilerServices;
@@ -141,7 +139,8 @@ namespace MPipeline
             }
             set
             {
-                int index = key.GetHashCode() % data->capacity;
+                int hashCode = key.GetHashCode();
+                int index = hashCode % data->capacity;
                 K** currentPos = GetK(index);
                 while ((*currentPos) != null)
                 {
@@ -152,17 +151,22 @@ namespace MPipeline
                     }
                     currentPos = GetNextPtr(*currentPos);
                 }
-                Add(key, value);
+                Add(ref key, ref value, hashCode);
             }
         }
 
         public void Add(K key, V value)
         {
+            Add(ref key, ref value, key.GetHashCode());
+        }
+
+        private void Add(ref K key, ref V value, int hashCode)
+        {
             if (data->capacity <= data->length)
             {
                 Resize(Mathf.Max(data->length + 1, (int)(data->length * 1.5f)));
             }
-            int index = key.GetHashCode() % data->capacity;
+            int index = hashCode % data->capacity;
             K** currentPos = GetK(index);
             while ((*currentPos) != null)
             {

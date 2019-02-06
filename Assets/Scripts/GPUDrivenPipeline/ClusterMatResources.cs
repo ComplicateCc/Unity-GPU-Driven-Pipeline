@@ -16,6 +16,7 @@ namespace MPipeline
         public int clusterCount;
         public PropertyValue[] properties;
         public TexturePaths[] texPaths;
+        
     }
     public class ClusterMatResources : ScriptableObject
     {
