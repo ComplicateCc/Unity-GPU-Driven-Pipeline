@@ -25,7 +25,6 @@
         public void InitEvent(PipelineResources resources, RenderPipeline.CameraRenderingPath renderingPath)
         {
             this.renderingPath = renderingPath;
-            GetDomainName();
             Init(resources);
         }
         public void DisposeEvent()

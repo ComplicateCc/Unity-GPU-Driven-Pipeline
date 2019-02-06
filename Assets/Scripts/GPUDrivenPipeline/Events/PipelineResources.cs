@@ -5,19 +5,41 @@ using System.Reflection;
 using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
 namespace MPipeline
 {
+    public struct PipelineEventsCollection
+    {
+        public List<PipelineEvent> preEvents;
+        public List<PipelineEvent> postEvents;
+        public List<PipelineEvent> allEvents;
+    }
     public unsafe class PipelineResources : ScriptableObject
     {
         public abstract class EventsCollection
         {
-            public PipelineEvent[] GetAllEvents()
+            public PipelineEventsCollection GetAllEvents()
             {
                 FieldInfo[] infos = GetType().GetFields();
-                PipelineEvent[] allEvents = new PipelineEvent[infos.Length];
-                for (int i = 0; i < allEvents.Length; ++i)
+                PipelineEventsCollection collect = new PipelineEventsCollection
                 {
-                    allEvents[i] = infos[i].GetValue(this) as PipelineEvent;
+                    postEvents = new List<PipelineEvent>(infos.Length),
+                    preEvents = new List<PipelineEvent>(infos.Length),
+                    allEvents = new List<PipelineEvent>(infos.Length)
+                };
+
+                for (int i = 0; i < infos.Length; ++i)
+                {
+                    PipelineEvent evt = infos[i].GetValue(this) as PipelineEvent;
+                    evt.GetDomainName();
+                    if(evt.postEnable)
+                    {
+                        collect.postEvents.Add(evt);
+                    }
+                    if(evt.preEnable)
+                    {
+                        collect.preEvents.Add(evt);
+                    }
+                    collect.allEvents.Add(evt);
                 }
-                return allEvents;
+                return collect;
             }
         }
         [System.Serializable]
@@ -63,12 +85,13 @@ namespace MPipeline
         public Shaders shaders = new Shaders();
         [SerializeField]
         private GPURPEvents gpurpEvents = new GPURPEvents();
-        public Dictionary<RenderPipeline.CameraRenderingPath, PipelineEvent[]> GetAllEvents()
+        public Dictionary<RenderPipeline.CameraRenderingPath, PipelineEventsCollection> GetAllEvents()
         {
-            Dictionary<RenderPipeline.CameraRenderingPath, PipelineEvent[]> result = new Dictionary<RenderPipeline.CameraRenderingPath, PipelineEvent[]>();
-            PipelineEvent[] evts = gpurpEvents.GetAllEvents();
+            Dictionary<RenderPipeline.CameraRenderingPath, PipelineEventsCollection> result = new Dictionary<RenderPipeline.CameraRenderingPath, PipelineEventsCollection>();
+            PipelineEventsCollection evts = gpurpEvents.GetAllEvents();
             result.Add(RenderPipeline.CameraRenderingPath.GPUDeferred, evts);
             return result;
         }
     }
+
 }

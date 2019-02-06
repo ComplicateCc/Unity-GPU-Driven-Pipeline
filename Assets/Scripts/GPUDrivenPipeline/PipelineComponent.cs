@@ -59,7 +59,6 @@ namespace MPipeline
         public Matrix4x4 vpMatrix;
         public float smallAngle;
         public float nearClip;
-        public float aspect;
         public float3 lightRight;
         public int shadowIndex;
     };

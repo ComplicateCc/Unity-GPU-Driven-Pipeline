@@ -31,7 +31,6 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
                 float4x4 vpMatrix;
                 float smallAngle;
                 float nearClip;
-                float aspect;
                 float3 lightRight;
                 int shadowIndex;
             };

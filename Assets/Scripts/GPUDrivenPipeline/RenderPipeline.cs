@@ -27,11 +27,11 @@ namespace MPipeline
         private static List<Command> afterRenderFrame = new List<Command>(10);
         private static List<Command> beforeRenderFrame = new List<Command>(10);
         private static List<CommandBuffer> bufferAfterFrame = new List<CommandBuffer>(10);
-        private static Dictionary<CameraRenderingPath, PipelineEvent[]> allEvents;
+        private static Dictionary<CameraRenderingPath, PipelineEventsCollection> allEvents;
         public static T GetEvent<T>(CameraRenderingPath path) where T : PipelineEvent
         {
-            PipelineEvent[] events = allEvents[path];
-            for(int i = 0; i < events.Length; ++i)
+            List<PipelineEvent> events = allEvents[path].allEvents;
+            for (int i = 0; i < events.Count; ++i)
             {
                 PipelineEvent evt = events[i];
                 if (evt.GetType() == typeof(T)) return (T)evt;
@@ -69,10 +69,10 @@ namespace MPipeline
             data.frustumPlanes = new Vector4[6];
             allEvents = resources.GetAllEvents();
             var keys = allEvents.Keys;
-            foreach(var i in keys)
+            foreach (var i in keys)
             {
-                PipelineEvent[] events = allEvents[i];
-                foreach(var j in events)
+                List<PipelineEvent> events = allEvents[i].allEvents;
+                foreach (var j in events)
                 {
                     j.InitEvent(resources, i);
                 }
@@ -87,7 +87,8 @@ namespace MPipeline
             var values = allEvents.Values;
             foreach (var i in values)
             {
-                foreach (var j in i)
+                List<PipelineEvent> allEvents = i.allEvents;
+                foreach (var j in allEvents)
                 {
                     j.DisposeEvent();
                 }
@@ -155,14 +156,13 @@ namespace MPipeline
                 //GPU Driven RP's frustum plane is inverse from SRP's frustum plane
                 data.frustumPlanes[i] = new Vector4(-p.normal.x, -p.normal.y, -p.normal.z, -p.distance);
             }
-            PipelineEvent[] events = null;
-            events = allEvents[pipelineCam.renderingPath];
+            PipelineEventsCollection collect = allEvents[pipelineCam.renderingPath];
 #if UNITY_EDITOR
             //Need only check for Unity Editor's bug!
             if (!pipelineChecked[(int)pipelineCam.renderingPath])
             {
                 pipelineChecked[(int)pipelineCam.renderingPath] = true;
-                foreach(var e in events)
+                foreach (var e in collect.allEvents)
                 {
                     if (!e.CheckProperty())
                     {
@@ -171,17 +171,17 @@ namespace MPipeline
                 }
             }
 #endif
-            foreach (var e in events)
+            foreach (var e in collect.preEvents)
             {
-                if (e.enabled && e.preEnable)
+                if (e.enabled)
                 {
                     e.PreRenderFrame(pipelineCam, ref data);
                 }
             }
             JobHandle.ScheduleBatchedJobs();
-            foreach (var e in events)
+            foreach (var e in collect.postEvents)
             {
-                if (e.enabled && e.postEnable)
+                if (e.enabled)
                 {
                     e.FrameUpdate(pipelineCam, ref data);
                 }

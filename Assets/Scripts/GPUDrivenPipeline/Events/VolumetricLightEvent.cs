@@ -49,6 +49,7 @@ namespace MPipeline
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
             ref CBDRSharedData cbdr = ref lightingData.cbdr;
+            cbdr.availiableDistance = availableDistance;
             fogCount = 0;
             if (FogVolumeComponent.allVolumes.isCreated && FogVolumeComponent.allVolumes.Length > 0)
             {

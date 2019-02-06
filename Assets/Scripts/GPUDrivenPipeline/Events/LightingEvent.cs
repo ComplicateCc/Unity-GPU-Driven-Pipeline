@@ -44,7 +44,7 @@ namespace MPipeline
         private float4x4* cascadeProjection;
         public override bool CheckProperty()
         {
-            if(!cbdr.CheckAvailiable())
+            if (!cbdr.CheckAvailiable())
             {
                 try
                 {
@@ -208,14 +208,28 @@ namespace MPipeline
                         int2 lightIndex = vpMatrices.index;
                         Light lt = allLights[lightIndex.y].light;
                         MLight light = MUnsafeUtility.GetObject<MLight>(vpMatrices.mLightPtr);
-                        if (light.UpdateFrame(Time.frameCount))
+                        if (light.useShadowCache)
                         {
                             light.UpdateShadowCacheType(true);
-                            SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, light.shadowMap, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                            if (light.updateShadowCache)
+                            {
+                                light.updateShadowCache = false;
+                                SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                                buffer.CopyTexture(cbdr.cubeArrayMap, i + 5, light.shadowMap, 5);
+                                buffer.CopyTexture(cbdr.cubeArrayMap, i + 4, light.shadowMap, 4);
+                                buffer.CopyTexture(cbdr.cubeArrayMap, i + 2, light.shadowMap, 2);
+                                buffer.CopyTexture(cbdr.cubeArrayMap, i + 3, light.shadowMap, 3);
+                                buffer.CopyTexture(cbdr.cubeArrayMap, i, light.shadowMap, 0);
+                                buffer.CopyTexture(cbdr.cubeArrayMap, i + 1, light.shadowMap, 1);
+                            }
+                            else
+                            {
+                                PipelineFunctions.CopyToCubeMap(cbdr.cubeArrayMap, light.shadowMap, buffer, i);
+                            }
                         }
                         else
                         {
-                            PipelineFunctions.CopyToCubeMap(cbdr.cubeArrayMap, light.shadowMap, buffer, i);
+                            SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
                         }
 
                         //TODO
@@ -245,18 +259,26 @@ namespace MPipeline
                         ref SpotLightMatrix vpMatrices = ref spotLightMatrices[i];
                         int2 index = vpMatrices.index;
                         MLight mlight = MUnsafeUtility.GetObject<MLight>(vpMatrices.mLightPtr);
-                        mlight.UpdateShadowCacheType(false);
                         ref SpotLight spot = ref allSpotLightPtr[index.x];
-                        if (mlight.UpdateFrame(Time.frameCount))
+                        if (mlight.useShadowCache)
                         {
-                            SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
-                            buffer.CopyTexture(cbdr.spotArrayMap, spot.shadowIndex, mlight.shadowMap, 0);
+                            mlight.UpdateShadowCacheType(false);
+                            if (mlight.updateShadowCache)
+                            {
+                                mlight.updateShadowCache = false;
+                                SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
+                                buffer.CopyTexture(cbdr.spotArrayMap, spot.shadowIndex, mlight.shadowMap, 0);
+                            }
+                            else
+                            {
+                                ref SpotLightMatrix spotLightMatrix = ref spotBuffer.shadowMatrices[spot.shadowIndex];
+                                spot.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
+                                buffer.CopyTexture(mlight.shadowMap, 0, cbdr.spotArrayMap, spot.shadowIndex);
+                            }
                         }
                         else
                         {
-                            ref SpotLightMatrix spotLightMatrix = ref spotBuffer.shadowMatrices[spot.shadowIndex];
-                            spot.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
-                            buffer.CopyTexture(mlight.shadowMap, 0, cbdr.spotArrayMap, spot.shadowIndex);
+                            SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
                         }
                     }
                 }
@@ -349,7 +371,7 @@ namespace MPipeline
             buffer.SetGlobalBuffer(ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
             buffer.SetGlobalBuffer(ShaderIDs._SpotLightIndexBuffer, cbdr.spotlightIndexBuffer);
         }
-        
+
         [Unity.Burst.BurstCompile]
         public unsafe struct CascadeShadowmap : IJobParallelFor
         {
@@ -500,7 +522,7 @@ namespace MPipeline
                 ref SpotLight lit = ref allLights[shadowIndex.x];
                 PerspCam cam = new PerspCam
                 {
-                    aspect = lit.aspect,
+                    aspect = 1,
                     farClipPlane = lit.lightCone.height,
                     fov = lit.angle * 2 * Mathf.Rad2Deg,
                     nearClipPlane = 0.3f
@@ -546,11 +568,11 @@ namespace MPipeline
                         {
                             currentPtr->shadowIndex = -1;
                         }
-                        if(currentPtr->shadowIndex >= 0)
+                        if (currentPtr->shadowIndex >= 0)
                         {
                             CalculateCubemapMatrix(indStr, cubemapVPMatrices.unsafePtr, currentPtr->shadowIndex);
                         }
-                        
+
                         break;
                     case LightType.Spot:
                         if (!MLight.GetPointLight(allLights[index], out mlight))
@@ -568,7 +590,6 @@ namespace MPipeline
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
                         currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, normalize((Vector3)i.localToWorld.GetColumn(2)), deg);
                         currentSpot->angle = deg;
-                        currentSpot->aspect = mlight.aspect;
                         currentSpot->lightRight = normalize((Vector3)i.localToWorld.GetColumn(1));
                         currentSpot->smallAngle = Mathf.Deg2Rad * mlight.smallSpotAngle * 0.5f;
                         currentSpot->nearClip = mlight.spotNearClip;

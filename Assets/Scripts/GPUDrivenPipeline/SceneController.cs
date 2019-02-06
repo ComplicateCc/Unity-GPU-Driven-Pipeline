@@ -455,7 +455,7 @@ options.frustumPlanes);
             opts.command.SetInvertCulling(false);
         }
 
-        public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, CommandBuffer cb, ComputeShader cullingShader, int offset, RenderTexture targetCopyTex, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
+        public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, CommandBuffer cb, ComputeShader cullingShader, int offset, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
         {
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
             cb.SetGlobalVector(ShaderIDs._LightPos, light.sphere);
@@ -495,7 +495,6 @@ options.frustumPlanes);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice + 5, targetCopyTex, 5);
             //Back
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -506,7 +505,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice + 4, targetCopyTex, 4);
+
             //Up
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -517,7 +516,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice + 2, targetCopyTex, 2);
+            
             //Down
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -528,7 +527,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice + 3, targetCopyTex, 3);
+            
             //Right
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -539,7 +538,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice, targetCopyTex, 0);
+            
             //Left
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -550,7 +549,6 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            cb.CopyTexture(renderTarget, depthSlice + 1, targetCopyTex, 1);
             cb.SetInvertCulling(false);
         }
         public static void GICubeCull(float3 position, float extent, CommandBuffer buffer, ComputeShader cullingshader)
