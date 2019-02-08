@@ -4,14 +4,13 @@ using UnityEngine;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    [System.Serializable]
-    [PipelineEvent(false, true)]
+    [CreateAssetMenu(menuName = "GPURP Events/Property Set")]
     public class PropertySetEvent : PipelineEvent
     {
         private System.Func<PipelineCamera, LastVPData> getLastVP = (c) => new LastVPData(GL.GetGPUProjectionMatrix(c.cam.projectionMatrix, false) * c.cam.worldToCameraMatrix);
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            LastVPData lastData = IPerCameraData.GetProperty<LastVPData>(cam, getLastVP);
+            LastVPData lastData = IPerCameraData.GetProperty(cam, getLastVP);
             //Calculate Last VP for motion vector and Temporal AA
             Matrix4x4 nonJitterVP = GL.GetGPUProjectionMatrix(cam.cam.nonJitteredProjectionMatrix, false) * cam.cam.worldToCameraMatrix;
             ref Matrix4x4 lastVp = ref lastData.lastVP;
@@ -24,11 +23,11 @@ namespace MPipeline
             lastVp = nonJitterVP;
             
         }
-        public override void Init(PipelineResources resources)
+        protected override void Init(PipelineResources resources)
         {
 
         }
-        public override void Dispose()
+        protected override void Dispose()
         {
         }
         public override bool CheckProperty()

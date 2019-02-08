@@ -9,6 +9,14 @@
 #pragma kernel CSMain CUBEMAP  SPOTMAP
 #pragma kernel CSMain DIRMAP  SPOTMAP
 #pragma kernel CSMain CUBEMAP DIRMAP  SPOTMAP
+#pragma kernel CSMain GI
+#pragma kernel CSMain CUBEMAP GI
+#pragma kernel CSMain DIRMAP GI
+#pragma kernel CSMain CUBEMAP DIRMAP GI
+#pragma kernel CSMain SPOTMAP GI
+#pragma kernel CSMain CUBEMAP  SPOTMAP GI
+#pragma kernel CSMain DIRMAP  SPOTMAP GI
+#pragma kernel CSMain CUBEMAP DIRMAP  SPOTMAP GI
 #pragma kernel Scatter
 #include "CGINC/Shader_Include/Include_HLSL.hlsl"
 #include "CGINC/VoxelLight.cginc"

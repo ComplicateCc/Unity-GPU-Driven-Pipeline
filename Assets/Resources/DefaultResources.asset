@@ -41,32 +41,13 @@ MonoBehaviour:
     terrainShader: {fileID: 4800000, guid: 6fb475602d94ae848a82d502a93ade30, type: 3}
     spotLightDepthShader: {fileID: 4800000, guid: bed89509ad0b6d844a4a9086fbabac3c,
       type: 3}
-    lightmapShader: {fileID: 7200000, guid: f6e116db19c13064cad38faa281ae1c4, type: 3}
     occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   gpurpEvents:
-    propertyEvent:
-      enabled: 1
-    geometryEvent:
-      enabled: 1
-      enableOcclusionCulling: 1
-    lightingEvent:
-      enabled: 1
-    skyboxEvent:
-      enabled: 1
-      skyboxMaterial: {fileID: 2100000, guid: 87bd98501acd9484197588ce7afd4d19, type: 2}
-    volumetricEvent:
-      enabled: 1
-      availableDistance: 30
-    postEvent:
-      enabled: 1
-      profile: {fileID: 11400000, guid: 6d0d1a1ad21c9604896988c0fd15fc68, type: 2}
-      resources: {fileID: 11400000, guid: d82512f9c8e5d4a4d938b575d47f88d4, type: 2}
-    temporalEvent:
-      enabled: 1
-      jitterSpread: 0.75
-      sharpness: 0.25
-      stationaryBlending: 0.95
-      motionBlending: 0.85
-      stationaryAABBScale: 2
-      motionAABBScale: 1.25
+  - {fileID: 11400000, guid: 4ba4d0b7b30f88a4d92a2fccd277f94c, type: 2}
+  - {fileID: 11400000, guid: b9e7b54c776eb18408cdafca469b13e0, type: 2}
+  - {fileID: 11400000, guid: bd3ad988b135ba44abd421986d3d7561, type: 2}
+  - {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
+  - {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
+  - {fileID: 11400000, guid: ec8cef056d08590479397b93336d090c, type: 2}
+  - {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}

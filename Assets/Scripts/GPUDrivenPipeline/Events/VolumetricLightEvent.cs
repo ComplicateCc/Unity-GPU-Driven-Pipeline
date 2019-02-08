@@ -10,14 +10,14 @@ using System.Threading;
 using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
-    [System.Serializable]
-    [PipelineEvent(true, true)]
+    [RequireEvent(typeof(LightingEvent))]
+    [CreateAssetMenu(menuName = "GPURP Events/Volumetric Scattering")]
     public unsafe class VolumetricLightEvent : PipelineEvent
     {
         private Material volumeMat;
         public float availableDistance = 64;
         const int marchStep = 64;
-        const int scatterPass = 8;
+        const int scatterPass = 16;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
         private Random rand;
@@ -30,7 +30,7 @@ namespace MPipeline
         {
             return volumeMat != null;
         }
-        public override void Init(PipelineResources resources)
+        protected override void Init(PipelineResources resources)
         {
             lightingData = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
             randomBuffer = new ComputeBuffer(downSampledSize.x * downSampledSize.y * downSampledSize.z, sizeof(uint));
@@ -45,7 +45,6 @@ namespace MPipeline
             randomArray.Dispose();
             volumeMat = new Material(resources.shaders.volumetricShader);
         }
-
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
             ref CBDRSharedData cbdr = ref lightingData.cbdr;
@@ -88,7 +87,9 @@ namespace MPipeline
                 pass |= 0b001;
             if (cbdr.spotShadowCount > 0)
                 pass |= 0b100;
-            
+            //TODO
+            //Enable fourth bit as Global Illumination
+
             buffer.SetGlobalFloat(ShaderIDs._MaxDistance, availableDistance);
             buffer.SetGlobalInt(ShaderIDs._FrameCount, Time.frameCount);
             HistoryVolumetric historyVolume = IPerCameraData.GetProperty(cam, () => new HistoryVolumetric());
@@ -133,7 +134,7 @@ namespace MPipeline
                     buffer.SetGlobalFloat(ShaderIDs._TemporalWeight, 0.85f);
             }
             jobHandle.Complete();
-            if(fogCount > 0)
+            if (fogCount > 0)
             {
                 cbdr.allFogVolumeBuffer.SetData(resultVolume, 0, 0, fogCount);
             }
@@ -164,7 +165,7 @@ namespace MPipeline
             cbdr.lightFlag = 0;
         }
 
-        public override void Dispose()
+        protected override void Dispose()
         {
             Object.DestroyImmediate(volumeMat);
             randomBuffer.Dispose();
@@ -189,7 +190,7 @@ namespace MPipeline
             public void Execute(int index)
             {
                 ref FogVolume vol = ref fogVolume[index].volume;
-                for(int i = 0; i < 6; ++i)
+                for (int i = 0; i < 6; ++i)
                 {
                     if (!BoxUnderPlane(ref frustumPlanes[i], ref vol, i))
                         return;

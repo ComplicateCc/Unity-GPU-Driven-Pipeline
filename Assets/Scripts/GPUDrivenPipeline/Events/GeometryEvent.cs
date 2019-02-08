@@ -6,14 +6,13 @@ using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    [System.Serializable]
-    [PipelineEvent(false, true)]
+    [CreateAssetMenu(menuName = "GPURP Events/Geometry")]
     public unsafe class GeometryEvent : PipelineEvent
     {
         HizDepth hizDepth;
         Material linearMat;
         public bool enableOcclusionCulling;
-        public override void Init(PipelineResources resources)
+        protected override void Init(PipelineResources resources)
         {
             hizDepth = new HizDepth();
             hizDepth.InitHiZ(resources);
@@ -23,7 +22,7 @@ namespace MPipeline
         {
             return hizDepth.Check() && linearMat != null;
         }
-        public override void Dispose()
+        protected override void Dispose()
         {
             hizDepth.DisposeHiZ();
         }

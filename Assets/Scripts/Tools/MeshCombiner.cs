@@ -6,6 +6,7 @@ using System;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using System.IO;
+using Unity.Mathematics;
 using Debug = UnityEngine.Debug;
 using MStudio;
 #if UNITY_EDITOR
@@ -42,55 +43,54 @@ namespace MPipeline
         string[] textureName = new string[]{"_MainTex",
     "_BumpMap",
     "_SpecularMap" };
-        public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int* allMaterialsIndex, Transform transform, Material[] allMats)
+        public ComputeShader lightmapShader;
+        const int texToBufferKernel = 0;
+        const int bufferToTexKernel = 1;
+        const int texToBufferARGBKernel = 2;
+        const int bufferTotexARGBKernel = 3;
+        public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, int* allMaterialsIndex, Transform transform, Material[] allMats, float4 lightmapScaleOffset, int lightmapIndex)
         {
             int originLength = points.Length;
             Vector3[] vertices = targetMesh.vertices;
             Vector2[] uv = targetMesh.uv;
+            Vector2[] uv2 = targetMesh.uv2;
             Vector3[] normal = targetMesh.normals;
             Vector4[] tangents = targetMesh.tangents;
-            Action<Vector2[], NativeList<Point>, int, int> SetUV;
-            if (uv.Length == vertices.Length)
-            {
-                SetUV = (vec, pt, i, originI) => pt[i].texcoord = vec[originI];
-            }
-            else
-            {
-                SetUV = (vec, pt, i, originLen) => pt[i].texcoord = Vector3.zero;
-            }
-            Action<Vector3[], NativeList<Point>, int, int> SetNormal;
-            if (normal.Length == vertices.Length)
-            {
-                SetNormal = (vec, pt, i, ori) => pt[i].normal = transform.localToWorldMatrix.MultiplyVector(vec[ori]);
-            }
-            else
-            {
-                SetNormal = (vec, pt, i, ori) => pt[i].normal = Vector3.zero;
-            }
-            Action<Vector4[], NativeList<Point>, int, int> SetTangent;
-            if (tangents.Length == vertices.Length)
-            {
-                SetTangent = (vec, pt, i, ori) =>
-                {
-                    Vector3 worldTangent = vec[ori];
-                    worldTangent = transform.localToWorldMatrix.MultiplyVector(worldTangent);
-                    pt[i].tangent = worldTangent;
-                    pt[i].tangent.w = vec[ori].w;
-                };
-            }
-            else
-            {
-                SetTangent = (vec, pt, i, ori) => pt[i].tangent = Vector4.one;
-            }
             points.AddRange(vertices.Length);
             for (int i = originLength; i < vertices.Length + originLength; ++i)
             {
                 ref Point pt = ref points[i];
                 int len = i - originLength;
                 pt.vertex = transform.localToWorldMatrix.MultiplyPoint(vertices[len]);
-                SetNormal(normal, points, i, len);
-                SetTangent(tangents, points, i, len);
-                SetUV(uv, points, i, len);
+                if (normal.Length == vertices.Length)
+                {
+                    points[i].normal = transform.localToWorldMatrix.MultiplyVector(normal[len]);
+                }
+                else
+                {
+                    points[i].normal = Vector3.zero;
+                }
+                if (tangents.Length == vertices.Length)
+                {
+                    Vector3 worldTangent = tangents[len];
+                    worldTangent = transform.localToWorldMatrix.MultiplyVector(worldTangent);
+                    points[i].tangent = worldTangent;
+                    points[i].tangent.w = tangents[len].w;
+                }
+                else
+                {
+                    points[i].tangent = Vector4.one;
+                }
+                if (uv.Length == vertices.Length)
+                    points[i].texcoord = uv[len];
+                else
+                    points[i].texcoord = Vector2.zero;
+                if (uv2.Length == vertices.Length)
+                    points[i].lightmapUV = (float2)uv2[len] * lightmapScaleOffset.xy + lightmapScaleOffset.zw;
+                else
+                    points[i].lightmapUV = Vector2.zero;
+                points[i].lightmapIndex = lightmapIndex;
+                //TODO
             }
             for (int subCount = 0; subCount < targetMesh.subMeshCount; ++subCount)
             {
@@ -113,6 +113,22 @@ namespace MPipeline
             MeshFilter[] allFilters = new MeshFilter[allRenderers.Length];
             int sumVertexLength = 0;
             int sumTriangleLength = 0;
+            NativeDictionary<int, int> dicts = new NativeDictionary<int, int>(allRenderers.Length, Allocator.Temp, (i, j) => j == i);
+            List<Texture2D> allLightmaps = new List<Texture2D>();
+            dicts[-1] = -1;
+            foreach(var i in allRenderers)
+            {
+                int ind = i.lightmapIndex;
+                LightmapData[] allData = LightmapSettings.lightmaps;
+                if(ind >= 0)
+                {
+                    if(!dicts.Contains(ind))
+                    {
+                        dicts.Add(ind, allLightmaps.Count);
+                        allLightmaps.Add(allData[ind].lightmapColor);
+                    }
+                }
+            }
             for (int i = 0; i < allFilters.Length; ++i)
             {
                 allFilters[i] = allRenderers[i].GetComponent<MeshFilter>();
@@ -135,7 +151,7 @@ namespace MPipeline
                         allMat.Add(mats[a]);
                     }
                 }
-                GetPoints(points, triangles, mesh, index, allFilters[i].transform, mats);
+                GetPoints(points, triangles, mesh, index, allFilters[i].transform, mats, allRenderers[i].lightmapScaleOffset, dicts[allRenderers[i].lightmapIndex]);
             }
             Vector3 less = points[0].vertex;
             Vector3 more = points[0].vertex;
@@ -159,6 +175,8 @@ namespace MPipeline
             md.allPoints = points;
             md.triangles = triangles;
             md.containedMaterial = allMat;
+            md.lightmaps = allLightmaps;
+            dicts.Dispose();
             return md;
         }
         public List<Pair<string, float[]>> CombineProperty(List<Material> mats)
@@ -251,9 +269,10 @@ namespace MPipeline
             return texs;
         }
 
-        public void SaveTextures(TexturePaths[] pathes, Texture[, ] textures)
+        public void SaveTextures(TexturePaths[] pathes, Texture[,] textures)
         {
             Dictionary<string, bool> dict = new Dictionary<string, bool>();
+            byte[] bytes = null;
             for (int i = 0; i < pathes.Length; ++i)
             {
                 TexturePaths pt = pathes[i];
@@ -262,11 +281,27 @@ namespace MPipeline
                     if (!string.IsNullOrEmpty(pt.instancingIDs[j]) && !dict.ContainsKey(pt.instancingIDs[j]))
                     {
                         dict.Add(pt.instancingIDs[j], true);
-                        byte[] bytes = TextureStreaming.GetBytes((Texture2D)textures[i, j]);
-                        File.WriteAllBytes("Assets/BinaryData/Textures/" + pt.instancingIDs[j] + ".txt", bytes);
+                        TextureToBytes((Texture2D)textures[i, j], ref bytes, false);
+                        string path = "Assets/BinaryData/Textures/" + pt.instancingIDs[j] + ".txt";
+                        File.WriteAllBytes(path, bytes);
                     }
                 }
             }
+        }
+
+        public void TextureToBytes(Texture2D lightmap, ref byte[] results, bool isRGBM)
+        {
+            int pass = isRGBM ? texToBufferKernel : texToBufferARGBKernel;
+            ComputeBuffer tempBuffer = new ComputeBuffer(lightmap.width * lightmap.height, sizeof(int));
+            lightmapShader.SetTexture(pass, "_InputTex", lightmap);
+            lightmapShader.SetBuffer(pass, "_Buffer", tempBuffer);
+            lightmapShader.SetInt("_Width", lightmap.width);
+            lightmapShader.Dispatch(pass, lightmap.width / 8, lightmap.height / 8, 1);
+            if(results == null || results.Length !=  (tempBuffer.count * tempBuffer.stride))
+            {
+                results = new byte[(tempBuffer.count * tempBuffer.stride)];
+            }
+            tempBuffer.GetData(results);
         }
 
         public struct CombinedModel
@@ -274,6 +309,7 @@ namespace MPipeline
             public NativeList<Point> allPoints;
             public NativeList<int> triangles;
             public List<Material> containedMaterial;
+            public List<Texture2D> lightmaps;
             public Bounds bound;
         }
         public TextureFormat mainTexFormat = TextureFormat.ARGB32;
@@ -310,11 +346,20 @@ namespace MPipeline
             CombinedModel model = ProcessCluster(GetComponentsInChildren<MeshRenderer>());
             property.clusterCount = ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName);
             PropertyValue[] value = GetProperty(model.containedMaterial);
-            Texture[, ] textures;
+            Texture[,] textures;
             TexturePaths[] texs = GetTextures(model.containedMaterial, out textures);
             SaveTextures(texs, textures);
             property.properties = value;
             property.texPaths = texs;
+            string[] lightmapGUIDs = new string[model.lightmaps.Count];
+            byte[] bytes = null;
+            for(int i = 0; i < lightmapGUIDs.Length; ++i)
+            {
+                TextureToBytes(model.lightmaps[i], ref bytes, true);
+                lightmapGUIDs[i] = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(model.lightmaps[i]));
+                File.WriteAllBytes("Assets/BinaryData/Lightmaps/" + lightmapGUIDs[i] + ".txt", bytes);
+            }
+            property.lightmapGUIDs = lightmapGUIDs;
             res.clusterProperties.Add(property);
             if (save)
                 AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/SceneManager.asset");

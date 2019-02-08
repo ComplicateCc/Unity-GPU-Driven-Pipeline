@@ -13,8 +13,7 @@ using static Unity.Mathematics.math;
 using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
-    [System.Serializable]
-    [PipelineEvent(true, true)]
+    [CreateAssetMenu(menuName = "GPURP Events/Lighting")]
     public unsafe class LightingEvent : PipelineEvent
     {
         #region DIR_LIGHT
@@ -38,6 +37,7 @@ namespace MPipeline
         private List<Light> allLights = new List<Light>(30);
         private JobHandle lightingHandle;
         private JobHandle csmHandle;
+        private CascadeShadowmap csmStruct;
         private StaticFit staticFit;
         private float* clipDistances;
         private float4x4* cascadeWorldToCamera;
@@ -56,7 +56,7 @@ namespace MPipeline
             return pointLightMaterial != null && cubeDepthMaterial != null;
         }
         #endregion
-        public override void Init(PipelineResources resources)
+        protected override void Init(PipelineResources resources)
         {
             cbdr = new CBDRSharedData(resources);
             volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>(renderingPath);
@@ -71,7 +71,7 @@ namespace MPipeline
             spotBuffer.Init(resources.shaders.spotLightDepthShader);
         }
 
-        public override void Dispose()
+        protected override void Dispose()
         {
             Object.DestroyImmediate(shadMaskMaterial);
             Object.DestroyImmediate(pointLightMaterial);
@@ -96,7 +96,7 @@ namespace MPipeline
         {
             LightFilter.allVisibleLight = data.cullResults.visibleLights;
             allLights.Clear();
-            cbdr.UpdateFroxel(volumetricEvent.enabled);
+            cbdr.UpdateFroxel(volumetricEvent.Enabled);
             foreach (var i in LightFilter.allVisibleLight)
             {
                 allLights.Add(i.light);
@@ -120,7 +120,7 @@ namespace MPipeline
                 cascadeWorldToCamera = (float4x4*)UnsafeUtility.Malloc(SunLight.CASCADELEVELCOUNT * sizeof(float4x4), 16, Allocator.Temp);
                 cascadeProjection = (float4x4*)UnsafeUtility.Malloc(SunLight.CASCADELEVELCOUNT * sizeof(float4x4), 16, Allocator.Temp);
                 PipelineFunctions.GetfrustumCorners(clipDistances, SunLight.CASCADELEVELCOUNT + 1, cam.cam, staticFit.frustumCorners.Ptr());
-                csmHandle = new CascadeShadowmap
+                csmStruct = new CascadeShadowmap
                 {
                     cascadeShadowmapVPs = (float4x4*)cascadeShadowMapVP.Ptr(),
                     cascadeProjection = cascadeProjection,
@@ -130,7 +130,8 @@ namespace MPipeline
                     frustumCorners = staticFit.frustumCorners.Ptr(),
                     resolution = staticFit.resolution,
                     isD3D = GraphicsUtility.platformIsD3D
-                }.Schedule(SunLight.CASCADELEVELCOUNT, 1);
+                };
+                csmHandle = csmStruct.ScheduleRefBurst(SunLight.CASCADELEVELCOUNT, 1);
             }
         }
 

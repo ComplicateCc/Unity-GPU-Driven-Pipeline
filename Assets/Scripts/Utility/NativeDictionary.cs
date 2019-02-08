@@ -74,6 +74,7 @@ namespace MPipeline
 
         public NativeDictionary(int capacity, Allocator alloc, Func<K, K, bool> equals)
         {
+            capacity = Mathf.Max(capacity, 1);
             equalsFunc = equals;
             isCreated = true;
             data = (DictData*)UnsafeUtility.Malloc(sizeof(DictData), 16, alloc);
@@ -86,7 +87,7 @@ namespace MPipeline
 
         private void AddTo(K key, V value, int capacity, K** origin)
         {
-            int index = key.GetHashCode() % capacity;
+            int index = Mathf.Abs(key.GetHashCode()) % capacity;
             K** currentPos = origin + index;
             while ((*currentPos) != null)
             {
@@ -100,7 +101,7 @@ namespace MPipeline
 
         public void Remove(K key)
         {
-            int index = key.GetHashCode() % data->capacity;
+            int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
             K** currentPtr = GetK(index);
             while ((*currentPtr) != null)
             {
@@ -121,11 +122,26 @@ namespace MPipeline
             Debug.Log("Not found " + key);
         }
 
+        public bool Contains(K key)
+        {
+            int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
+            K** currentPos = GetK(index);
+            while ((*currentPos) != null)
+            {
+                if (equalsFunc(**currentPos, key))
+                {
+                    return true;
+                }
+                currentPos = GetNextPtr(*currentPos);
+            }
+            return false;
+        }
+
         public V this[K key]
         {
             get
             {
-                int index = key.GetHashCode() % data->capacity;
+                int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
                 K** currentPos = GetK(index);
                 while ((*currentPos) != null)
                 {
@@ -140,6 +156,7 @@ namespace MPipeline
             set
             {
                 int hashCode = key.GetHashCode();
+                hashCode = Mathf.Abs(hashCode);
                 int index = hashCode % data->capacity;
                 K** currentPos = GetK(index);
                 while ((*currentPos) != null)
@@ -157,7 +174,7 @@ namespace MPipeline
 
         public void Add(K key, V value)
         {
-            Add(ref key, ref value, key.GetHashCode());
+            Add(ref key, ref value, Mathf.Abs(key.GetHashCode()));
         }
 
         private void Add(ref K key, ref V value, int hashCode)
@@ -199,7 +216,7 @@ namespace MPipeline
 
         public bool Get(K key, out V value)
         {
-            int index = key.GetHashCode() % data->capacity;
+            int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
             K** currentPos = GetK(index);
             while ((*currentPos) != null)
             {

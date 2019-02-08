@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    [PipelineEvent(false, true)]
+    [CreateAssetMenu(menuName = "GPURP Events/Animation Test")]
     public unsafe class AnimationTestEvent : PipelineEvent
     {
         #region CONST
@@ -30,7 +30,7 @@ namespace MPipeline
         {
             return animationMaterial != null;
         }
-        public override void Init(PipelineResources resources)
+        protected override void Init(PipelineResources resources)
         {
             block = new MaterialPropertyBlock();
             objBuffer = new ComputeBuffer(characterPoints.Length, sizeof(AnimState));
@@ -84,7 +84,7 @@ namespace MPipeline
             allAnimState.Dispose();
         }
 
-        public override void Dispose()
+        protected override void Dispose()
         {
             objBuffer.Dispose();
             bonesBuffer.Dispose();

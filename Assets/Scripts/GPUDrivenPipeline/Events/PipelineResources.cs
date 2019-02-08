@@ -3,55 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Reflection;
 using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
+using System;
+using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
-    public struct PipelineEventsCollection
+    public unsafe class PipelineResources : RenderPipelineAsset
     {
-        public List<PipelineEvent> preEvents;
-        public List<PipelineEvent> postEvents;
-        public List<PipelineEvent> allEvents;
-    }
-    public unsafe class PipelineResources : ScriptableObject
-    {
-        public abstract class EventsCollection
+        protected override IRenderPipeline InternalCreatePipeline()
         {
-            public PipelineEventsCollection GetAllEvents()
-            {
-                FieldInfo[] infos = GetType().GetFields();
-                PipelineEventsCollection collect = new PipelineEventsCollection
-                {
-                    postEvents = new List<PipelineEvent>(infos.Length),
-                    preEvents = new List<PipelineEvent>(infos.Length),
-                    allEvents = new List<PipelineEvent>(infos.Length)
-                };
-
-                for (int i = 0; i < infos.Length; ++i)
-                {
-                    PipelineEvent evt = infos[i].GetValue(this) as PipelineEvent;
-                    evt.GetDomainName();
-                    if(evt.postEnable)
-                    {
-                        collect.postEvents.Add(evt);
-                    }
-                    if(evt.preEnable)
-                    {
-                        collect.preEvents.Add(evt);
-                    }
-                    collect.allEvents.Add(evt);
-                }
-                return collect;
-            }
+            return new MPipeline.RenderPipeline(this);
         }
-        [System.Serializable]
-        public class GPURPEvents : EventsCollection
+        public enum CameraRenderingPath
         {
-            public PropertySetEvent propertyEvent;
-            public GeometryEvent geometryEvent;
-            public LightingEvent lightingEvent;
-            public SkyboxEvent skyboxEvent;
-            public VolumetricLightEvent volumetricEvent;
-            public FinalPostEvent postEvent;
-            public TemporalAAEvent temporalEvent;
+            Unlit = 0, Forward = 1, GPUDeferred = 2
         }
         [System.Serializable]
         public struct Shaders
@@ -64,7 +28,6 @@ namespace MPipeline
             public ComputeShader terrainCompute;
             public ComputeShader volumetricScattering;
             public ComputeShader probeCoeffShader;
-            public ComputeShader lightmapShader;
             public Shader copyShader;
             public Shader taaShader;
             public Shader indirectDepthShader;
@@ -83,15 +46,14 @@ namespace MPipeline
             public Mesh sphereMesh;
         }
         public Shaders shaders = new Shaders();
-        [SerializeField]
-        private GPURPEvents gpurpEvents = new GPURPEvents();
-        public Dictionary<RenderPipeline.CameraRenderingPath, PipelineEventsCollection> GetAllEvents()
+        public PipelineEvent[] gpurpEvents;
+        private static Dictionary<CameraRenderingPath, Func<PipelineResources, PipelineEvent[]>> presetDict = null;
+        public static Dictionary<CameraRenderingPath, Func<PipelineResources, PipelineEvent[]>> GetEventsDict()
         {
-            Dictionary<RenderPipeline.CameraRenderingPath, PipelineEventsCollection> result = new Dictionary<RenderPipeline.CameraRenderingPath, PipelineEventsCollection>();
-            PipelineEventsCollection evts = gpurpEvents.GetAllEvents();
-            result.Add(RenderPipeline.CameraRenderingPath.GPUDeferred, evts);
-            return result;
+            if (presetDict != null) return presetDict;
+            presetDict = new Dictionary<CameraRenderingPath, Func<PipelineResources, PipelineEvent[]>>();
+            presetDict.Add(CameraRenderingPath.GPUDeferred, (res) => res.gpurpEvents);
+            return presetDict;
         }
     }
-
 }

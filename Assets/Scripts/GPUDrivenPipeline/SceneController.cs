@@ -40,12 +40,16 @@ namespace MPipeline
             public Material clusterMaterial;
             public Material terrainMaterial;
             public Dictionary<string, TextureIdentifier> texDict;
+            public Dictionary<string, TextureIdentifier> lightmapDict;
             public NativeList<int> avaiableTexs;
             public NativeList<int> avaiableProperties;
+            public NativeList<int> avaiableLightmap;
             public Material copyTextureMat;
             public ComputeBuffer texCopyBuffer;
+            public ComputeBuffer lightmapCopyBuffer;
             public ComputeBuffer propertyBuffer;
             public RenderTexture texArray;
+            public RenderTexture lightmapArray;
             public TerrainDrawStreaming terrainDrawStreaming;
             public int GetIndex(string guid, out bool alreadyContained)
             {
@@ -78,6 +82,32 @@ namespace MPipeline
                     return ident.belonged;
                 }
             }
+            public int GetLightmapIndex(string guid, out bool alreadyContained)
+            {
+                if (lightmapDict.ContainsKey(guid) && lightmapDict[guid].usedCount > 0)
+                {
+                    TextureIdentifier ident = lightmapDict[guid];
+                    ident.usedCount++;
+                    lightmapDict[guid] = ident;
+                    alreadyContained = true;
+                    return ident.belonged;
+                }
+                else
+                {
+                    TextureIdentifier ident;
+                    ident.usedCount = 1;
+                    if (avaiableLightmap.Length <= 0)
+                    {
+                        throw new Exception("No available texture lefted!");
+                    }
+                    ident.belonged = avaiableLightmap[avaiableLightmap.Length - 1];
+
+                    avaiableLightmap.RemoveLast();
+                    lightmapDict[guid] = ident;
+                    alreadyContained = false;
+                    return ident.belonged;
+                }
+            }
             public void RemoveTex(string guid)
             {
                 if (texDict.ContainsKey(guid))
@@ -95,6 +125,25 @@ namespace MPipeline
                     }
                 }
             }
+
+            public void RemoveLightmap(string guid)
+            {
+                if (lightmapDict.ContainsKey(guid))
+                {
+                    TextureIdentifier ident = lightmapDict[guid];
+                    ident.usedCount--;
+                    if (ident.usedCount <= 0)
+                    {
+                        lightmapDict.Remove(guid);
+                        avaiableLightmap.Add(ident.belonged);
+                    }
+                    else
+                    {
+                        lightmapDict[guid] = ident;
+                    }
+                }
+            }
+
             public NativeArray<uint> GetPropertyIndex(int count)
             {
                 if (count > avaiableProperties.Length) throw new Exception("Property pool is gone!");
@@ -150,7 +199,7 @@ namespace MPipeline
                 gpurpEnabled = false;
             }
         }
-        public static void Awake(PipelineResources resources, int resolution, int texArrayCapacity, int propertyCapacity, string mapResources)
+        public static void Awake(PipelineResources resources, int resolution, int texArrayCapacity, int lightmapResolution, int lightmapCapacity, int propertyCapacity, string mapResources)
         {
             SceneController.resolution = resolution;
             singletonReady = true;
@@ -189,9 +238,12 @@ namespace MPipeline
             commonData = new SceneCommonData
             {
                 texDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(),
+                lightmapDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(),
                 avaiableProperties = new NativeList<int>(propertyCapacity, Allocator.Persistent),
                 avaiableTexs = new NativeList<int>(texArrayCapacity, Allocator.Persistent),
+                avaiableLightmap = new NativeList<int>(lightmapCapacity, Allocator.Persistent),
                 texCopyBuffer = new ComputeBuffer(resolution * resolution, sizeof(int)),
+                lightmapCopyBuffer = new ComputeBuffer(lightmapResolution * lightmapResolution, sizeof(int)),
                 propertyBuffer = new ComputeBuffer(propertyCapacity, sizeof(PropertyValue)),
                 copyTextureMat = new Material(resources.shaders.copyShader),
                 texArray = new RenderTexture(desc),
@@ -200,7 +252,11 @@ namespace MPipeline
                 terrainDrawStreaming = new TerrainDrawStreaming(100, 16, resources.shaders.terrainCompute)
             };
             commonData.texArray.wrapMode = TextureWrapMode.Repeat;
-
+            desc.volumeDepth = lightmapCapacity;
+            desc.width = lightmapResolution;
+            desc.height = lightmapResolution;
+            desc.colorFormat = RenderTextureFormat.RGB111110Float;
+            commonData.lightmapArray = new RenderTexture(desc);
             for (int i = 0; i < propertyCapacity; ++i)
             {
                 commonData.avaiableProperties.Add(i);
@@ -209,12 +265,16 @@ namespace MPipeline
             {
                 commonData.avaiableTexs.Add(i);
             }
+            for (int i = 0; i < lightmapCapacity; ++i)
+            {
+                commonData.avaiableLightmap.Add(i);
+            }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void UpdateCopyMat()
+        public static void UpdateCopyMat(int resolution, ComputeBuffer copyBuffer)
         {
             commonData.copyTextureMat.SetVector(ShaderIDs._TextureSize, new Vector4(resolution, resolution));
-            commonData.copyTextureMat.SetBuffer(ShaderIDs._TextureBuffer, commonData.texCopyBuffer);
+            commonData.copyTextureMat.SetBuffer(ShaderIDs._TextureBuffer, copyBuffer);
         }
         public static void TransformMapPosition(int startPos)
         {
@@ -234,13 +294,17 @@ namespace MPipeline
             commandQueue = null;
             commonData.avaiableProperties.Dispose();
             commonData.avaiableTexs.Dispose();
+            commonData.avaiableLightmap.Dispose();
             commonData.texCopyBuffer.Dispose();
+            commonData.lightmapCopyBuffer.Dispose();
             commonData.propertyBuffer.Dispose();
             commonData.texDict.Clear();
-            commonData.texArray.Release();
+            commonData.lightmapDict.Clear();
             commonData.terrainDrawStreaming.Dispose();
             UnityEngine.Object.DestroyImmediate(commonData.terrainMaterial);
-            UnityEngine.Object.DestroyImmediate(commonData.copyTextureMat);
+            UnityEngine.Object.DestroyImmediate(commonData.terrainMaterial);
+            UnityEngine.Object.DestroyImmediate(commonData.lightmapArray);
+            UnityEngine.Object.DestroyImmediate(commonData.texArray);
             addList.Dispose();
         }
         //Press number load scene
@@ -315,6 +379,7 @@ namespace MPipeline
             {
                 options.command.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
                 options.command.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
+                options.command.SetGlobalTexture(ShaderIDs._LightMap, commonData.lightmapArray);
                 PipelineFunctions.SetBaseBuffer(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
                 PipelineFunctions.RunCullDispatching(baseBuffer, options.cullingShader, options.command);
                 PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
@@ -386,6 +451,7 @@ options.frustumPlanes);
             //First Draw
             buffer.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
             buffer.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
+            buffer.SetGlobalTexture(ShaderIDs._LightMap, commonData.lightmapArray);
             PipelineFunctions.DrawLastFrameCullResult(baseBuffer, buffer, commonData.clusterMaterial);
             //更新Vector，Depth Mip Map
             hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
@@ -516,7 +582,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
+
             //Down
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -527,7 +593,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
+
             //Right
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -538,7 +604,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
-            
+
             //Left
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));

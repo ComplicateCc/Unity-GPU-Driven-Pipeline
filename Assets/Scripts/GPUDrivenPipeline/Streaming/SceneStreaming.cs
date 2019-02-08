@@ -27,6 +27,7 @@ namespace MPipeline
         private NativeArray<Point> pointsBuffer;
         private NativeArray<Vector2Int> results;
         private NativeArray<uint> propertiesPool;
+
         private int resultLength;
         private static Action<object> generateAsyncFunc = (obj) =>
         {
@@ -40,11 +41,13 @@ namespace MPipeline
         };
         ClusterProperty property;
         private List<TextureInfos> allTextureDatas;
+        private List<TextureInfos> allLightmapDatas;
         public SceneStreaming(ClusterProperty property)
         {
             state = State.Unloaded;
             this.property = property;
             allTextureDatas = new List<TextureInfos>();
+            allLightmapDatas = new List<TextureInfos>();
         }
         static string[] allStrings = new string[3];
         private static byte[] bytesArray = new byte[8192];
@@ -77,7 +80,7 @@ namespace MPipeline
             {
                 int length = (int)reader.Length;
                 byte[] bytes = GetByteArray(length);
-                reader.Read(bytes,0,length);
+                reader.Read(bytes, 0, length);
                 fixed (byte* b = bytes)
                 {
                     UnsafeUtility.MemCpy(clusterData, b, length);
@@ -107,7 +110,9 @@ namespace MPipeline
             uint* poolPtr = propertiesPool.Ptr();
             for (int i = 0; i < pointsBuffer.Length; ++i)
             {
-                verticesData[i].objIndex = poolPtr[verticesData[i].objIndex];
+                Point* pt = verticesData + i;
+                pt->objIndex = poolPtr[pt->objIndex];
+                pt->lightmapIndex = allLightmapDatas[pt->lightmapIndex].index;
             }
             if (listCommand)
             {
@@ -140,6 +145,51 @@ namespace MPipeline
                 Debug.LogError("Scene: " + property.name + "'s texture type count is larger than 3! That is illegal!");
                 return;
             }
+            MStringBuilder sb = new MStringBuilder(150);
+            allStrings[0] = "Assets/BinaryData/Lightmaps/";
+            allStrings[2] = ".txt";
+            for (int i = 0; i < property.lightmapGUIDs.Length; ++i)
+            {
+                allStrings[1] = property.lightmapGUIDs[i];
+                sb.Combine(allStrings);
+                string lightmapGUID = property.lightmapGUIDs[i];
+                bool alreadyContained;
+                int index = SceneController.commonData.GetLightmapIndex(lightmapGUID, out alreadyContained);
+                if (index >= 0)
+                {
+                    if (alreadyContained)
+                    {
+                        allLightmapDatas.Add(new TextureInfos
+                        {
+                            index = index,
+                            texGUID = lightmapGUID,
+                            texType = "_LightMap"
+                        });
+                    }
+                    else
+                    {
+                        using (FileStream reader = new FileStream(sb.str, FileMode.Open, FileAccess.Read))
+                        {
+                            NativeArray<Color32> color;
+                            int length = (int)reader.Length;
+                            byte[] bytes = GetByteArray(length);
+                            reader.Read(bytes, 0, length);
+                            color = new NativeArray<Color32>(length / sizeof(Color32), Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                            fixed (byte* source = bytes)
+                            {
+                                UnsafeUtility.MemCpy(color.GetUnsafePtr(), source, Mathf.Min(color.Length * sizeof(Color32), length));
+                            }
+                            allLightmapDatas.Add(new TextureInfos
+                            {
+                                array = color,
+                                index = index,
+                                texGUID = lightmapGUID,
+                                texType = "_LightMap"
+                            });
+                        }
+                    }
+                }
+            }
             for (int i = 0; i < values.Length; ++i)
             {
                 ref PropertyValue value = ref values[i];
@@ -147,7 +197,6 @@ namespace MPipeline
                 for (int a = 0; a < property.texPaths.Length; ++a)
                 {
                     string texName = property.texPaths[a].instancingIDs[i];
-                    MStringBuilder sb = new MStringBuilder(texName.Length + 50);
                     allStrings[0] = "Assets/BinaryData/Textures/";
                     allStrings[1] = texName;
                     allStrings[2] = ".txt";
@@ -167,24 +216,27 @@ namespace MPipeline
                                 texType = texType
                             });
                         }
-                        using (FileStream reader = new FileStream(sb.str, FileMode.Open, FileAccess.Read))
+                        else
                         {
-                            int length = (int)reader.Length;
-                            byte[] bytes = GetByteArray(length);
-                            reader.Read(bytes, 0, length);
-                            int res = SceneController.resolution;
-                            NativeArray<Color32> allColors = new NativeArray<Color32>(res * res, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                            fixed (byte* source = bytes)
+                            using (FileStream reader = new FileStream(sb.str, FileMode.Open, FileAccess.Read))
                             {
-                                UnsafeUtility.MemCpy(allColors.GetUnsafePtr(), source, Mathf.Min(allColors.Length * sizeof(Color32), length));
+                                int length = (int)reader.Length;
+                                byte[] bytes = GetByteArray(length);
+                                reader.Read(bytes, 0, length);
+                                int res = SceneController.resolution;
+                                NativeArray<Color32> allColors = new NativeArray<Color32>(res * res, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                                fixed (byte* source = bytes)
+                                {
+                                    UnsafeUtility.MemCpy(allColors.GetUnsafePtr(), source, Mathf.Min(allColors.Length * sizeof(Color32), length));
+                                }
+                                allTextureDatas.Add(new TextureInfos
+                                {
+                                    array = allColors,
+                                    index = indexPtr[a],
+                                    texGUID = texName,
+                                    texType = texType
+                                });
                             }
-                            allTextureDatas.Add(new TextureInfos
-                            {
-                                array = allColors,
-                                index = indexPtr[a],
-                                texGUID = texName,
-                                texType = texType
-                            });
                         }
                     }
                 }
@@ -197,7 +249,12 @@ namespace MPipeline
             {
                 SceneController.commonData.RemoveTex(i.texGUID);
             }
+            foreach(var i in allLightmapDatas)
+            {
+                SceneController.commonData.RemoveTex(i.texGUID);
+            }
             allTextureDatas.Clear();
+            allLightmapDatas.Clear();
         }
 
         public IEnumerator Delete()
@@ -346,10 +403,28 @@ namespace MPipeline
                     SceneController.commonData.texCopyBuffer.SetData(i.array);
                     RenderTexture rt = SceneController.commonData.texArray;
                     Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
-                    int pass = i.texType == "_MainTex" ? 1 : 0;
-                    SceneController.UpdateCopyMat();
-                    SceneController.commonData.copyTextureMat.SetPass(pass);
-
+                    SceneController.UpdateCopyMat(rt.width, SceneController.commonData.texCopyBuffer);
+                    SceneController.commonData.copyTextureMat.SetPass(0);
+                    Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
+                    i.array.Dispose();
+                    yield return null;
+                }
+            }
+            foreach(var i in allLightmapDatas)
+            {
+                if(i.array.IsCreated)
+                {
+                    const int unitSize = 1024 * 1024;
+                    int length = i.array.Length / unitSize;
+                    for (int a = 0; a < length; ++a)
+                    {
+                        SceneController.commonData.lightmapCopyBuffer.SetData(i.array, a * unitSize, a * unitSize, Mathf.Min(unitSize, i.array.Length - a * unitSize));
+                        yield return null;
+                    }
+                    RenderTexture rt = SceneController.commonData.lightmapArray;
+                    Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
+                    SceneController.UpdateCopyMat(rt.width, SceneController.commonData.lightmapCopyBuffer);
+                    SceneController.commonData.copyTextureMat.SetPass(1);
                     Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
                     i.array.Dispose();
                     yield return null;

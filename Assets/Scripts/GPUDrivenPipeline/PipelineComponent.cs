@@ -201,6 +201,8 @@ namespace MPipeline
         public Vector3 normal;
         public Vector2 texcoord;
         public uint objIndex;
+        public Vector2 lightmapUV;
+        public int lightmapIndex;
     }
     [System.Serializable]
     public struct CullBox

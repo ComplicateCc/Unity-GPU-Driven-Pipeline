@@ -20,6 +20,8 @@ struct Point{
     float3 normal;
     float2 texcoord;
 	uint objIndex;
+    float2 lightmapUV;
+    int lightmapIndex;
 };
 #ifndef COMPUTESHADER		//Below is Not for compute shader
 StructuredBuffer<Point> verticesBuffer;

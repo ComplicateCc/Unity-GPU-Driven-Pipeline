@@ -14,6 +14,8 @@ namespace MPipeline
         public int resolution = 1024;
         public int texArrayCapacity = 50;
         public int propertyCapacity = 500;
+        public int lightmapCapacity = 5;
+        public int lightmapAtlasSize = 4096;
         public string mapResources = "SceneManager";
         private LoadingThread loadingThread;
         private GPURPScene current;
@@ -59,7 +61,7 @@ namespace MPipeline
                 return;
             }
             current = this;
-            SceneController.Awake(resources, resolution, texArrayCapacity, propertyCapacity, mapResources);
+            SceneController.Awake(resources, resolution, texArrayCapacity, lightmapAtlasSize, lightmapCapacity, propertyCapacity, mapResources);
             loadingThread = new LoadingThread();
             int length = 0;
             Count(transformParents, ref length);

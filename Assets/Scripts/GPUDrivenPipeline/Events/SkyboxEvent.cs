@@ -4,16 +4,15 @@ using UnityEngine;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    [System.Serializable]
-    [PipelineEvent(false, true)]
+    [CreateAssetMenu(menuName = "GPURP Events/Skybox")]
     public class SkyboxEvent : PipelineEvent
     {
         public Material skyboxMaterial;
         public RenderTargetIdentifier[] skyboxIdentifier = new RenderTargetIdentifier[2];
-        public override void Dispose()
+        protected override void Dispose()
         {
         }
-        public override void Init(PipelineResources resources)
+        protected override void Init(PipelineResources resources)
         {
         }
 

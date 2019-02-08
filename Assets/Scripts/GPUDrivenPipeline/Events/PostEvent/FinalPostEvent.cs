@@ -6,8 +6,7 @@ using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    [System.Serializable]
-    [PipelineEvent(false, true)]
+    [CreateAssetMenu(menuName = "GPURP Events/Post Processing")]
     public class FinalPostEvent : PipelineEvent
     {
         public PostProcessProfile profile;
@@ -22,7 +21,7 @@ namespace MPipeline
             allEvents.Add(typeof(S), renderer);
             return renderer;
         }
-        public override void Init(PipelineResources res)
+        protected override void Init(PipelineResources res)
         {
             allEvents = new Dictionary<Type, PostProcessEffectRenderer>(7);
             AddEvents<Bloom, BloomRenderer>();
@@ -39,7 +38,7 @@ namespace MPipeline
             return postContext != null && postContext.uberSheet.material != null;
         }
 
-        public override void Dispose()
+        protected override void Dispose()
         {
             var values = allEvents.Values;
             foreach(var i in values)

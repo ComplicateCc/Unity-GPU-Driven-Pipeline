@@ -199,6 +199,7 @@ public unsafe class MLight : MonoBehaviour
     {
         light = GetComponent<Light>();
         lightDict.Add(light, this);
+        updateShadowCache = true;
         if (!shadowCam)
         {
             shadowCam = GetComponent<Camera>();

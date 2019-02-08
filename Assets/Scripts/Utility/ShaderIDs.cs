@@ -105,4 +105,5 @@ public static partial class ShaderIDs
     public static readonly int _FroxelSpotTileLightList = Shader.PropertyToID("_FroxelSpotTileLightList");
     public static readonly int _SceneOffset = Shader.PropertyToID("_SceneOffset");
     public static readonly int _BackupMap = Shader.PropertyToID("_BackupMap");
+    public static readonly int _LightMap = Shader.PropertyToID("_LightMap");
 }

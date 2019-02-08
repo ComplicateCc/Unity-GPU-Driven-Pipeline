@@ -13,7 +13,7 @@ namespace MPipeline
         public Camera cam;
         [System.NonSerialized]
         public RenderTargets targets;
-        public RenderPipeline.CameraRenderingPath renderingPath = RenderPipeline.CameraRenderingPath.GPUDeferred;
+        public PipelineResources.CameraRenderingPath renderingPath = PipelineResources.CameraRenderingPath.GPUDeferred;
         public Dictionary<Type, IPerCameraData> postDatas = new Dictionary<Type, IPerCameraData>(47);
         public void EnableThis()
         {

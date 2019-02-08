@@ -42,6 +42,8 @@ Point GPUSkinning(uint vertexID, uint instanceID)
 	pt.tangent.w = skinPt.tangent.w;
 	pt.texcoord = skinPt.uv;
 	pt.objIndex = 0;
+    pt.lightmapUV = 0;
+    pt.lightmapIndex = -1;
 	return pt;
 }
 [numthreads(THREAD,1,1)]

@@ -5,8 +5,7 @@ using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    [System.Serializable]
-    [PipelineEvent(true, true)]
+    [CreateAssetMenu(menuName = "GPURP Events/Temporal AA")]
     public class TemporalAAEvent : PipelineEvent
     {
         [Tooltip("The diameter (in texels) inside which jitter samples are spread. Smaller values result in crisper but more aliased output, while larger values result in more stable but blurrier output.")]
@@ -35,7 +34,7 @@ namespace MPipeline
         private const int k_SampleCount = 8;
         private Material taaMat;
         private RenderTexture historyTex;
-        public override void Init(PipelineResources resources)
+        protected override void Init(PipelineResources resources)
         {
             taaMat = new Material(resources.shaders.taaShader);
         }
@@ -43,7 +42,7 @@ namespace MPipeline
         {
             return taaMat != null;
         }
-        public override void Dispose()
+        protected override void Dispose()
         {
             UnityEngine.Object.DestroyImmediate(taaMat);
         }

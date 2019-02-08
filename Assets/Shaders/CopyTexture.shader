@@ -28,6 +28,15 @@
                 o.uv = v.uv;
                 return o;
             }
+            #define MAX_BRIGHTNESS 6
+            float3 DecodeHDR(uint data)
+            {
+                float r = (data      ) & 0xff;
+                float g = (data >>  8) & 0xff;
+                float b = (data >> 16) & 0xff;
+                float a = (data >> 24) & 0xff;
+                return float3(r, g, b) * a * MAX_BRIGHTNESS / (255 * 255);
+            }
             uint4 GetValues(uint value)
             {
                 uint4 values = 0;
@@ -57,21 +66,19 @@
             }
             ENDCG
         }
-        //Pass 1: Non Linear Transform
+
         Pass
         {
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            half4 frag (v2f i) : SV_Target
+            half3 frag (v2f i) : SV_Target
             {
                 if(i.uv.x > 0.5)
                     i.uv.x -= 0.5;
                 else if(i.uv.x < 0.5)
                     i.uv.x += 0.5;
-                half4 value = ((half4)GetValues(_TextureBuffer[i.uv.y * _TextureSize.y * _TextureSize.x + i.uv.x * _TextureSize.x])) / 255.0;
-                value = lerp(pow((value+0.055)/1.055, 2.4), value / 12.92, step(value, 0.0404482362771082));
-                return value;
+                return DecodeHDR(_TextureBuffer[i.uv.y * _TextureSize.y * _TextureSize.x + i.uv.x * _TextureSize.x]);
             }
             ENDCG
         }

@@ -1,6 +1,9 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel TexToBuffer
-#pragma kernel BufferToTex
+#pragma kernel TexToBuffer RGBM
+#pragma kernel BufferToTex RGBM
+#pragma kernel TexToBuffer ARGB
+#pragma kernel BufferToTex ARGB
+
 
    #define MAX_BRIGHTNESS 6
     uint EncodeColor(float3 rgb)
@@ -12,6 +15,32 @@
         uint4 i = float4(rgb, y);
         return i.x | (i.y << 8) | (i.z << 16) | (i.w << 24);
     }
+
+    float4 Decode(uint value)
+{
+    uint4 values = 0;
+    values.x = value & 255;
+    value >>= 8;
+    values.y = value & 255;
+    value >>= 8;
+    values.z = value & 255;
+    value >>= 8;
+    values.w = value & 255;
+    return values / 255.0;
+}
+uint Encode(float4 value)
+{
+    uint4 v = value * 255;
+    uint result = 0;
+    result |= v.w & 255;
+    result <<= 8;
+    result |= v.z & 255;
+    result <<= 8;
+    result |= v.y & 255;
+    result <<= 8;
+    result |= v.x & 255;
+    return result;
+}
 
     float3 DecodeColor(uint data)
     {
@@ -27,20 +56,30 @@
         return uv.y * width + uv.x;
     }
 
-Texture2D<float3> _InputTex;
-RWTexture2D<float3> _OutputTex;
+Texture2D<float4> _InputTex;
+RWTexture2D<float4> _OutputTex;
 RWStructuredBuffer<uint> _Buffer;
 uint _Width;
 [numthreads(8,8,1)]
 void TexToBuffer (uint2 id : SV_DispatchThreadID)
 {
     uint index = DownDim(id, _Width);
-    _Buffer[index] = EncodeColor(_InputTex[id]);
+    #ifdef RGBM
+    _Buffer[index] = EncodeColor(_InputTex[id].xyz);
+    #endif
+    #ifdef ARGB
+    _Buffer[index] = Encode(_InputTex[id]);
+    #endif
 }
 
 [numthreads(8,8,1)]
 void BufferToTex (uint2 id : SV_DispatchThreadID)
 {
     uint index = DownDim(id, _Width);
-    _OutputTex[id] = _Buffer[index];
+    #ifdef RGBM
+    _OutputTex[id] = float4(DecodeColor(_Buffer[index]), 1);
+    #endif
+    #ifdef ARGB
+    _OutputTex[id] = Decode(_Buffer[index]);
+    #endif
 }

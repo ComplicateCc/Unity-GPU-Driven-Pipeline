@@ -215,6 +215,8 @@ namespace MPipeline
                 p.vertex = vertex;
                 p.texcoord = uv[i];
                 p.objIndex = 0;
+                p.lightmapIndex = -1;
+                p.lightmapUV = Vector2.zero;
                 pointsFromMesh[i] = p;
             }
             return pointsFromMesh;

@@ -21,11 +21,12 @@ CGINCLUDE
 #include "CGINC/Procedural.cginc"
 #pragma multi_compile _ EnableShadow
 	Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
+  Texture2DArray<half3> _LightMap; SamplerState sampler_LightMap;
 	StructuredBuffer<PropertyValue> _PropertiesBuffer;
 
 
 	
-	void surf (float2 uv, uint index, inout SurfaceOutputStandardSpecular o) {
+	void surf (float2 uv, float2 lightmapUV, int lightmapIndex, uint index, inout SurfaceOutputStandardSpecular o) {
 		PropertyValue prop = _PropertiesBuffer[index];
 		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1) * prop._Color;
 		o.Albedo = c.rgb;
@@ -41,6 +42,10 @@ CGINCLUDE
 			o.Normal =  float3(0,0,1);
 		}
 		o.Emission = prop._EmissionColor;
+    if(lightmapIndex >= 0)
+    {
+      o.Emission.rgb += _LightMap.Sample(sampler_LightMap, float3(lightmapUV, lightmapIndex)) * c.rgb;
+    }
 	}
 
 
@@ -73,20 +78,23 @@ inline half2 CalculateMotionVector(float4x4 lastvp, float3 worldPos, half2 scree
 
 struct v2f_surf {
   UNITY_POSITION(pos);
-  float2 pack0 : TEXCOORD0; 
+  float4 pack0 : TEXCOORD0; 
   float4 worldTangent : TEXCOORD1;
   float4 worldBinormal : TEXCOORD2;
   float4 worldNormal : TEXCOORD3;
   float3 worldViewDir : TEXCOORD4;
   nointerpolation uint objectIndex : TEXCOORD5;
+  nointerpolation int lightmapIndex : TEXCOORD6;
 };
 float4 _MainTex_ST;
 v2f_surf vert_surf (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID) 
 {
   	Point v = getVertex(vertexID, instanceID);
   	v2f_surf o;
-  	o.pack0 = v.texcoord;
+  	o.pack0.xy = v.texcoord;
+    o.pack0.zw = v.lightmapUV;
 	o.objectIndex = v.objIndex;
+  o.lightmapIndex = v.lightmapIndex;
   	o.pos = mul(UNITY_MATRIX_VP, float4(v.vertex, 1));
   	o.worldTangent = float4( v.tangent.xyz, v.vertex.x);
 	o.worldNormal =float4(v.normal, v.vertex.z);
@@ -100,8 +108,10 @@ v2f_surf vert_gbuffer (uint vertexID : SV_VertexID, uint instanceID : SV_Instanc
 {
   	Point v = getVertex(vertexID, instanceID);
   	v2f_surf o;
-  	o.pack0 = v.texcoord;
+  	o.pack0.xy = v.texcoord;
+    o.pack0.zw = v.lightmapUV;
 	o.objectIndex = v.objIndex;
+  o.lightmapIndex = v.lightmapIndex;
   	o.pos = mul(_VP, float4(v.vertex, 1));
   	o.worldTangent = float4( v.tangent.xyz, v.vertex.x);
 	o.worldNormal =float4(v.normal, v.vertex.z);
@@ -126,7 +136,7 @@ void frag_surf (v2f_surf IN,
   SurfaceOutputStandardSpecular o;
   half3x3 wdMatrix= half3x3(normalize(IN.worldTangent.xyz), normalize(IN.worldBinormal.xyz), normalize(IN.worldNormal.xyz));
   // call surface function
-  surf (IN.pack0, IN.objectIndex, o);
+  surf (IN.pack0.xy, IN.pack0.zw, IN.lightmapIndex, IN.objectIndex, o);
   o.Normal = normalize(mul(o.Normal, wdMatrix));
   outEmission = ProceduralStandardSpecular_Deferred (o, worldViewDir, outGBuffer0, outGBuffer1, outGBuffer2); //GI neccessary here!
   //Calculate Motion Vector
@@ -145,7 +155,7 @@ float3 frag_gi (v2f_surf IN) : SV_TARGET{
   SurfaceOutputStandardSpecular o;
   half3x3 wdMatrix= half3x3(normalize(IN.worldTangent.xyz), normalize(IN.worldBinormal.xyz), normalize(IN.worldNormal.xyz));
   // call surface function
-  surf (IN.pack0, IN.objectIndex, o);
+  surf (IN.pack0.xy, IN.pack0.zw, IN.lightmapIndex, IN.objectIndex, o);
   o.Normal = normalize(mul(o.Normal, wdMatrix));
   float4 shadowPos = mul(_ShadowMapVP, float4(worldPos, 1));
   shadowPos /= shadowPos.w;
