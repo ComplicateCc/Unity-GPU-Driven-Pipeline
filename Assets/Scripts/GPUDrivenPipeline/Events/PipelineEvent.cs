@@ -43,6 +43,7 @@ namespace MPipeline
             set
             {
                 if (value == enabled) return;
+                enabled = value;
                 if (initialized)
                 {
                     if (value)
@@ -53,11 +54,10 @@ namespace MPipeline
                             {
                                 if (!i.enabled)
                                 {
+                                    enabled = false;
                                     return;
                                 }
                             }
-                            enabled = true;
-                            OnEnableEvent();
                         }
                     }
                     else
@@ -69,8 +69,6 @@ namespace MPipeline
                                 i.Enabled = false;
                             }
                         }
-                        enabled = false;
-                        OnDisableEvent();
                     }
                 }
             }
@@ -84,7 +82,20 @@ namespace MPipeline
             initialized = true;
             this.renderingPath = renderingPath;
             Init(resources);
-            if (enabled) OnEnableEvent();
+            if (enabled)
+            {
+                if (dependingEvents != null)
+                {
+                    foreach (var i in dependingEvents)
+                    {
+                        if (!i.enabled)
+                        {
+                            Enabled = false;
+                            return;
+                        }
+                    }
+                }
+            }
             else
             {
                 if (dependedEvents != null)
@@ -119,7 +130,6 @@ namespace MPipeline
         public void DisposeEvent()
         {
             initialized = false;
-            if (enabled) OnDisableEvent();
             Dispose();
         }
         protected abstract void Init(PipelineResources resources);
@@ -127,7 +137,5 @@ namespace MPipeline
         public abstract bool CheckProperty();
         public virtual void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data) { }
         public virtual void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data) { }
-        protected virtual void OnEnableEvent() { }
-        protected virtual void OnDisableEvent() { }
     }
 }
