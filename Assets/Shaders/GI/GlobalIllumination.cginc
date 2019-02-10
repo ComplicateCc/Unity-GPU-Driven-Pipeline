@@ -55,7 +55,8 @@ SH9 SHCosineLobe(float3 dir)
 
     int DownDimension(int3 coord, int2 xysize)
     {
-        return coord.z * xysize.y * xysize.x + coord.y * xysize.x + coord.x;
+        int3 multi = (xysize.y * xysize.x, xysize.x, 1);
+        return dot(coord.zyx, multi);
     }
 
     int3 UpDimension(int coord, int2 xysize)

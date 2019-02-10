@@ -44,7 +44,6 @@ namespace MPipeline
             public NativeList<int> avaiableTexs;
             public NativeList<int> avaiableProperties;
             public NativeList<int> avaiableLightmap;
-            public Material copyTextureMat;
             public ComputeBuffer texCopyBuffer;
             public ComputeBuffer lightmapCopyBuffer;
             public ComputeBuffer propertyBuffer;
@@ -224,7 +223,7 @@ namespace MPipeline
                 colorFormat = RenderTextureFormat.ARGB32,
                 depthBufferBits = 0,
                 dimension = TextureDimension.Tex2DArray,
-                enableRandomWrite = false,
+                enableRandomWrite = true,
                 height = resolution,
                 width = resolution,
                 memoryless = RenderTextureMemoryless.None,
@@ -245,7 +244,6 @@ namespace MPipeline
                 texCopyBuffer = new ComputeBuffer(resolution * resolution, sizeof(int)),
                 lightmapCopyBuffer = new ComputeBuffer(lightmapResolution * lightmapResolution, sizeof(int)),
                 propertyBuffer = new ComputeBuffer(propertyCapacity, sizeof(PropertyValue)),
-                copyTextureMat = new Material(resources.shaders.copyShader),
                 texArray = new RenderTexture(desc),
                 clusterMaterial = new Material(resources.shaders.clusterRenderShader),
                 terrainMaterial = new Material(resources.shaders.terrainShader),
@@ -269,13 +267,10 @@ namespace MPipeline
             {
                 commonData.avaiableLightmap.Add(i);
             }
+            commonData.lightmapArray.Create();
+            commonData.texArray.Create();
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void UpdateCopyMat(int resolution, ComputeBuffer copyBuffer)
-        {
-            commonData.copyTextureMat.SetVector(ShaderIDs._TextureSize, new Vector4(resolution, resolution));
-            commonData.copyTextureMat.SetBuffer(ShaderIDs._TextureBuffer, copyBuffer);
-        }
+
         public static void TransformMapPosition(int startPos)
         {
             if (baseBuffer.clusterCount - startPos <= 0) return;
@@ -358,11 +353,9 @@ namespace MPipeline
         private static void RenderScene(ref PipelineCommandData data, Camera cam)
         {
             data.ExecuteCommandBuffer();
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
-            {
-                renderQueueRange = RenderQueueRange.opaque,
-                layerMask = cam.cullingMask
-            };
+            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true);
+            renderSettings.renderQueueRange = RenderQueueRange.opaque;
+            renderSettings.layerMask = cam.cullingMask;
             data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("GBuffer"));
             data.defaultDrawSettings.sorting = new DrawRendererSortSettings
             {

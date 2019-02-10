@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Skybox")]
+    [RequireEvent(typeof(PropertySetEvent))]
     public class SkyboxEvent : PipelineEvent
     {
         public Material skyboxMaterial;

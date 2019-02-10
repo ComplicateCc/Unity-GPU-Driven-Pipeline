@@ -14,6 +14,7 @@ using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Lighting")]
+    [RequireEvent(typeof(PropertySetEvent))]
     public unsafe class LightingEvent : PipelineEvent
     {
         #region DIR_LIGHT

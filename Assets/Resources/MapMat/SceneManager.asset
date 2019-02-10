@@ -134,4 +134,11 @@ MonoBehaviour:
       - 
       - 
     lightmapGUIDs:
-    - 61fcf5f415d986541879594f8836fecb
+    - name: 4008f0e91cc33b240a83f4c123716ecc
+      size: 4096
+    - name: f3ccccbba0571d543bedccc6d9ad48ab
+      size: 4096
+    - name: e27610f65ca34a442863d1f2b5ba2d52
+      size: 2048
+    - name: 4f7c289f4d11fc9449123552c2263e1f
+      size: 4096

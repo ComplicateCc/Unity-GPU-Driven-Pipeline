@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Geometry")]
+    [RequireEvent(typeof(PropertySetEvent))]
     public unsafe class GeometryEvent : PipelineEvent
     {
         HizDepth hizDepth;

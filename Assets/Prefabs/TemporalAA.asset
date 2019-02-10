@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: TemporalAA
   m_EditorClassIdentifier: 
   enabled: 1
-  jitterSpread: 0.75
-  sharpness: 0.25
+  jitterSpread: 1
+  sharpness: 0.15
   stationaryBlending: 0.95
-  motionBlending: 0.9
-  stationaryAABBScale: 1.25
-  motionAABBScale: 0.5
+  motionBlending: 0.85
+  stationaryAABBScale: 2
+  motionAABBScale: 1.25

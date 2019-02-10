@@ -351,13 +351,17 @@ namespace MPipeline
             SaveTextures(texs, textures);
             property.properties = value;
             property.texPaths = texs;
-            string[] lightmapGUIDs = new string[model.lightmaps.Count];
+            LightmapPaths[] lightmapGUIDs = new LightmapPaths[model.lightmaps.Count];
             byte[] bytes = null;
-            for(int i = 0; i < lightmapGUIDs.Length; ++i)
+            for (int i = 0; i < lightmapGUIDs.Length; ++i)
             {
                 TextureToBytes(model.lightmaps[i], ref bytes, true);
-                lightmapGUIDs[i] = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(model.lightmaps[i]));
-                File.WriteAllBytes("Assets/BinaryData/Lightmaps/" + lightmapGUIDs[i] + ".txt", bytes);
+                lightmapGUIDs[i] = new LightmapPaths
+                {
+                    name = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(model.lightmaps[i])),
+                    size = model.lightmaps[i].width
+                };
+                File.WriteAllBytes("Assets/BinaryData/Lightmaps/" + lightmapGUIDs[i].name + ".txt", bytes);
             }
             property.lightmapGUIDs = lightmapGUIDs;
             res.clusterProperties.Add(property);

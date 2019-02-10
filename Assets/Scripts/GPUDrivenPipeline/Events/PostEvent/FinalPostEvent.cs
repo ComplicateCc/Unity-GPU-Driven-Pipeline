@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Post Processing")]
+    [RequireEvent(typeof(PropertySetEvent))]
     public class FinalPostEvent : PipelineEvent
     {
         public PostProcessProfile profile;

@@ -31,6 +31,10 @@ public static partial class ShaderIDs
     public static readonly int dispatchBuffer = Shader.PropertyToID("dispatchBuffer");
     public static readonly int reCheckResult = Shader.PropertyToID("reCheckResult");
     public static readonly int reCheckCount = Shader.PropertyToID("reCheckCount");
+    public static readonly int _Buffer = Shader.PropertyToID("_Buffer");
+    public static readonly int _OutputTex = Shader.PropertyToID("_OutputTex");
+    public static readonly int _Width = Shader.PropertyToID("_Width");
+    public static readonly int _Scale = Shader.PropertyToID("_Scale");
 
     public static readonly int _Jitter = Shader.PropertyToID("_Jitter");
     public static readonly int _Sharpness = Shader.PropertyToID("_Sharpness");

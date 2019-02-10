@@ -1,9 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Reflection;
-using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
-using System;
 using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
@@ -28,7 +25,7 @@ namespace MPipeline
             public ComputeShader terrainCompute;
             public ComputeShader volumetricScattering;
             public ComputeShader probeCoeffShader;
-            public Shader copyShader;
+            public ComputeShader texCopyShader;
             public Shader taaShader;
             public Shader indirectDepthShader;
             public Shader HizLodShader;
@@ -47,13 +44,16 @@ namespace MPipeline
         }
         public Shaders shaders = new Shaders();
         public PipelineEvent[] gpurpEvents;
-        private static Dictionary<CameraRenderingPath, Func<PipelineResources, PipelineEvent[]>> presetDict = null;
-        public static Dictionary<CameraRenderingPath, Func<PipelineResources, PipelineEvent[]>> GetEventsDict()
+        private static Dictionary<CameraRenderingPath, PipelineEvent[]> presetDict = new Dictionary<CameraRenderingPath, PipelineEvent[]>();
+        public Dictionary<CameraRenderingPath, PipelineEvent[]> renderingPaths
         {
-            if (presetDict != null) return presetDict;
-            presetDict = new Dictionary<CameraRenderingPath, Func<PipelineResources, PipelineEvent[]>>();
-            presetDict.Add(CameraRenderingPath.GPUDeferred, (res) => res.gpurpEvents);
-            return presetDict;
+            get { return presetDict; }
+        }
+        public void SetRenderingPath()
+        {
+            presetDict.Clear();
+            presetDict.Add(CameraRenderingPath.GPUDeferred, gpurpEvents);
+            //Add New Events Here
         }
     }
 }

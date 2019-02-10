@@ -16,6 +16,13 @@ namespace MPipeline
             public string texType;
             public NativeArray<Color32> array;
         }
+        public struct LightmapInfos
+        {
+            public int index;
+            public int size;
+            public string texGUID;
+            public NativeArray<Color32> array;
+        }
         public static bool loading = false;
         public enum State
         {
@@ -41,13 +48,13 @@ namespace MPipeline
         };
         ClusterProperty property;
         private List<TextureInfos> allTextureDatas;
-        private List<TextureInfos> allLightmapDatas;
+        private List<LightmapInfos> allLightmapDatas;
         public SceneStreaming(ClusterProperty property)
         {
             state = State.Unloaded;
             this.property = property;
             allTextureDatas = new List<TextureInfos>();
-            allLightmapDatas = new List<TextureInfos>();
+            allLightmapDatas = new List<LightmapInfos>();
         }
         static string[] allStrings = new string[3];
         private static byte[] bytesArray = new byte[8192];
@@ -150,20 +157,20 @@ namespace MPipeline
             allStrings[2] = ".txt";
             for (int i = 0; i < property.lightmapGUIDs.Length; ++i)
             {
-                allStrings[1] = property.lightmapGUIDs[i];
+                LightmapPaths lightmapGUID = property.lightmapGUIDs[i];
+                allStrings[1] = lightmapGUID.name;
                 sb.Combine(allStrings);
-                string lightmapGUID = property.lightmapGUIDs[i];
                 bool alreadyContained;
-                int index = SceneController.commonData.GetLightmapIndex(lightmapGUID, out alreadyContained);
+                int index = SceneController.commonData.GetLightmapIndex(lightmapGUID.name, out alreadyContained);
                 if (index >= 0)
                 {
                     if (alreadyContained)
                     {
-                        allLightmapDatas.Add(new TextureInfos
+                        allLightmapDatas.Add(new LightmapInfos
                         {
                             index = index,
-                            texGUID = lightmapGUID,
-                            texType = "_LightMap"
+                            texGUID = lightmapGUID.name,
+                            size = 0
                         });
                     }
                     else
@@ -179,12 +186,12 @@ namespace MPipeline
                             {
                                 UnsafeUtility.MemCpy(color.GetUnsafePtr(), source, Mathf.Min(color.Length * sizeof(Color32), length));
                             }
-                            allLightmapDatas.Add(new TextureInfos
+                            allLightmapDatas.Add(new LightmapInfos
                             {
                                 array = color,
                                 index = index,
-                                texGUID = lightmapGUID,
-                                texType = "_LightMap"
+                                texGUID = lightmapGUID.name,
+                                size = lightmapGUID.size
                             });
                         }
                     }
@@ -249,7 +256,7 @@ namespace MPipeline
             {
                 SceneController.commonData.RemoveTex(i.texGUID);
             }
-            foreach(var i in allLightmapDatas)
+            foreach (var i in allLightmapDatas)
             {
                 SceneController.commonData.RemoveTex(i.texGUID);
             }
@@ -396,23 +403,26 @@ namespace MPipeline
             loading = false;
             state = State.Loaded;
             yield return null;
+            ComputeShader texCopyShader = resources.shaders.texCopyShader;
             foreach (var i in allTextureDatas)
             {
                 if (i.array.IsCreated)
                 {
                     SceneController.commonData.texCopyBuffer.SetData(i.array);
                     RenderTexture rt = SceneController.commonData.texArray;
-                    Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
-                    SceneController.UpdateCopyMat(rt.width, SceneController.commonData.texCopyBuffer);
-                    SceneController.commonData.copyTextureMat.SetPass(0);
-                    Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
+                    texCopyShader.SetBuffer(3, ShaderIDs._Buffer, SceneController.commonData.texCopyBuffer);
+                    texCopyShader.SetInt(ShaderIDs._Width, rt.width);
+                    texCopyShader.SetInt(ShaderIDs._OffsetIndex, i.index);
+                    texCopyShader.SetInt(ShaderIDs._Scale, 1);
+                    texCopyShader.SetTexture(3, ShaderIDs._OutputTex, rt);
+                    texCopyShader.Dispatch(3, rt.width / 8, rt.height / 8, 1);
                     i.array.Dispose();
                     yield return null;
                 }
             }
-            foreach(var i in allLightmapDatas)
+            foreach (var i in allLightmapDatas)
             {
-                if(i.array.IsCreated)
+                if (i.array.IsCreated)
                 {
                     const int unitSize = 1024 * 1024;
                     int length = i.array.Length / unitSize;
@@ -422,10 +432,12 @@ namespace MPipeline
                         yield return null;
                     }
                     RenderTexture rt = SceneController.commonData.lightmapArray;
-                    Graphics.SetRenderTarget(rt, 0, CubemapFace.Unknown, i.index);
-                    SceneController.UpdateCopyMat(rt.width, SceneController.commonData.lightmapCopyBuffer);
-                    SceneController.commonData.copyTextureMat.SetPass(1);
-                    Graphics.DrawMeshNow(GraphicsUtility.mesh, Matrix4x4.identity);
+                    texCopyShader.SetBuffer(1, ShaderIDs._Buffer, SceneController.commonData.lightmapCopyBuffer);
+                    texCopyShader.SetInt(ShaderIDs._Width, i.size);
+                    texCopyShader.SetInt(ShaderIDs._OffsetIndex, i.index);
+                    texCopyShader.SetTexture(1, ShaderIDs._OutputTex, rt);
+                    texCopyShader.SetInt(ShaderIDs._Scale, rt.width / i.size);
+                    texCopyShader.Dispatch(1, rt.width / 8, rt.height / 8, 1);
                     i.array.Dispose();
                     yield return null;
                 }

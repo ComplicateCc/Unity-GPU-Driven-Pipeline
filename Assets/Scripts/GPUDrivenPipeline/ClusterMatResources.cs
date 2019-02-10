@@ -10,13 +10,19 @@ namespace MPipeline
         public string[] instancingIDs;
     }
     [System.Serializable]
+    public struct LightmapPaths
+    {
+        public string name;
+        public int size;
+    }
+    [System.Serializable]
     public struct ClusterProperty
     {
         public string name;
         public int clusterCount;
         public PropertyValue[] properties;
         public TexturePaths[] texPaths;
-        public string[] lightmapGUIDs;
+        public LightmapPaths[] lightmapGUIDs;
     }
     public class ClusterMatResources : ScriptableObject
     {
