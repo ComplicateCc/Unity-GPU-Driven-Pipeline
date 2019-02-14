@@ -7,7 +7,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using System.IO;
 namespace MPipeline
 {
-    public unsafe class SceneStreaming
+    public unsafe sealed class SceneStreaming
     {
         public struct TextureInfos
         {
@@ -352,7 +352,7 @@ namespace MPipeline
         {
             PipelineResources resources = RenderPipeline.current.resources;
             PipelineBaseBuffer baseBuffer = SceneController.baseBuffer;
-            ComputeBuffer indexBuffer = new ComputeBuffer(results.Length, 8);//sizeof(Vector2Int)
+            ComputeBuffer indexBuffer = SceneController.commonData.GetTempPropertyBuffer(results.Length, 8);//sizeof(Vector2Int)
             int currentCount = 0;
             int targetCount;
             while ((targetCount = currentCount + MAXIMUMINTCOUNT) < resultLength)
@@ -374,7 +374,6 @@ namespace MPipeline
             }
             UnloadTextures();
             baseBuffer.clusterCount -= indicesBuffer.Length;
-            indexBuffer.Dispose();
             results.Dispose();
             indicesBuffer.Dispose();
             loading = false;
@@ -397,7 +396,7 @@ namespace MPipeline
             //TODO
             baseBuffer.clusterBuffer.SetData(clusterBuffer, currentCount, currentCount + baseBuffer.clusterCount, clusterBuffer.Length - currentCount);
             baseBuffer.verticesBuffer.SetData(pointsBuffer, currentCount * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (currentCount + baseBuffer.clusterCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT, (clusterBuffer.Length - currentCount) * PipelineBaseBuffer.CLUSTERCLIPCOUNT);
-            baseBuffer.clusterCount += clusterBuffer.Length;
+            int clusterCount = clusterBuffer.Length;
             clusterBuffer.Dispose();
             pointsBuffer.Dispose();
             loading = false;
@@ -446,16 +445,15 @@ namespace MPipeline
             //TODO
             //Load Property
             const int loadPropertyKernel = 6;
-            ComputeBuffer currentPropertyBuffer = new ComputeBuffer(property.properties.Length, PROPERTYVALUESIZE);
+            ComputeBuffer currentPropertyBuffer = SceneController.commonData.GetTempPropertyBuffer(property.properties.Length, PROPERTYVALUESIZE);
             currentPropertyBuffer.SetData(property.properties);
-            ComputeBuffer propertyIndexBuffer = new ComputeBuffer(propertiesPool.Length, 4);
+            ComputeBuffer propertyIndexBuffer = SceneController.commonData.GetTempPropertyBuffer(propertiesPool.Length, 4);
             propertyIndexBuffer.SetData(propertiesPool);
             copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._PropertiesBuffer, SceneController.commonData.propertyBuffer);
             copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._TempPropBuffer, currentPropertyBuffer);
             copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._IndexBuffer, propertyIndexBuffer);
             ComputeShaderUtility.Dispatch(copyShader, loadPropertyKernel, propertiesPool.Length, 64);
-            currentPropertyBuffer.Dispose();
-            propertyIndexBuffer.Dispose();
+            baseBuffer.clusterCount += clusterCount;
         }
         #endregion
     }

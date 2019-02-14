@@ -57,8 +57,8 @@ LightmapSettings:
     serializedVersion: 10
     m_Resolution: 4
     m_BakeResolution: 80
-    m_AtlasSize: 4096
-    m_AO: 1
+    m_AtlasSize: 2048
+    m_AO: 0
     m_AOMaxDistance: 1.2
     m_CompAOExponent: 0.2
     m_CompAOExponentDirect: 0
@@ -72,7 +72,7 @@ LightmapSettings:
     m_FinalGatherRayCount: 1024
     m_ReflectionCompression: 2
     m_MixedBakeMode: 0
-    m_BakeBackend: 0
+    m_BakeBackend: 1
     m_PVRSampling: 1
     m_PVRDirectSampleCount: 512
     m_PVRSampleCount: 4096
@@ -179,8 +179,8 @@ MonoBehaviour:
   resolution: 1024
   texArrayCapacity: 50
   propertyCapacity: 500
-  lightmapCapacity: 5
-  lightmapAtlasSize: 4096
+  lightmapCapacity: 20
+  lightmapAtlasSize: 2048
   mapResources: SceneManager
   mainCamera: {fileID: 330718102}
   transformParents: {fileID: 133086635}
@@ -345,7 +345,7 @@ Camera:
   serializedVersion: 2
   m_ClearFlags: 1
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
-  m_projectionMatrixMode: 1
+  m_projectionMatrixMode: 0
   m_SensorSize: {x: 36, y: 24}
   m_LensShift: {x: 0, y: 0}
   m_GateFitMode: 2
@@ -383,8 +383,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330718099}
-  m_LocalRotation: {x: -0.058981866, y: -0.5170404, z: 0.03574414, w: -0.8531781}
-  m_LocalPosition: {x: 9.329279, y: 2.882495, z: -25.532356}
+  m_LocalRotation: {x: -0.007962475, y: -0.9916461, z: 0.10393357, w: -0.075976014}
+  m_LocalPosition: {x: 13.256842, y: 3.55988, z: -19.217958}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -636,7 +636,7 @@ Transform:
   m_GameObject: {fileID: 1271864079}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 17.71, y: 3.92, z: -29.96}
-  m_LocalScale: {x: 20, y: 15, z: 30}
+  m_LocalScale: {x: 1000, y: 1000, z: 1000}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -667,7 +667,7 @@ Light:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1391845210}
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 8
   m_Type: 1
   m_Color: {r: 1, g: 0.90660375, b: 0.759434, a: 1}
@@ -705,13 +705,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1391845210}
-  m_LocalRotation: {x: 0.16694666, y: -0.494264, z: 0.19518393, w: 0.830503}
-  m_LocalPosition: {x: 26.460272, y: 10.102352, z: 0}
+  m_LocalRotation: {x: 0.24689126, y: -0.4675199, z: 0.053157207, w: 0.8471388}
+  m_LocalPosition: {x: 24.891388, y: 5.4510436, z: -20.445263}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 28.050001, y: -58.915, z: 10.39}
+  m_LocalEulerAnglesHint: {x: 27.905, y: -60.069004, z: -9.167001}
 --- !u!114 &1391845213
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -719,7 +719,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1391845210}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3b404c01670a841439f40cbf2b2282c6, type: 3}
   m_Name: 
@@ -730,7 +730,7 @@ MonoBehaviour:
   secondLevelDistance: 25
   thirdLevelDistance: 40
   farestDistance: 60
-  bias: 0.2
+  bias: 0.15
   normalBias: {x: 0.001, y: 0.002, z: 0.003, w: 0.004}
   cascadeSoftValue: {x: 2, y: 1, z: 0.5, w: 0.2}
 --- !u!20 &1391845214
@@ -1079,7 +1079,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 4294967295
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &8124619871088453073
 MonoBehaviour:
   m_ObjectHideFlags: 0

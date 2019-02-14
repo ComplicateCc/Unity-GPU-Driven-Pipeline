@@ -1,5 +1,4 @@
-﻿
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
@@ -116,13 +115,13 @@ namespace MPipeline
             NativeDictionary<int, int> dicts = new NativeDictionary<int, int>(allRenderers.Length, Allocator.Temp, (i, j) => j == i);
             List<Texture2D> allLightmaps = new List<Texture2D>();
             dicts[-1] = -1;
-            foreach(var i in allRenderers)
+            foreach (var i in allRenderers)
             {
                 int ind = i.lightmapIndex;
                 LightmapData[] allData = LightmapSettings.lightmaps;
-                if(ind >= 0)
+                if (ind >= 0)
                 {
-                    if(!dicts.Contains(ind))
+                    if (!dicts.Contains(ind))
                     {
                         dicts.Add(ind, allLightmaps.Count);
                         allLightmaps.Add(allData[ind].lightmapColor);
@@ -297,7 +296,7 @@ namespace MPipeline
             lightmapShader.SetBuffer(pass, "_Buffer", tempBuffer);
             lightmapShader.SetInt("_Width", lightmap.width);
             lightmapShader.Dispatch(pass, lightmap.width / 8, lightmap.height / 8, 1);
-            if(results == null || results.Length !=  (tempBuffer.count * tempBuffer.stride))
+            if (results == null || results.Length != (tempBuffer.count * tempBuffer.stride))
             {
                 results = new byte[(tempBuffer.count * tempBuffer.stride)];
             }

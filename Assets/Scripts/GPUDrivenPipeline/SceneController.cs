@@ -41,6 +41,7 @@ namespace MPipeline
             public Material terrainMaterial;
             public Dictionary<string, TextureIdentifier> texDict;
             public Dictionary<string, TextureIdentifier> lightmapDict;
+            public Dictionary<int, ComputeBuffer> allTempBuffers;
             public NativeList<int> avaiableTexs;
             public NativeList<int> avaiableProperties;
             public NativeList<int> avaiableLightmap;
@@ -124,7 +125,27 @@ namespace MPipeline
                     }
                 }
             }
-
+            public ComputeBuffer GetTempPropertyBuffer(int length, int stride)
+            {
+                ComputeBuffer target;
+                if (allTempBuffers.TryGetValue(stride, out target))
+                {
+                    if (target == null) Debug.Log("Null");
+                    if(target.count < length)
+                    {
+                        target.Dispose();
+                        target = new ComputeBuffer(length, stride);
+                        allTempBuffers[stride] = target;
+                    }
+                    return target;
+                }
+                else
+                {
+                    target = new ComputeBuffer(length, stride);
+                    allTempBuffers[stride] = target;
+                    return target;
+                }
+            }
             public void RemoveLightmap(string guid)
             {
                 if (lightmapDict.ContainsKey(guid))
@@ -247,7 +268,8 @@ namespace MPipeline
                 texArray = new RenderTexture(desc),
                 clusterMaterial = new Material(resources.shaders.clusterRenderShader),
                 terrainMaterial = new Material(resources.shaders.terrainShader),
-                terrainDrawStreaming = new TerrainDrawStreaming(100, 16, resources.shaders.terrainCompute)
+                terrainDrawStreaming = new TerrainDrawStreaming(100, 16, resources.shaders.terrainCompute),
+                allTempBuffers = new Dictionary<int, ComputeBuffer>(11)
             };
             commonData.texArray.wrapMode = TextureWrapMode.Repeat;
             desc.volumeDepth = lightmapCapacity;
@@ -301,6 +323,10 @@ namespace MPipeline
             UnityEngine.Object.DestroyImmediate(commonData.lightmapArray);
             UnityEngine.Object.DestroyImmediate(commonData.texArray);
             addList.Dispose();
+            foreach(var i in commonData.allTempBuffers.Values)
+            {
+                i.Dispose();
+            }
         }
         //Press number load scene
 

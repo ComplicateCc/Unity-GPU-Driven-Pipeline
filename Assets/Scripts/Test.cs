@@ -10,26 +10,17 @@ using Unity.Collections.LowLevel.Unsafe;
 using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
 using static Unity.Mathematics.math;
 using UnityEngine.Rendering;
+using System.Reflection;
+using UnityEngine.Jobs;
 using MPipeline;
 public unsafe class Test : MonoBehaviour
 {
-    public struct TestJob : IJobParallelFor
+    private static void UpdateFunc()
     {
-        public int index;
-        public void Execute(int index)
-        {
-            Interlocked.Add(ref this.index, index);
-        }
+        Debug.Log("SB");
     }
     [Button]
     public void Run()
     {
-        TestJob job = new TestJob
-        {
-            index = 0
-        };
-        var handle = job.ScheduleRefBurst(100, 32);
-        handle.Complete();
-        Debug.Log(job.index);
     }
 }

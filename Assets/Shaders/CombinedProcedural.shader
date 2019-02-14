@@ -19,7 +19,6 @@ CGINCLUDE
 #include "AutoLight.cginc"
 #include "UnityPBSLighting.cginc"
 #include "CGINC/Procedural.cginc"
-#pragma multi_compile _ EnableShadow
 	Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
   Texture2DArray<half3> _LightMap; SamplerState sampler_LightMap;
 	StructuredBuffer<PropertyValue> _PropertiesBuffer;
@@ -144,10 +143,8 @@ void frag_surf (v2f_surf IN,
   half2 screenUV = GetScreenPos(screenPos);
   outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);
 }
-Texture2D<half> _ShadowmapForCubemap; SamplerState sampler_ShadowmapForCubemap;
-float4x4 _ShadowMapVP;
-float3 _DirLightPos;
-float3 _DirLightFinalColor;
+
+
 float3 frag_gi (v2f_surf IN) : SV_TARGET{
   // prepare and unpack data
   float3 worldPos = float3(IN.worldTangent.w, IN.worldBinormal.w, IN.worldNormal.w);
@@ -156,21 +153,7 @@ float3 frag_gi (v2f_surf IN) : SV_TARGET{
   half3x3 wdMatrix= half3x3(normalize(IN.worldTangent.xyz), normalize(IN.worldBinormal.xyz), normalize(IN.worldNormal.xyz));
   // call surface function
   surf (IN.pack0.xy, IN.pack0.zw, IN.lightmapIndex, IN.objectIndex, o);
-  o.Normal = normalize(mul(o.Normal, wdMatrix));
-  float4 shadowPos = mul(_ShadowMapVP, float4(worldPos, 1));
-  shadowPos /= shadowPos.w;
-  shadowPos.xy = shadowPos.xy * 0.5 + 0.5;
-  #if UNITY_REVERSED_Z
-  shadowPos.z = 1 - shadowPos.z;
-  #endif
-  float depth = _ShadowmapForCubemap.Sample(sampler_ShadowmapForCubemap, shadowPos.xy);
-  float ndl = dot(o.Normal, _DirLightPos);
-  float3 color = ndl * _DirLightFinalColor * o.Albedo;
-  #if EnableShadow
-  return ((depth + 0.001) > shadowPos.z) * color;
-  #else
-  return color;
-  #endif
+  return o.Emission;
   //TODO
 }
 

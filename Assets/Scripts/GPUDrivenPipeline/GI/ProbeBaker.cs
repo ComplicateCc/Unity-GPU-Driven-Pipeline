@@ -108,53 +108,7 @@ namespace MPipeline
         }
         static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
         private OrthoCam shadowCam;
-        private Matrix4x4 shadowVP;
-        private bool CalculateShadowmap(float3 center, float3 extent)
-        {
-            RenderTextureDescriptor desc = new RenderTextureDescriptor
-            {
-                autoGenerateMips = false,
-                bindMS = false,
-                colorFormat = RenderTextureFormat.RHalf,
-                depthBufferBits = 16,
-                dimension = TextureDimension.Tex2D,
-                enableRandomWrite = false,
-                height = 4096,
-                memoryless = RenderTextureMemoryless.None,
-                msaaSamples = 1,
-                shadowSamplingMode = ShadowSamplingMode.None,
-                sRGB = false,
-                useMipMap = false,
-                volumeDepth = 1,
-                vrUsage = VRTextureUsage.None,
-                width = 4096
-            };
-
-            float3* allVert = stackalloc float3[]
-            {
-                center + extent,
-                center + float3(extent.x, -extent.y, extent.z),
-                center + float3(extent.x, extent.y, -extent.z),
-                center + float3(extent.x, -extent.y, -extent.z),
-                center + float3(-extent.x, extent.y, extent.z),
-                center + float3(-extent.x, -extent.y, extent.z),
-                center + float3(-extent.x, extent.y, -extent.z),
-                center - extent
-            };
-            if (SunLight.current && SunLight.current.enableShadow)
-            {
-                shadowmap = new RenderTexture(desc);
-                cbuffer.SetGlobalTexture(_ShadowmapForCubemap, shadowmap);
-                SceneController.DrawSunShadowForCubemap(allVert, shadowmap, SunLight.current, cbuffer, out shadowCam, resources.shaders.gpuFrustumCulling);
-                shadowVP = GL.GetGPUProjectionMatrix(shadowCam.projectionMatrix, false) * (Matrix4x4)shadowCam.worldToCameraMatrix;
-                return true;
-            }
-            else
-            {
-                shadowmap = null;
-                return false;
-            }
-        }
+       
 
         [EasyButtons.Button]
         public void BakeProbe()
@@ -180,12 +134,7 @@ namespace MPipeline
             cbuffer.SetGlobalVector("_SHSize", transform.localScale);
             cbuffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
             cbuffer.EnableShaderKeyword("ENABLESH");
-            bool useShadow = CalculateShadowmap(transform.position, (float3)transform.lossyScale * 0.5f + float3(considerRange));
-            Debug.Log(useShadow);
-            if (useShadow)
-                cbuffer.EnableShaderKeyword("EnableShadow");
-            else
-                cbuffer.DisableShaderKeyword("EnableShadow");
+           
             int count = 0;
             int target = probeCount.x * probeCount.y * probeCount.z;
             for (int x = 0; x < probeCount.x; ++x)
@@ -195,7 +144,6 @@ namespace MPipeline
                     for (int z = 0; z < probeCount.z; ++z)
                     {
 
-                        cbuffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, shadowVP);
                         BakeMap(int3(x, y, z));
                         cbuffer.SetComputeIntParam(shader, "_OffsetIndex", PipelineFunctions.DownDimension(int3(x, y, z), probeCount.xy));
                         cbuffer.DispatchCompute(shader, 0, RESOLUTION / 32, RESOLUTION / 32, 6);

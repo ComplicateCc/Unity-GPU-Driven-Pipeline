@@ -5,7 +5,7 @@ using System.Threading;
 using System;
 namespace MPipeline
 {
-    public class LoadingThread
+    public sealed class LoadingThread
     {
         private struct Command
         {
