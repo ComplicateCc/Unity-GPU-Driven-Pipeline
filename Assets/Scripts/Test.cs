@@ -13,14 +13,21 @@ using UnityEngine.Rendering;
 using System.Reflection;
 using UnityEngine.Jobs;
 using MPipeline;
+using Random = UnityEngine.Random;
 public unsafe class Test : MonoBehaviour
 {
-    private static void UpdateFunc()
-    {
-        Debug.Log("SB");
-    }
     [Button]
     public void Run()
     {
+        NativeDictionary<int, int> dict = new NativeDictionary<int, int>(150, Unity.Collections.Allocator.Persistent, (i,j) => i == j);
+        for(int i = 0; i < 200; ++i)
+        {
+            dict.Add(i, Random.Range(0, 10000));
+        }
+        foreach(var i in dict)
+        {
+            Debug.Log(i);
+        }
+        dict.Dispose();
     }
 }

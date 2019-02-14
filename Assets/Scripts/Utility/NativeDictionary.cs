@@ -3,16 +3,18 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Runtime.CompilerServices;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 namespace MPipeline
 {
-    unsafe struct DictData
+    public unsafe struct DictData
     {
         public int capacity;
         public int length;
         public void* start;
         public Allocator alloc;
     }
-    public unsafe struct NativeDictionary<K, V> where K : unmanaged where V : unmanaged
+    public unsafe struct NativeDictionary<K, V> : IEnumerable<V> where K : unmanaged where V : unmanaged
     {
         static readonly int stride = sizeof(K) + sizeof(V) + 8;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -23,8 +25,8 @@ namespace MPipeline
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static K** GetNextPtr(K* ptr)
         {
-            ulong num = (ulong)ptr;
-            num += (ulong)(sizeof(K) + sizeof(V));
+            UIntPtr num = new UIntPtr(ptr);
+            num += (sizeof(K) + sizeof(V));
             return (K**)num;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -42,6 +44,7 @@ namespace MPipeline
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return data->capacity; }
         }
+        [NativeDisableUnsafePtrRestriction]
         private DictData* data;
         public bool isCreated { get; private set; }
         public Func<K, K, bool> equalsFunc;
@@ -229,6 +232,127 @@ namespace MPipeline
             }
             value = default;
             return false;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IEnumerator<V> GetEnumerator()
+        {
+            if (!isCreated || Length == 0) return new DictionaryNullIEnumerator<V>();
+            return new DictionaryIenumerator<K, V>((K**)data->start, Capacity);
+        }
+    }
+
+    public unsafe struct DictionaryNullIEnumerator<V> : IEnumerator<V>
+    {
+        public V Current
+        {
+            get
+            {
+                return default;
+            }
+        }
+
+        object IEnumerator.Current
+        {
+            get
+            {
+                return default;
+            }
+        }
+
+        public void Dispose()
+        {
+
+        }
+        public void Reset()
+        {
+
+        }
+        public bool MoveNext() { return false; }
+    }
+
+    public unsafe struct DictionaryIenumerator<K, V> : IEnumerator<V> where V : unmanaged where K : unmanaged
+    {
+        [NativeDisableUnsafePtrRestriction]
+        K** data;
+        [NativeDisableUnsafePtrRestriction]
+        K** start;
+        int offset;
+        int capacity;
+
+        public DictionaryIenumerator(K** data, int capacity)
+        {
+            offset = -1;
+            start = data;
+            this.data = null;
+            this.capacity = capacity;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static V* GetV(K* ptr)
+        {
+            return (V*)(ptr + 1);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static K** GetNextPtr(K* ptr)
+        {
+            UIntPtr num = new UIntPtr(ptr);
+            num += (sizeof(K) + sizeof(V));
+            return (K**)num;
+        }
+
+        public V Current
+        {
+            get
+            {
+                return *GetV(*data);
+            }
+        }
+
+        object IEnumerator.Current
+        {
+            get
+            {
+                return *GetV(*data);
+            }
+        }
+
+        public void Reset()
+        {
+            data = null;
+            offset = -1;
+        }
+
+        public bool MoveNext()
+        {
+            if (data == null || *data == null)
+            {
+                do
+                {
+                    offset++;
+                    data = start + offset;
+                }
+                while (*data == null);
+            }
+            else
+            {
+                data = GetNextPtr(*data);
+                while(*data == null)
+                {
+                    offset++;
+                    data = start + offset;
+                }
+            }
+            return offset < capacity;
+        }
+
+        public void Dispose()
+        {
+
         }
     }
 }

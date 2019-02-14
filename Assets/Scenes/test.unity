@@ -75,7 +75,7 @@ LightmapSettings:
     m_BakeBackend: 1
     m_PVRSampling: 1
     m_PVRDirectSampleCount: 512
-    m_PVRSampleCount: 4096
+    m_PVRSampleCount: 8192
     m_PVRBounces: 4
     m_PVRFilterTypeDirect: 0
     m_PVRFilterTypeIndirect: 0
@@ -626,7 +626,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1c730fae185f1b458fdc04865c2b614, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volume: 1
+  volume: 0.7
 --- !u!4 &1271864081
 Transform:
   m_ObjectHideFlags: 0
@@ -667,7 +667,7 @@ Light:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1391845210}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 8
   m_Type: 1
   m_Color: {r: 1, g: 0.90660375, b: 0.759434, a: 1}
@@ -719,7 +719,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1391845210}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3b404c01670a841439f40cbf2b2282c6, type: 3}
   m_Name: 
@@ -1079,7 +1079,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 4294967295
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &8124619871088453073
 MonoBehaviour:
   m_ObjectHideFlags: 0

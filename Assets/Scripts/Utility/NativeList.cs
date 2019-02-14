@@ -298,7 +298,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     }
 }
 
-public unsafe class ListIenumerator<T> : IEnumerator<T> where T : unmanaged
+public unsafe struct ListIenumerator<T> : IEnumerator<T> where T : unmanaged
 {
     [NativeDisableUnsafePtrRestriction]
     private NativeListData* data;
