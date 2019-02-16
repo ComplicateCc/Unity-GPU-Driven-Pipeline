@@ -115,6 +115,8 @@ namespace MPipeline
         public const int VertexIndexKernel = 6;
         public const int MoveVertex = 7;
         public const int MoveCluster = 8;
+        public const int SetVertexProperty = 9;
+        public const int SetVertexLightmapIndex = 10;
     }
 
     public struct OcclusionBuffers

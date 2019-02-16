@@ -22,7 +22,7 @@ public unsafe struct MString
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()
     {
-        return hashCode;
+        return 0;
     }
 
     public ref char this[int index]

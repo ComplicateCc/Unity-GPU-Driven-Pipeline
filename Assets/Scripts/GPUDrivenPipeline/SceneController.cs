@@ -39,8 +39,8 @@ namespace MPipeline
             }
             public Material clusterMaterial;
             public Material terrainMaterial;
-            public Dictionary<string, TextureIdentifier> texDict;
-            public Dictionary<string, TextureIdentifier> lightmapDict;
+            public Dictionary<String, TextureIdentifier> texDict;
+            public Dictionary<String, TextureIdentifier> lightmapDict;
             public Dictionary<int, ComputeBuffer> allTempBuffers;
             public NativeList<int> avaiableTexs;
             public NativeList<int> avaiableProperties;
@@ -58,6 +58,7 @@ namespace MPipeline
                     alreadyContained = false;
                     return -1;
                 }
+                
                 if (texDict.ContainsKey(guid) && texDict[guid].usedCount > 0)
                 {
                     TextureIdentifier ident = texDict[guid];
@@ -81,6 +82,7 @@ namespace MPipeline
                     alreadyContained = false;
                     return ident.belonged;
                 }
+
             }
             public int GetLightmapIndex(string guid, out bool alreadyContained)
             {
@@ -90,6 +92,7 @@ namespace MPipeline
                     ident.usedCount++;
                     lightmapDict[guid] = ident;
                     alreadyContained = true;
+                    Debug.Log("SB");
                     return ident.belonged;
                 }
                 else
@@ -98,7 +101,7 @@ namespace MPipeline
                     ident.usedCount = 1;
                     if (avaiableLightmap.Length <= 0)
                     {
-                        throw new Exception("No available texture lefted!");
+                        throw new Exception("No available lightmap lefted!");
                     }
                     ident.belonged = avaiableLightmap[avaiableLightmap.Length - 1];
 
@@ -131,7 +134,7 @@ namespace MPipeline
                 if (allTempBuffers.TryGetValue(stride, out target))
                 {
                     if (target == null) Debug.Log("Null");
-                    if(target.count < length)
+                    if (target.count < length)
                     {
                         target.Dispose();
                         target = new ComputeBuffer(length, stride);
@@ -257,8 +260,8 @@ namespace MPipeline
             };
             commonData = new SceneCommonData
             {
-                texDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(),
-                lightmapDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(),
+                texDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(texArrayCapacity),
+                lightmapDict = new Dictionary<string, SceneCommonData.TextureIdentifier>(lightmapCapacity),
                 avaiableProperties = new NativeList<int>(propertyCapacity, Allocator.Persistent),
                 avaiableTexs = new NativeList<int>(texArrayCapacity, Allocator.Persistent),
                 avaiableLightmap = new NativeList<int>(lightmapCapacity, Allocator.Persistent),
@@ -323,7 +326,7 @@ namespace MPipeline
             UnityEngine.Object.DestroyImmediate(commonData.lightmapArray);
             UnityEngine.Object.DestroyImmediate(commonData.texArray);
             addList.Dispose();
-            foreach(var i in commonData.allTempBuffers.Values)
+            foreach (var i in commonData.allTempBuffers.Values)
             {
                 i.Dispose();
             }

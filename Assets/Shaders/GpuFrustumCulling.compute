@@ -8,6 +8,8 @@
 #pragma kernel LoadProperty
 #pragma kernel MoveVertex
 #pragma kernel MoveCluster
+#pragma kernel SetVertexProperty
+#pragma kernel SetVertexLightmapIndex
 #define COMPUTESHADER
 #include "UnityCG.cginc"
 #include "CGINC/Procedural.cginc"
@@ -179,4 +181,18 @@ void MoveCluster(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
     clusterBuffer[id + _OffsetIndex].position += _SceneOffset;
+}
+
+[numthreads(1,CLUSTERCLIPCOUNT, 1)]
+void SetVertexProperty(uint2 id : SV_DISPATCHTHREADID)
+{
+    int index = (id.x + _OffsetIndex) * CLUSTERCLIPCOUNT + id.y;
+    verticesBuffer[index].objIndex = _IndexBuffer[verticesBuffer[index].objIndex];
+}
+
+[numthreads(1,CLUSTERCLIPCOUNT, 1)]
+void SetVertexLightmapIndex(uint2 id : SV_DISPATCHTHREADID)
+{
+    int index = (id.x + _OffsetIndex) * CLUSTERCLIPCOUNT + id.y;
+    verticesBuffer[index].lightmapIndex = _IndexBuffer[verticesBuffer[index].lightmapIndex];
 }

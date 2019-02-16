@@ -329,7 +329,7 @@ namespace MPipeline
 
         public bool MoveNext()
         {
-            if (data == null || *data == null)
+            if (data == null)
             {
                 do
                 {

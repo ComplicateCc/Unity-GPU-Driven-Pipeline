@@ -34,7 +34,7 @@ namespace MPipeline
         private NativeArray<Point> pointsBuffer;
         private NativeArray<Vector2Int> results;
         private NativeArray<uint> propertiesPool;
-
+        private NativeArray<int> lightmapIndices;
         private int resultLength;
         private static Action<object> generateAsyncFunc = (obj) =>
         {
@@ -115,11 +115,11 @@ namespace MPipeline
             LoadTextures();
             propertiesPool = SceneController.commonData.GetPropertyIndex(property.properties.Length);
             uint* poolPtr = propertiesPool.Ptr();
-            for (int i = 0; i < pointsBuffer.Length; ++i)
+            lightmapIndices = new NativeArray<int>(allLightmapDatas.Count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            int* ptr = lightmapIndices.Ptr();
+            for(int i = 0; i < lightmapIndices.Length; ++i)
             {
-                Point* pt = verticesData + i;
-                pt->objIndex = poolPtr[pt->objIndex];
-                pt->lightmapIndex = allLightmapDatas[pt->lightmapIndex].index;
+                ptr[i] = allLightmapDatas[i].index;
             }
             if (listCommand)
             {
@@ -258,7 +258,7 @@ namespace MPipeline
             }
             foreach (var i in allLightmapDatas)
             {
-                SceneController.commonData.RemoveTex(i.texGUID);
+                SceneController.commonData.RemoveLightmap(i.texGUID);
             }
             allTextureDatas.Clear();
             allLightmapDatas.Clear();
@@ -453,6 +453,16 @@ namespace MPipeline
             copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._TempPropBuffer, currentPropertyBuffer);
             copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._IndexBuffer, propertyIndexBuffer);
             ComputeShaderUtility.Dispatch(copyShader, loadPropertyKernel, propertiesPool.Length, 64);
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexProperty, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexProperty, ShaderIDs._IndexBuffer, propertyIndexBuffer);
+            copyShader.SetInt(ShaderIDs._OffsetIndex, baseBuffer.clusterCount);
+            copyShader.Dispatch(PipelineBaseBuffer.SetVertexProperty, clusterCount, 1, 1);
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexLightmapIndex, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            propertyIndexBuffer = SceneController.commonData.GetTempPropertyBuffer(lightmapIndices.Length, 4);
+            propertyIndexBuffer.SetData(lightmapIndices);
+            lightmapIndices.Dispose();
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexLightmapIndex, ShaderIDs._IndexBuffer, propertyIndexBuffer);
+            copyShader.Dispatch(PipelineBaseBuffer.SetVertexLightmapIndex, clusterCount, 1, 1);
             baseBuffer.clusterCount += clusterCount;
         }
         #endregion
