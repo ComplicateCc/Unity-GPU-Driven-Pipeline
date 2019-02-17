@@ -9,7 +9,6 @@
 		_MetallicIntensity("Metallic Intensity", Range(0, 1)) = 0.1
 		_EmissionColor("Emission Color", Color) = (0,0,0,1)
 		_EmissionMultiplier("Emission Level", Range(1, 20)) = 1
-
 		_MainTex ("Albedo (RGB)", 2D) = "white" {}
 		_BumpMap("Normal Map", 2D) = "bump" {}
 		_SpecularMap("Specular Map", 2D) = "white"{}
@@ -59,8 +58,9 @@ CGINCLUDE
 			half4 c = tex2D (_MainTex, uv) * _Color;
 			o.Albedo = c.rgb;
 			o.Alpha = 1;
-			o.Occlusion = lerp(1, c.a, _Occlusion);
-			float3 spec = tex2D(_SpecularMap,uv);
+			
+			float4 spec = tex2D(_SpecularMap,uv);
+			o.Occlusion = lerp(1, spec.a, _Occlusion);
 			o.Specular = lerp(_SpecularIntensity * spec.r, o.Albedo * _SpecularIntensity * spec.r, _MetallicIntensity * spec.g); 
 			o.Smoothness = _Glossiness * spec.b;
 			o.Normal = UnpackNormal(tex2D(_BumpMap,uv));

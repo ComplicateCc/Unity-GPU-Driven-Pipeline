@@ -251,7 +251,6 @@ Shader "Hidden/PostProcessing/Uber"
                 #endif
             }
             #endif
-
             // Output RGB is still HDR at that point (unless range was crunched by a tonemapper)
             return output;
         }

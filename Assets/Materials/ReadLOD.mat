@@ -67,7 +67,7 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.962
     - _GlossyReflections: 1
-    - _Index: 34.4
+    - _Index: 0
     - _Lod: 3.76
     - _Metallic: 0
     - _MetallicIntensity: 1

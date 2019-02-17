@@ -32,11 +32,10 @@ CGINCLUDE
 		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1) * prop._Color;
 		o.Albedo = c.rgb;
 		o.Alpha = 1;
-
-		o.Occlusion = lerp(1, c.a, prop._Occlusion);
-		half3 spec = prop.textureIndex.z >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)) : 1;
+		half4 spec = prop.textureIndex.z >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)) : 1;
 		o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity * spec.g); 
 		o.Smoothness = prop._Glossiness * spec.b;
+    o.Occlusion = lerp(1, spec.a, prop._Occlusion);
 		if(prop.textureIndex.y >= 0){
 			o.Normal =  UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.y)));
 		}else{
@@ -179,7 +178,7 @@ ENDCG
 
 Pass {
 ZTest Less
-Cull front
+Cull off
 CGPROGRAM
 
 #pragma vertex vert_gbuffer

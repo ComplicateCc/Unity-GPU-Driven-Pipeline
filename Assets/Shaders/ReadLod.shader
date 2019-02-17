@@ -12,6 +12,7 @@
 
         Pass
         {
+            Cull off ZWrite off ZTest Always
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -37,10 +38,8 @@
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.vertex = v.vertex;
                 o.uv = v.uv;
-                UNITY_TRANSFER_FOG(o,o.vertex);
-                
                 return o;
             }
 

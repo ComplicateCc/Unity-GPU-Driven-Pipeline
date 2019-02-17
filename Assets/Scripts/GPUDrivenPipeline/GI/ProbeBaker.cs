@@ -23,6 +23,8 @@ namespace MPipeline
         private NativeList<int> _CoeffIDs;
         private RenderTexture[] coeffTextures;
         private bool isRendering = false;
+        
+        public Material targetMat;
         private void OnEnable()
         {
             cbuffer = new CommandBuffer();
@@ -58,6 +60,7 @@ namespace MPipeline
             }
             coeffTemp = new ComputeBuffer(9, 12);
             coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
+            
         }
         private void OnDisable()
         {
@@ -70,6 +73,7 @@ namespace MPipeline
             {
                 DestroyImmediate(i);
             }
+            
         }
         private void OnDrawGizmos()
         {
@@ -97,7 +101,7 @@ namespace MPipeline
         }
         public IEnumerator BakeLightmap()
         {
-            var rt = RenderTexture.GetTemporary(new RenderTextureDescriptor
+            RenderTexture rt = RenderTexture.GetTemporary(new RenderTextureDescriptor
             {
                 autoGenerateMips = false,
                 bindMS = false,
@@ -115,6 +119,7 @@ namespace MPipeline
                 volumeDepth = 6,
                 vrUsage = VRTextureUsage.None
             });
+            targetMat.SetTexture(ShaderIDs._MainTex, rt);
             ComputeShader shader = resources.shaders.probeCoeffShader;
             cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
             cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
