@@ -27,6 +27,8 @@ CGINCLUDE
 	
 	void surf (float2 uv, float2 lightmapUV, int lightmapIndex, uint index, inout SurfaceOutputStandardSpecular o) {
 		PropertyValue prop = _PropertiesBuffer[index];
+    uv *= prop.mainScaleOffset.xy;
+    uv += prop.mainScaleOffset.zw;
 		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1) * prop._Color;
 		o.Albedo = c.rgb;
 		o.Alpha = 1;

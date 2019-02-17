@@ -8,8 +8,6 @@ public unsafe sealed class Test : MonoBehaviour
     [EasyButtons.Button]
     void Run()
     {
-        float* pt = (float*)AddressOf(ref number);
-        Debug.Log(*pt);
     }
 }
 

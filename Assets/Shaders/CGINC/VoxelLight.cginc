@@ -43,6 +43,15 @@ static const uint3 _ScreenSize = uint3(160, 90, 256);
                 float3 extent;
                 float targetVolume;
             };
+            struct ReflectionData
+            {
+                float4x4 localToWorld;
+                float3 extent;
+                float4 hdr;
+                float blendDistance;
+                int importance;
+                int boxProjection;
+            };
 float3 _CameraForward;
 float3 _CameraNearPos;
 float3 _CameraFarPos;

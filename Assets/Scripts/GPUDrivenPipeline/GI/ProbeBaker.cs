@@ -11,6 +11,7 @@ namespace MPipeline
 {
     public unsafe class ProbeBaker : MonoBehaviour
     {
+        public static bool probeEnabled { get; private set; }
         public int3 probeCount = new int3(10, 10, 10);
         public float considerRange = 5;
         public string path = "Assets/Test.txt";
@@ -19,12 +20,9 @@ namespace MPipeline
         private CommandBuffer cbuffer;
         private ComputeBuffer coeffTemp;
         private ComputeBuffer coeff;
-        private RenderTexture rt;
         private NativeList<int> _CoeffIDs;
         private RenderTexture[] coeffTextures;
         private bool isRendering = false;
-        public RenderTexture shadowmap;
-        public UnityEngine.UI.Text testText;
         private void OnEnable()
         {
             cbuffer = new CommandBuffer();
@@ -58,7 +56,48 @@ namespace MPipeline
                 });
                 coeffTextures[i].Create();
             }
-            rt = new RenderTexture(new RenderTextureDescriptor
+            coeffTemp = new ComputeBuffer(9, 12);
+            coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
+        }
+        private void OnDisable()
+        {
+            probeEnabled = false;
+            cbuffer.Dispose();
+            coeff.Dispose();
+            coeffTemp.Dispose();
+            _CoeffIDs.Dispose();
+            foreach (var i in coeffTextures)
+            {
+                DestroyImmediate(i);
+            }
+        }
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireCube(transform.position, transform.lossyScale);
+        }
+        private void BakeMap(int3 index, RenderTexture rt)
+        {
+            float3 left = transform.position - transform.lossyScale * 0.5f;
+            float3 right = transform.position + transform.lossyScale * 0.5f;
+            float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
+            SceneController.GICubeCull(position, considerRange, cbuffer, resources.shaders.gpuFrustumCulling);
+            SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
+        }
+        static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
+        private OrthoCam shadowCam;
+
+
+        [EasyButtons.Button]
+        public void BakeProbe()
+        {
+            if (isRendering) return;
+            isRendering = true;
+            StartCoroutine(BakeLightmap());
+        }
+        public IEnumerator BakeLightmap()
+        {
+            var rt = RenderTexture.GetTemporary(new RenderTextureDescriptor
             {
                 autoGenerateMips = false,
                 bindMS = false,
@@ -76,49 +115,6 @@ namespace MPipeline
                 volumeDepth = 6,
                 vrUsage = VRTextureUsage.None
             });
-            coeffTemp = new ComputeBuffer(9, 12);
-            coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
-            rt.Create();
-        }
-        private void OnDisable()
-        {
-            cbuffer.Dispose();
-            coeff.Dispose();
-            coeffTemp.Dispose();
-            DestroyImmediate(rt);
-            _CoeffIDs.Dispose();
-            foreach (var i in coeffTextures)
-            {
-                DestroyImmediate(i);
-            }
-            Shader.DisableKeyword("ENABLESH");
-        }
-        private void OnDrawGizmos()
-        {
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(transform.position, transform.lossyScale);
-        }
-        private void BakeMap(int3 index)
-        {
-            float3 left = transform.position - transform.lossyScale * 0.5f;
-            float3 right = transform.position + transform.lossyScale * 0.5f;
-            float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
-            SceneController.GICubeCull(position, considerRange, cbuffer, resources.shaders.gpuFrustumCulling);
-            SceneController.DrawGIBuffer(rt, float4(position, considerRange), resources.shaders.gpuFrustumCulling, cbuffer);
-        }
-        static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
-        private OrthoCam shadowCam;
-       
-
-        [EasyButtons.Button]
-        public void BakeProbe()
-        {
-            if (isRendering) return;
-            isRendering = true;
-            StartCoroutine(BakeLightmap());
-        }
-        public IEnumerator BakeLightmap()
-        {
             ComputeShader shader = resources.shaders.probeCoeffShader;
             cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
             cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
@@ -133,25 +129,22 @@ namespace MPipeline
             cbuffer.SetGlobalVector("_Tex3DSize", new Vector4(probeCount.x + 0.01f, probeCount.y + 0.01f, probeCount.z + 0.01f));
             cbuffer.SetGlobalVector("_SHSize", transform.localScale);
             cbuffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
-            cbuffer.EnableShaderKeyword("ENABLESH");
-           
-            int count = 0;
             int target = probeCount.x * probeCount.y * probeCount.z;
+            int count = 0;
             for (int x = 0; x < probeCount.x; ++x)
             {
                 for (int y = 0; y < probeCount.y; ++y)
                 {
                     for (int z = 0; z < probeCount.z; ++z)
                     {
-
-                        BakeMap(int3(x, y, z));
+                        BakeMap(int3(x, y, z), rt);
                         cbuffer.SetComputeIntParam(shader, "_OffsetIndex", PipelineFunctions.DownDimension(int3(x, y, z), probeCount.xy));
                         cbuffer.DispatchCompute(shader, 0, RESOLUTION / 32, RESOLUTION / 32, 6);
                         cbuffer.DispatchCompute(shader, 1, 1, 1, 1);
-                        testText.text = count.ToString() + " " + target.ToString();
                         count++;
-                        if (count % 50 == 0)
+                        if (count > 50)
                         {
+                            count = 0;
                             RenderPipeline.ExecuteBufferAtFrameEnding(cbuffer);
                             yield return null;
                         }
@@ -160,13 +153,12 @@ namespace MPipeline
             }
             ComputeShaderUtility.Dispatch(shader, cbuffer, 2, probeCount.x * probeCount.y * probeCount.z, 64);
             RenderPipeline.ExecuteBufferAtFrameEnding(cbuffer);
-            if (shadowmap != null)
-            {
-                Destroy(shadowmap);
-                shadowmap = null;
-            }
+            Debug.Log("Finished");
             isRendering = false;
-
+            yield return null;
+            probeEnabled = true;
+            yield return null;
+            RenderTexture.ReleaseTemporary(rt);
         }
     }
 

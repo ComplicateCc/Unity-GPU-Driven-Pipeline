@@ -16,6 +16,8 @@ namespace MPipeline
     {
         private Material volumeMat;
         public float availableDistance = 64;
+        [Range(0.01f, 100f)]
+        public float indirectIntensity = 1;
         const int marchStep = 64;
         const int scatterPass = 16;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
@@ -87,6 +89,11 @@ namespace MPipeline
                 pass |= 0b001;
             if (cbdr.spotShadowCount > 0)
                 pass |= 0b100;
+            if (ProbeBaker.probeEnabled)
+            {
+                buffer.SetGlobalFloat(ShaderIDs._IndirectIntensity, indirectIntensity);
+                pass |= 0b1000;
+            }
             //TODO
             //Enable fourth bit as Global Illumination
 

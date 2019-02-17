@@ -85,6 +85,16 @@ namespace MPipeline
         public float targetVolume;
     }
 
+    public struct ReflectionData
+    {
+        public float4x4 localToWorld;
+        public float3 extent;
+        public float4 hdr;
+        public float blendDistance;
+        public int importance;
+        public int boxProjection;
+    }
+
     public class PipelineBaseBuffer
     {
         public ComputeBuffer reCheckCount;

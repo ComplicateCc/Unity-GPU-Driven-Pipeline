@@ -13,6 +13,8 @@
         float _Glossiness;
         float4 _Color;
         int3 textureIndex;
+        float4 mainScaleOffset;
+        float4 detailScaleOffset;
     };
 struct Point{
     float3 vertex;

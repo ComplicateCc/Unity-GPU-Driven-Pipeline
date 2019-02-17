@@ -884,14 +884,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   probeCount:
-    x: 30
-    y: 20
-    z: 50
+    x: 10
+    y: 5
+    z: 10
   considerRange: 10
   path: Assets/Test.txt
   resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
-  shadowmap: {fileID: 0}
-  testText: {fileID: 1737725916}
 --- !u!4 &2046584286
 Transform:
   m_ObjectHideFlags: 0

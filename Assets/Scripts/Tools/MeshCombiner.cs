@@ -94,14 +94,11 @@ namespace MPipeline
             for (int subCount = 0; subCount < targetMesh.subMeshCount; ++subCount)
             {
                 int[] triangleArray = targetMesh.GetTriangles(subCount);
-                Vector2 scale = allMats[subCount].GetTextureScale("_MainTex");
-                Vector2 offset = allMats[subCount].GetTextureOffset("_MainTex");
                 for (int i = 0; i < triangleArray.Length; ++i)
                 {
                     triangleArray[i] += originLength;
                     ref Point pt = ref points[triangleArray[i]];
                     pt.objIndex = (uint)allMaterialsIndex[subCount];
-                    pt.texcoord = pt.texcoord * scale + offset;
                 }
                 triangles.AddRange(triangleArray);
             }
@@ -218,6 +215,31 @@ namespace MPipeline
             }
             return props;
         }
+
+        public List<Pair<string, Vector4[]>> CombineScaleOffset(List<Material> mats)
+        {
+            List<Pair<string, Vector4[]>> props = new List<Pair<string, Vector4[]>>();
+            string[] matNames = new string[]
+            {
+                "_MainTex", "_MainTex"
+            };
+            string[] propNames = new string[]
+            {
+                "mainScaleOffset", "detailScaleOffset"
+            };
+            for(int i = 0; i < matNames.Length; ++i)
+            {
+                Vector4[] vecs = new Vector4[mats.Count];
+                for(int j = 0; j < vecs.Length; ++j)
+                {
+                    Vector2 scale = mats[j].GetTextureScale(matNames[i]);
+                    Vector2 offset = mats[j].GetTextureOffset(matNames[i]);
+                    vecs[j] = new Vector4(scale.x, scale.y, offset.x, offset.y);
+                }
+                props.Add(new Pair<string, Vector4[]>(propNames[i], vecs));
+            }
+            return props;
+        }
         public PropertyValue[] GetProperty(List<Material> mats)
         {
             PropertyValue[] values = new PropertyValue[mats.Count];
@@ -243,6 +265,16 @@ namespace MPipeline
                 for (int i = 0; i < kv.value.Length; ++i)
                 {
                     Color* currentPointer = (Color*)((ulong)(pointer + i) + offset);
+                    *currentPointer = kv.value[i];
+                }
+            }
+            var scaleOffset = CombineScaleOffset(mats);
+            foreach (var kv in scaleOffset)
+            {
+                ulong offset = (ulong)UnsafeUtility.GetFieldOffset(typeof(PropertyValue).GetField(kv.key));
+                for (int i = 0; i < kv.value.Length; ++i)
+                {
+                    Vector4* currentPointer = (Vector4*)((ulong)(pointer + i) + offset);
                     *currentPointer = kv.value[i];
                 }
             }
@@ -379,5 +411,7 @@ namespace MPipeline
         public float _Glossiness;
         public Vector4 _Color;
         public Vector3Int textureIndex;
+        public Vector4 mainScaleOffset;
+        public Vector4 detailScaleOffset;
     }
 }

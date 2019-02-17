@@ -1,0 +1,15 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include "CGINC/VoxelLight.cginc"
+RWTexture3D<float4> _XYPlaneTexture;
+RWTexture2D<float4> _ZPlaneTexture;
+
+inline uint GetIndex(uint3 id, const uint2 size, const int multiply){
+    const uint3 multiValue = uint3(1, size.x, size.x * size.y) * multiply;
+    return dot(id, multiValue);
+}
+
+[numthreads(XRES,YRES,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+}

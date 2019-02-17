@@ -655,6 +655,46 @@ options.frustumPlanes);
         }
         public static void DrawGIBuffer(RenderTexture targetRT, float4 renderCube, ComputeShader cullingshader, CommandBuffer buffer)
         {
+            void GetMatrix(float4x4* allmat, ref PerspCam persp, float3 position)
+            {
+                persp.position = position;
+                //X
+                persp.up = float3(0, -1, 0);
+                persp.right = float3(0, 0, -1);
+                persp.forward = float3(1, 0, 0);
+                persp.UpdateTRSMatrix();
+                allmat[1] = persp.worldToCameraMatrix;
+                //-X
+                persp.up = float3(0, -1, 0);
+                persp.right = float3(0, 0, 1);
+                persp.forward = float3(-1, 0, 0);
+                persp.UpdateTRSMatrix();
+                allmat[0] = persp.worldToCameraMatrix;
+                //Y
+                persp.right = float3(-1, 0, 0);
+                persp.up = float3(0, 0, -1);
+                persp.forward = float3(0, 1, 0);
+                persp.UpdateTRSMatrix();
+                allmat[2] = persp.worldToCameraMatrix;
+                //-Y
+                persp.right = float3(-1, 0, 0);
+                persp.up = float3(0, 0, 1);
+                persp.forward = float3(0, -1, 0);
+                persp.UpdateTRSMatrix();
+                allmat[3] = persp.worldToCameraMatrix;
+                //Z
+                persp.right = float3(1, 0, 0);
+                persp.up = float3(0, -1, 0);
+                persp.forward = float3(0, 0, 1);
+                persp.UpdateTRSMatrix();
+                allmat[5] = persp.worldToCameraMatrix;
+                //-Z
+                persp.right = float3(-1, 0, 0);
+                persp.up = float3(0, -1, 0);
+                persp.forward = float3(0, 0, -1);
+                persp.UpdateTRSMatrix();
+                allmat[4] = persp.worldToCameraMatrix;
+            }
             if (!gpurpEnabled) return;
             PerspCam perspCam = new PerspCam();
             perspCam.aspect = 1;
@@ -663,93 +703,16 @@ options.frustumPlanes);
             perspCam.fov = 90;
             perspCam.position = renderCube.xyz;
             perspCam.UpdateProjectionMatrix();
-            float3x3* coords = stackalloc float3x3[]
-            {
-                float3x3(float3(0, 0, -1), float3(0, 1, 0), float3(1, 0, 0)),
-                float3x3(float3(0, 0, 1), float3(0, 1, 0), float3(-1, 0, 0)),
-                float3x3(float3(1, 0, 0), float3(0, 0, -1), float3(0, 1, 0)),
-                float3x3(float3(1, 0, 0), float3(0, 0, 1), float3(0, -1, 0)),
-                float3x3(float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1)),
-                float3x3(float3(-1, 0, 0), float3(0, 1, 0), float3(0, 0, -1))
-            };
+            float4x4* worldToCamMatrix = stackalloc float4x4[6];
+            GetMatrix(worldToCamMatrix, ref perspCam, renderCube.xyz);
             for (int i = 0; i < 6; ++i)
             {
-                float3x3 c = coords[i];
-                perspCam.right = c.c0;
-                perspCam.up = c.c1;
-                perspCam.forward = c.c2;
-                perspCam.UpdateTRSMatrix();
-                buffer.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(perspCam.projectionMatrix, true) * (Matrix4x4)perspCam.worldToCameraMatrix);
+                buffer.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(perspCam.projectionMatrix, true) * (Matrix4x4)worldToCamMatrix[i]);
                 buffer.SetRenderTarget(targetRT, 0, CubemapFace.Unknown, i);
                 buffer.ClearRenderTarget(true, true, Color.black);
                 buffer.DrawProceduralIndirect(Matrix4x4.identity, commonData.clusterMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
         }
-        public static void DrawSunShadowForCubemap(float3* cubeVertex, RenderTexture renderTarget, SunLight sunLight, CommandBuffer buffer, out OrthoCam camData, ComputeShader cullingShader)
-        {
-            camData = new OrthoCam();
-            Transform tr = SunLight.current.transform;
-            camData.nearClipPlane = -500;
-            camData.forward = tr.forward;
-            camData.right = tr.right;
-            camData.up = tr.up;
-            float4x4 localToWorld = float4x4(float4(camData.right, 0), float4(camData.up, 0), float4(camData.forward, 0), float4(0, 0, 0, 1));
-            float3* localPoses = stackalloc float3[8];
-            for (int i = 0; i < 8; ++i)
-            {
-                localPoses[i] = mul(localToWorld, float4(cubeVertex[i], 1)).xyz;
-            }
-            int2 rightMostPoint = 0;
-            int2 upMostPoint = 0;
-            int2 forwardMostPoint = 0;
-            for (int i = 1; i < 8; i++)
-            {
-                float3 p = localPoses[i];
-                if (p.x < localPoses[rightMostPoint.x].x)
-                {
-                    rightMostPoint.x = i;
-                }
-                if (p.x > localPoses[rightMostPoint.y].x)
-                {
-                    rightMostPoint.y = i;
-                }
-                if (p.y < localPoses[upMostPoint.x].y)
-                {
-                    upMostPoint.x = i;
-                }
-                if (p.y > localPoses[upMostPoint.y].y)
-                {
-                    upMostPoint.y = i;
-                }
-                if (p.z < localPoses[forwardMostPoint.x].z)
-                {
-                    forwardMostPoint.x = i;
-                }
-                if (p.z > localPoses[forwardMostPoint.y].z)
-                {
-                    forwardMostPoint.y = i;
-                }
-            }
-            float4 center = float4((localPoses[rightMostPoint.x].x + localPoses[rightMostPoint.y].x) * 0.5f, (localPoses[upMostPoint.x].y + localPoses[upMostPoint.y].y) * 0.5f, (localPoses[forwardMostPoint.x].z + localPoses[forwardMostPoint.y].z) * 0.5f, 1);
-            center = mul(center, localToWorld);
-            camData.position = center.xyz;
-            float width = localPoses[rightMostPoint.y].x - localPoses[rightMostPoint.x].x;
-            float up = localPoses[upMostPoint.y].y - localPoses[upMostPoint.x].y;
-            float length = localPoses[forwardMostPoint.y].z - localPoses[forwardMostPoint.x].z;
-            camData.size = max(width, up) * 0.5f;
-            camData.farClipPlane = length * 0.5f;
-            camData.UpdateTRSMatrix();
-            camData.UpdateProjectionMatrix();
-            float4* planes = stackalloc float4[6];
-            PipelineFunctions.GetOrthoCullingPlanes(ref camData, planes);
-            PipelineFunctions.SetBaseBuffer(baseBuffer, cullingShader, planes, buffer);
-            PipelineFunctions.RunCullDispatching(baseBuffer, cullingShader, buffer);
-            buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(camData.projectionMatrix, true) * (Matrix4x4)camData.worldToCameraMatrix);
-            buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-            buffer.SetRenderTarget(renderTarget);
-            buffer.ClearRenderTarget(true, true, Color.white);
-            buffer.DrawProceduralIndirect(Matrix4x4.identity, sunLight.shadowDepthMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
-        }
+       
     }
 }

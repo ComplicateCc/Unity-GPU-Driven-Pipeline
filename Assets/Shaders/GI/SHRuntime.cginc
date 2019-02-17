@@ -1,6 +1,6 @@
 #ifndef SH_RUNTIME
 #define SH_RUNTIME
-
+#include "GlobalIllumination.cginc"
             Texture3D<float4> _CoeffTexture0; SamplerState sampler_CoeffTexture0;
             Texture3D<float4> _CoeffTexture1; SamplerState sampler_CoeffTexture1;
             Texture3D<float4> _CoeffTexture2; SamplerState sampler_CoeffTexture2;
@@ -8,107 +8,68 @@
             Texture3D<float4> _CoeffTexture4; SamplerState sampler_CoeffTexture4;
             Texture3D<float4> _CoeffTexture5; SamplerState sampler_CoeffTexture5;
             Texture3D<float4> _CoeffTexture6; SamplerState sampler_CoeffTexture6;
-            float3 _LeftDownBack;
             float3 _SHSize;
+            float3 _LeftDownBack;
             float3 GetSHColor(float3 worldNormal, float3 worldPos)
             {
-                #if ENABLESH
-                float3 color[9];
-                float4 first, second;
+                const float A0 = 3.1415927;
+				const float A1 = 2.094395;
+				const float A2 = 0.785398;
                 float3 uv = (worldPos - _LeftDownBack) / (_SHSize);
-                first = _CoeffTexture0.Sample(sampler_CoeffTexture0, uv);
-                second = _CoeffTexture1.Sample(sampler_CoeffTexture1, uv);
+                GETCOEFF(worldNormal);
+                float3 color[9];
+                float4 first = _CoeffTexture0.SampleLevel(sampler_CoeffTexture0, uv, 0);
+                float4 second = _CoeffTexture1.SampleLevel(sampler_CoeffTexture1, uv, 0);
                 color[0] = first.rgb;
                 color[1] = float3(first.a, second.rg);
-                first = _CoeffTexture2.Sample(sampler_CoeffTexture2, uv);
+                first = _CoeffTexture2.SampleLevel(sampler_CoeffTexture2, uv, 0);
                 color[2] = float3(second.ba, first.r);
                 color[3] = float3(first.gba);
-                first = _CoeffTexture3.Sample(sampler_CoeffTexture3, uv);
-                second = _CoeffTexture4.Sample(sampler_CoeffTexture4, uv);
+                first = _CoeffTexture3.SampleLevel(sampler_CoeffTexture3, uv, 0);
+                second = _CoeffTexture4.SampleLevel(sampler_CoeffTexture4, uv, 0);
                 color[4] = first.rgb;
                 color[5] = float3(first.a, second.rg);
-                first = _CoeffTexture5.Sample(sampler_CoeffTexture5, uv);
+                first = _CoeffTexture5.SampleLevel(sampler_CoeffTexture5, uv, 0);
                 color[6] = float3(second.ba, first.r);
                 color[7] = float3(first.gba);
-                second = _CoeffTexture6.Sample(sampler_CoeffTexture6, uv);
+                second = _CoeffTexture6.SampleLevel(sampler_CoeffTexture6, uv, 0);
                 color[8] = second.rgb;
-                SH9 sh = SHCosineLobe(worldNormal);
-                float3 finalColor = 0;
-                [unroll]
-                for(int i = 0; i < 9; ++i)
-                {
-                    finalColor += sh.c[i] * color[i];
-                }
-                finalColor /= 9;
-                return finalColor;
-                #endif
-                return 0;
+                float3 irradiance = A0*Y00*color[0] + A1*Y1_1*color[3] + A1*Y10*color[2] + A1*Y11*color[1]+ A2*Y2_2*color[6] + A2*Y2_1*color[5]  + A2*Y20*color[7]+ A2*Y21*color[4] + A2*Y22*color[8];
+                return irradiance / 9.0;
             }
 
-            float3 GetVolumetricColor(float3 worldPos)
+            float3 GetColor(float3 color[9], float3 worldNormal)
             {
-                
-                #if ENABLESH
-                float3 color[9];
-                float4 first, second;
-                float3 uv = (worldPos - _LeftDownBack) / (_SHSize);
-                first = _CoeffTexture0.Sample(sampler_CoeffTexture0, uv);
-                second = _CoeffTexture1.Sample(sampler_CoeffTexture1, uv);
-                color[0] = first.rgb;
-                color[1] = float3(first.a, second.rg);
-                first = _CoeffTexture2.Sample(sampler_CoeffTexture2, uv);
-                color[2] = float3(second.ba, first.r);
-                color[3] = float3(first.gba);
-                first = _CoeffTexture3.Sample(sampler_CoeffTexture3, uv);
-                second = _CoeffTexture4.Sample(sampler_CoeffTexture4, uv);
-                color[4] = first.rgb;
-                color[5] = float3(first.a, second.rg);
-                first = _CoeffTexture5.Sample(sampler_CoeffTexture5, uv);
-                color[6] = float3(second.ba, first.r);
-                color[7] = float3(first.gba);
-                second = _CoeffTexture6.Sample(sampler_CoeffTexture6, uv);
-                color[8] = second.rgb;
-                SH9 sh = SHCosineLobe(float3(1,0,0));
-                float3 finalColor = 0;
-                int i;
-                [unroll]
-                for(i = 0; i < 9; ++i)
-                {
-                    finalColor += sh.c[i] * color[i];
-                }
-                sh = SHCosineLobe(float3(-1,0,0));
-                [unroll]
-                for(i = 0; i < 9; ++i)
-                {
-                    finalColor += sh.c[i] * color[i];
-                }
-                sh = SHCosineLobe(float3(0,1,0));
-                [unroll]
-                for(i = 0; i < 9; ++i)
-                {
-                    finalColor += sh.c[i] * color[i];
-                }
-                sh = SHCosineLobe(float3(0,-1,0));
-                [unroll]
-                for(i = 0; i < 9; ++i)
-                {
-                    finalColor += sh.c[i] * color[i];
-                }
-                sh = SHCosineLobe(float3(0, 0, 1));
-                [unroll]
-                for(i = 0; i < 9; ++i)
-                {
-                    finalColor += sh.c[i] * color[i];
-                }
-                sh = SHCosineLobe(float3(0, 0, -1));
-                [unroll]
-                for(i = 0; i < 9; ++i)
-                {
-                    finalColor += sh.c[i] * color[i];
-                }
-                finalColor /= 54;
-                return finalColor;
-                #endif
-                return 0;
+                const float A0 = 3.1415927;
+				const float A1 = 2.094395;
+				const float A2 = 0.785398;
+                GETCOEFF(worldNormal);
+                float3 irradiance = A0*Y00*color[0] + A1*Y1_1*color[3] + A1*Y10*color[2] + A1*Y11*color[1]+ A2*Y2_2*color[6] + A2*Y2_1*color[5]  + A2*Y20*color[7]+ A2*Y21*color[4] + A2*Y22*color[8];
+                return irradiance;
             }
+
+            SHColor GetSHFromTex(float3 worldPos)
+            {
+                SHColor sh;
+                float3 uv = (worldPos - _LeftDownBack) / (_SHSize);
+                float4 first = _CoeffTexture0.SampleLevel(sampler_CoeffTexture0, uv, 0);
+                float4 second = _CoeffTexture1.SampleLevel(sampler_CoeffTexture1, uv, 0);
+                sh.c[0] = first.rgb;
+                sh.c[1] = float3(first.a, second.rg);
+                first = _CoeffTexture2.SampleLevel(sampler_CoeffTexture2, uv, 0);
+                sh.c[2] = float3(second.ba, first.r);
+                sh.c[3] = float3(first.gba);
+                first = _CoeffTexture3.SampleLevel(sampler_CoeffTexture3, uv, 0);
+                second = _CoeffTexture4.SampleLevel(sampler_CoeffTexture4, uv, 0);
+                sh.c[4] = first.rgb;
+                sh.c[5] = float3(first.a, second.rg);
+                first = _CoeffTexture5.SampleLevel(sampler_CoeffTexture5, uv, 0);
+                sh.c[6] = float3(second.ba, first.r);
+                sh.c[7] = float3(first.gba);
+                second = _CoeffTexture6.SampleLevel(sampler_CoeffTexture6, uv, 0);
+                sh.c[8] = second.rgb;
+                return sh;
+            }
+
+           
 #endif

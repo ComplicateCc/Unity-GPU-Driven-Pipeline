@@ -42,9 +42,9 @@ RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 Texture3D<int> _FroxelPointTileLightList;
 Texture3D<int> _FroxelSpotTileLightList;
-
 float3 _DirLightPos;
 uint _FogVolumeCount;
+float _IndirectIntensity;
 
             inline float EyeDepthToProj(float lin)
             {
@@ -74,6 +74,10 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
 {
     float4 color = 0;
     float3 viewDir = normalize(_WorldSpaceCameraPos.rgb - targetWorldPos);
+    #ifdef GI
+    SHColor sh = GetSHFromTex(targetWorldPos);
+    color.rgb += (GetColor(sh.c, _CameraForward) + GetColor(sh.c, -_CameraForward)) * _IndirectIntensity;
+    #endif
     if(_LightFlag & 4)
     {
         #ifdef DIRMAP
