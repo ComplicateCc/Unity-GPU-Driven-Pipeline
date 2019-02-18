@@ -38,7 +38,7 @@
                 return irradiance / 9.0;
             }
 
-            float3 GetColor(float3 color[9], float3 worldNormal)
+            float3 GetSHColor(float3 color[9], float3 worldNormal)
             {
                 const float A0 = 3.1415927;
 				const float A1 = 2.094395;
@@ -48,10 +48,14 @@
                 return irradiance;
             }
 
-            SHColor GetSHFromTex(float3 worldPos)
+            float3 GetSHUV(float3 worldPos)
+            {
+                return (worldPos - _LeftDownBack) / (_SHSize);
+            }
+
+            SHColor GetSHFromTex(float3 uv)
             {
                 SHColor sh;
-                float3 uv = (worldPos - _LeftDownBack) / (_SHSize);
                 float4 first = _CoeffTexture0.SampleLevel(sampler_CoeffTexture0, uv, 0);
                 float4 second = _CoeffTexture1.SampleLevel(sampler_CoeffTexture1, uv, 0);
                 sh.c[0] = first.rgb;

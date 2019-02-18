@@ -74,23 +74,16 @@ inline uint wang_hash(uint seed)
     return seed;
 }
 
-inline float getRandomFloat(uint index)
+inline float3 getRandomFloat3(uint index)
 {
-    uint value = wang_hash(_RandomBuffer[index]);
-    _RandomBuffer[index] = value;
-    return value * (1.0 / 4294967296.0);
-}
-
-inline float2 getRandomFloat2(uint index)
-{
-    uint2 value = 0;
+    uint3 value = 0;
     value.x = wang_hash(_RandomBuffer[index]);
     value.y = wang_hash(value.x);
-    _RandomBuffer[index] = value.y;
+    value.z = wang_hash(value.y); 
     return value * (1.0 / 4294967296.0);
 }
 
-inline float3 getRandomFloat3(uint index)
+inline float3 updateRandomFloat3(uint index)
 {
     uint3 value = 0;
     value.x = wang_hash(_RandomBuffer[index]);
@@ -99,5 +92,4 @@ inline float3 getRandomFloat3(uint index)
     _RandomBuffer[index] = value.z;
     return value * (1.0 / 4294967296.0);
 }
-
 #endif

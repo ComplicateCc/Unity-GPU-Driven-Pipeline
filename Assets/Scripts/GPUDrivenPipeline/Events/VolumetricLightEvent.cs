@@ -19,7 +19,9 @@ namespace MPipeline
         [Range(0.01f, 100f)]
         public float indirectIntensity = 1;
         const int marchStep = 64;
-        const int scatterPass = 16;
+        const int scatterPass = 8;
+        const int initVoxelPass = 9;
+        const int calculateGI = 10;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
         private Random rand;
@@ -77,7 +79,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             ComputeShader scatter = data.resources.shaders.volumetricScattering;
             ref CBDRSharedData cbdr = ref lightingData.cbdr;
-            if (cbdr.lightFlag == 0 && !ProbeBaker.probeEnabled)
+            if (cbdr.lightFlag == 0 && ProbeBaker.allBakers.Count == 0)
             {
                 cbdr.dirLightShadowmap = null;
                 return;
@@ -89,11 +91,6 @@ namespace MPipeline
                 pass |= 0b001;
             if (cbdr.spotShadowCount > 0)
                 pass |= 0b100;
-            if (ProbeBaker.probeEnabled)
-            {
-                buffer.SetGlobalFloat(ShaderIDs._IndirectIntensity, indirectIntensity);
-                pass |= 0b1000;
-            }
             //TODO
             //Enable fourth bit as Global Illumination
 
@@ -161,7 +158,23 @@ namespace MPipeline
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
             buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
-
+            buffer.SetComputeTextureParam(scatter, initVoxelPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
+            buffer.DispatchCompute(scatter, initVoxelPass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
+            if (ProbeBaker.allBakers.Count > 0)
+            {
+                buffer.SetComputeBufferParam(scatter, calculateGI, ShaderIDs._RandomBuffer, randomBuffer);
+                buffer.SetComputeTextureParam(scatter, calculateGI, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
+                buffer.SetComputeFloatParam(scatter, ShaderIDs._IndirectIntensity, indirectIntensity);
+                for (int i = 0; i < ProbeBaker.allBakers.Count; ++i)
+                {
+                    ProbeBaker baker = ProbeBaker.allBakers[i];
+                    if (baker.isRendered)
+                    {
+                        baker.SetCoeffTextures(buffer, scatter, calculateGI);
+                        buffer.DispatchCompute(scatter, calculateGI, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
+                    }
+                }
+            }
             cbdr.dirLightShadowmap = null;
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
             buffer.DispatchCompute(scatter, pass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);

@@ -9,13 +9,14 @@ using static Unity.Mathematics.math;
 using UnityEngine.Rendering;
 namespace MPipeline
 {
-    public unsafe class ProbeBaker : MonoBehaviour
+    public unsafe sealed class ProbeBaker : MonoBehaviour
     {
-        public static bool probeEnabled { get; private set; }
+        public static List<ProbeBaker> allBakers = new List<ProbeBaker>();
         public int3 probeCount = new int3(10, 10, 10);
         public float considerRange = 5;
         public string path = "Assets/Test.txt";
         public PipelineResources resources;
+        public bool isRendered { get; private set; }
         private const int RESOLUTION = 128;
         private CommandBuffer cbuffer;
         private ComputeBuffer coeffTemp;
@@ -23,10 +24,12 @@ namespace MPipeline
         private NativeList<int> _CoeffIDs;
         private RenderTexture[] coeffTextures;
         private bool isRendering = false;
-        
-        public Material targetMat;
+        private int index;
         private void OnEnable()
         {
+            isRendered = false;
+            index = allBakers.Count;
+            allBakers.Add(this);
             cbuffer = new CommandBuffer();
             _CoeffIDs = new NativeList<int>(7, Allocator.Persistent);
             coeffTextures = new RenderTexture[7];
@@ -60,20 +63,23 @@ namespace MPipeline
             }
             coeffTemp = new ComputeBuffer(9, 12);
             coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
-            
+
         }
         private void OnDisable()
         {
-            probeEnabled = false;
+            allBakers[index] = allBakers[allBakers.Count - 1];
+            allBakers[index].index = index;
+            allBakers.RemoveAt(allBakers.Count - 1);
             cbuffer.Dispose();
             coeff.Dispose();
             coeffTemp.Dispose();
             _CoeffIDs.Dispose();
             foreach (var i in coeffTextures)
             {
-                DestroyImmediate(i);
+                Destroy(i);
             }
-            
+            isRendered = false;
+
         }
         private void OnDrawGizmos()
         {
@@ -99,6 +105,15 @@ namespace MPipeline
             isRendering = true;
             StartCoroutine(BakeLightmap());
         }
+        public void SetCoeffTextures(CommandBuffer buffer, ComputeShader shader, int targetPass)
+        {
+            for (int i = 0; i < _CoeffIDs.Length; ++i)
+            {
+                buffer.SetComputeTextureParam(shader, targetPass, _CoeffIDs[i], coeffTextures[i]);
+            }
+            buffer.SetGlobalVector("_SHSize", transform.localScale);
+            buffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
+        }
         public IEnumerator BakeLightmap()
         {
             RenderTexture rt = RenderTexture.GetTemporary(new RenderTextureDescriptor
@@ -119,7 +134,6 @@ namespace MPipeline
                 volumeDepth = 6,
                 vrUsage = VRTextureUsage.None
             });
-            targetMat.SetTexture(ShaderIDs._MainTex, rt);
             ComputeShader shader = resources.shaders.probeCoeffShader;
             cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
             cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
@@ -161,7 +175,7 @@ namespace MPipeline
             Debug.Log("Finished");
             isRendering = false;
             yield return null;
-            probeEnabled = true;
+            isRendered = true;
             yield return null;
             RenderTexture.ReleaseTemporary(rt);
         }

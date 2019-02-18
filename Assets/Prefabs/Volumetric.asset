@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enabled: 1
   availableDistance: 32
-  indirectIntensity: 2
+  indirectIntensity: 1

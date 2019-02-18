@@ -9,15 +9,9 @@
 #pragma kernel CSMain CUBEMAP  SPOTMAP
 #pragma kernel CSMain DIRMAP  SPOTMAP
 #pragma kernel CSMain CUBEMAP DIRMAP  SPOTMAP
-#pragma kernel CSMain GI
-#pragma kernel CSMain CUBEMAP GI
-#pragma kernel CSMain DIRMAP GI
-#pragma kernel CSMain CUBEMAP DIRMAP GI
-#pragma kernel CSMain SPOTMAP GI
-#pragma kernel CSMain CUBEMAP  SPOTMAP GI
-#pragma kernel CSMain DIRMAP  SPOTMAP GI
-#pragma kernel CSMain CUBEMAP DIRMAP  SPOTMAP GI
 #pragma kernel Scatter
+#pragma kernel InitVoxel
+#pragma kernel CalculateGI
 #include "CGINC/Shader_Include/Include_HLSL.hlsl"
 #include "CGINC/VoxelLight.cginc"
 #include "UnityCG.cginc"
@@ -74,10 +68,6 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
 {
     float4 color = 0;
     float3 viewDir = normalize(_WorldSpaceCameraPos.rgb - targetWorldPos);
-    #ifdef GI
-    SHColor sh = GetSHFromTex(targetWorldPos);
-    color.rgb += (GetColor(sh.c, _CameraForward) + GetColor(sh.c, -_CameraForward)) * _IndirectIntensity;
-    #endif
     if(_LightFlag & 4)
     {
         #ifdef DIRMAP
@@ -185,7 +175,7 @@ inline uint From3DTo1D(uint3 id, const uint3 size){
 [numthreads(2, 2, VOXELZ)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
+    float3 jitterCoord = updateRandomFloat3(From3DTo1D(id, _ScreenSize));
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
@@ -201,7 +191,31 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
     col.rgb *= col.a;
    float reprojectionValid = lerp(_TemporalWeight * (abs(dot(lastFrameUV - saturate(lastFrameUV), 1)) < 1e-4), 0.999, _SceneOffset.w);
-    _VolumeTex[id] = float4(lerp(col.xyz, lastFrameColor.xyz, reprojectionValid) , col.w);
+    _VolumeTex[id] = float4(lerp(col.xyz + _VolumeTex[id].xyz, lastFrameColor.xyz, reprojectionValid) , col.w);
+}
+
+[numthreads(2, 2, VOXELZ)]
+void InitVoxel(uint3 id : SV_DISPATCHTHREADID)
+{
+    _VolumeTex[id] = 0;
+}
+
+[numthreads(2, 2, VOXELZ)]
+void CalculateGI(uint3 id : SV_DISPATCHTHREADID)
+{
+    float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
+    float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
+    float2 projCoord = uv * 2 - 1;
+    float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
+    float linearDepth = lerp(_NearFarClip.z, _MaxDistance, pow(lerpPos, 1.5));
+    float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
+    targetWorldPos /= targetWorldPos.w;
+    float3 shUV = GetSHUV(targetWorldPos.xyz);
+    shUV = shUV;
+    float offset = dot(abs(shUV - saturate(shUV)), 1);
+    if(offset > 0.01) return;
+    SHColor sh = GetSHFromTex(shUV);
+    _VolumeTex[id] += float4((GetSHColor(sh.c, _CameraForward) + GetSHColor(sh.c, -_CameraForward)) * _IndirectIntensity, 0);
 }
 
 [numthreads(32, 2, 1)]
@@ -222,3 +236,4 @@ void Scatter(uint2 id : SV_DISPATCHTHREADID)
 		_VolumeTex[pos] = accum;
 	}
 }
+
