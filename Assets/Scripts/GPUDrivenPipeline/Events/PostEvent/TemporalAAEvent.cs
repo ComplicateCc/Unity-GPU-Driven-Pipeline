@@ -7,7 +7,7 @@ namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Temporal AA")]
     [RequireEvent(typeof(PropertySetEvent))]
-    public class TemporalAAEvent : PipelineEvent
+    public sealed class TemporalAAEvent : PipelineEvent
     {
         [Tooltip("The diameter (in texels) inside which jitter samples are spread. Smaller values result in crisper but more aliased output, while larger values result in more stable but blurrier output.")]
         [Range(0.1f, 1f)]

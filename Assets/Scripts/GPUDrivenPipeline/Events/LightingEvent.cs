@@ -15,7 +15,7 @@ namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Lighting")]
     [RequireEvent(typeof(PropertySetEvent))]
-    public unsafe class LightingEvent : PipelineEvent
+    public unsafe sealed class LightingEvent : PipelineEvent
     {
         #region DIR_LIGHT
         private Material shadMaskMaterial;

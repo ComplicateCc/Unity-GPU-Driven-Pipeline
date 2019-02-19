@@ -7,7 +7,7 @@ using System.Reflection;
 using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
-    public unsafe class RenderPipeline : UnityEngine.Experimental.Rendering.RenderPipeline
+    public unsafe sealed class RenderPipeline : UnityEngine.Experimental.Rendering.RenderPipeline
     {
         #region STATIC_AREA
 
