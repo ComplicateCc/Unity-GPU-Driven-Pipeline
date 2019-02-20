@@ -50,7 +50,7 @@ namespace MPipeline
         public Func<K, K, bool> equalsFunc;
         private void Resize(int targetSize)
         {
-            K** newData = (K**)UnsafeUtility.Malloc(targetSize * 8, 16, data->alloc);
+            K** newData = (K**)MUnsafeUtility.Malloc(targetSize * 8, data->alloc);
             UnsafeUtility.MemClear(newData, targetSize * 8);
             K** oldPtr = (K**)data->start;
             for (int i = 0; i < data->capacity; ++i)
@@ -80,11 +80,11 @@ namespace MPipeline
             capacity = Mathf.Max(capacity, 1);
             equalsFunc = equals;
             isCreated = true;
-            data = (DictData*)UnsafeUtility.Malloc(sizeof(DictData), 16, alloc);
+            data = (DictData*)MUnsafeUtility.Malloc(sizeof(DictData), alloc);
             data->capacity = capacity;
             data->length = 0;
             data->alloc = alloc;
-            data->start = UnsafeUtility.Malloc(8 * capacity, 16, alloc);
+            data->start = MUnsafeUtility.Malloc(8 * capacity, alloc);
             UnsafeUtility.MemClear(data->start, 8 * capacity);
         }
 
@@ -96,7 +96,7 @@ namespace MPipeline
             {
                 currentPos = GetNextPtr(*currentPos);
             }
-            (*currentPos) = (K*)UnsafeUtility.Malloc(stride, 16, data->alloc);
+            (*currentPos) = (K*)MUnsafeUtility.Malloc(stride, data->alloc);
             (**currentPos) = key;
             (*GetV(*currentPos)) = value;
             (*GetNextPtr(*currentPos)) = null;
@@ -192,7 +192,7 @@ namespace MPipeline
             {
                 currentPos = GetNextPtr(*currentPos);
             }
-            (*currentPos) = (K*)UnsafeUtility.Malloc(stride, 16, data->alloc);
+            (*currentPos) = (K*)MUnsafeUtility.Malloc(stride, data->alloc);
             (**currentPos) = key;
             (*GetV(*currentPos)) = value;
             (*GetNextPtr(*currentPos)) = null;

@@ -23,20 +23,20 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     {
         isCreated = true;
         capacity = Mathf.Max(capacity, 1);
-        data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
+        data = MUnsafeUtility.Malloc<NativeListData>(sizeof(NativeListData), alloc);
         data->count = 0;
         data->capacity = capacity;
         data->allocator = alloc;
-        data->ptr = UnsafeUtility.Malloc(sizeof(T) * capacity, 16, alloc);
+        data->ptr = MUnsafeUtility.Malloc<T>(sizeof(T) * capacity, alloc);
     }
     public NativeList(int count, Allocator alloc, T defaultValue)
     {
         isCreated = true;
-        data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
+        data = MUnsafeUtility.Malloc<NativeListData>(sizeof(NativeListData), alloc);
         data->count = count;
         data->capacity = count;
         data->allocator = alloc;
-        data->ptr = UnsafeUtility.Malloc(sizeof(T) * count, 16, alloc);
+        data->ptr = MUnsafeUtility.Malloc<T>(sizeof(T) * count, alloc);
         T* add = (T*)data->ptr;
         for (int i = 0; i < count; ++i)
         {
@@ -47,11 +47,11 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     public NativeList(int count, int capacity, Allocator alloc)
     {
         isCreated = true;
-        data = (NativeListData*)UnsafeUtility.Malloc(sizeof(NativeListData), 16, alloc);
+        data = MUnsafeUtility.Malloc<NativeListData>(sizeof(NativeListData), alloc);
         data->count = count;
         data->capacity = capacity;
         data->allocator = alloc;
-        data->ptr = UnsafeUtility.Malloc(sizeof(T) * capacity, 16, alloc);
+        data->ptr = MUnsafeUtility.Malloc<T>(sizeof(T) * capacity, alloc);
     }
     public Allocator allocator
     {
@@ -66,7 +66,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         if (data->count <= data->capacity) return;
         int lastcapacity = data->capacity;
         data->capacity *= 2;
-        void* newPtr = UnsafeUtility.Malloc(sizeof(T) * data->capacity, 16, data->allocator);
+        void* newPtr = MUnsafeUtility.Malloc<T>(sizeof(T) * data->capacity, data->allocator);
         UnsafeUtility.MemCpy(newPtr, data->ptr, sizeof(T) * lastcapacity);
         UnsafeUtility.Free(data->ptr, data->allocator);
         data->ptr = newPtr;
@@ -77,7 +77,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         if (data->count <= data->capacity) return;
         int lastcapacity = data->capacity;
         data->capacity = data->count;
-        void* newPtr = UnsafeUtility.Malloc(sizeof(T) * data->capacity, 16, data->allocator);
+        void* newPtr = MUnsafeUtility.Malloc<T>(sizeof(T) * data->capacity, data->allocator);
         UnsafeUtility.MemCpy(newPtr, data->ptr, sizeof(T) * lastcapacity);
         UnsafeUtility.Free(data->ptr, data->allocator);
         data->ptr = newPtr;
@@ -88,7 +88,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         if (capacity <= data->capacity) return;
         int lastcapacity = data->capacity;
         data->capacity = capacity;
-        void* newPtr = UnsafeUtility.Malloc(sizeof(T) * data->capacity, 16, data->allocator);
+        void* newPtr = MUnsafeUtility.Malloc<T>(sizeof(T) * data->capacity, data->allocator);
         UnsafeUtility.MemCpy(newPtr, data->ptr, sizeof(T) * lastcapacity);
         UnsafeUtility.Free(data->ptr, data->allocator);
         data->ptr = newPtr;
@@ -221,7 +221,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
                 if (last > data->capacity)
                 {
                     int newCapacity = data->capacity * 2;
-                    void* newPtr = UnsafeUtility.Malloc(sizeof(T) * newCapacity, 16, data->allocator);
+                    void* newPtr = MUnsafeUtility.Malloc<T>(sizeof(T) * newCapacity, data->allocator);
                     UnsafeUtility.MemCpy(newPtr, data->ptr, sizeof(T) * data->capacity);
                     UnsafeUtility.Free(data->ptr, data->allocator);
                     data->ptr = newPtr;
@@ -245,7 +245,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
                 if (last > data->capacity)
                 {
                     int newCapacity = data->capacity * 2;
-                    void* newPtr = UnsafeUtility.Malloc(sizeof(T) * newCapacity, 16, data->allocator);
+                    void* newPtr = MUnsafeUtility.Malloc<T>(sizeof(T) * newCapacity, data->allocator);
                     UnsafeUtility.MemCpy(newPtr, data->ptr, sizeof(T) * data->capacity);
                     UnsafeUtility.Free(data->ptr, data->allocator);
                     data->ptr = newPtr;

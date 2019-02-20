@@ -41,7 +41,9 @@ namespace MPipeline
 #if UNITY_EDITOR
         string[] textureName = new string[]{"_MainTex",
     "_BumpMap",
-    "_SpecularMap" };
+    "_SpecularMap",
+        "_DetailAlbedo",
+        "_DetailNormal"};
         public ComputeShader lightmapShader;
         const int texToBufferKernel = 0;
         const int bufferToTexKernel = 1;
@@ -221,7 +223,7 @@ namespace MPipeline
             List<Pair<string, Vector4[]>> props = new List<Pair<string, Vector4[]>>();
             string[] matNames = new string[]
             {
-                "_MainTex", "_MainTex"
+                "_MainTex", "_DetailAlbedo"
             };
             string[] propNames = new string[]
             {
@@ -247,6 +249,7 @@ namespace MPipeline
             for (int i = 0; i < values.Length; ++i)
             {
                 pointer[i].textureIndex = Vector3Int.one * -1;
+                pointer[i].detailTextureIndex = Vector2Int.one * -1;
             }
             var properties = CombineProperty(mats);
             foreach (var kv in properties)
@@ -411,6 +414,7 @@ namespace MPipeline
         public float _Glossiness;
         public Vector4 _Color;
         public Vector3Int textureIndex;
+        public Vector2Int detailTextureIndex;
         public Vector4 mainScaleOffset;
         public Vector4 detailScaleOffset;
     }

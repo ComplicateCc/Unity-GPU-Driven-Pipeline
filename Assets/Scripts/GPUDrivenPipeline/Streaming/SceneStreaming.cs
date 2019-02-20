@@ -147,9 +147,9 @@ namespace MPipeline
         public void LoadTextures()
         {
             PropertyValue[] values = property.properties;
-            if (property.texPaths.Length > 3)
+            if (property.texPaths.Length > 5)
             {
-                Debug.LogError("Scene: " + property.name + "'s texture type count is larger than 3! That is illegal!");
+                Debug.LogError("Scene: " + property.name + "'s texture type count is larger than 5! That is illegal!");
                 return;
             }
             MStringBuilder sb = new MStringBuilder(150);

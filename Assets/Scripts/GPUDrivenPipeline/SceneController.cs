@@ -92,7 +92,6 @@ namespace MPipeline
                     ident.usedCount++;
                     lightmapDict[guid] = ident;
                     alreadyContained = true;
-                    Debug.Log("SB");
                     return ident.belonged;
                 }
                 else

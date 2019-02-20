@@ -23,6 +23,7 @@ MonoBehaviour:
       _Glossiness: 0.1
       _Color: {x: 0.75, y: 0.75, z: 0.75, w: 1}
       textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -31,7 +32,8 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 49, y: -1, z: -1}
+      textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -40,7 +42,8 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 48, y: -1, z: -1}
+      textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -49,7 +52,8 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 48, y: -1, z: -1}
+      textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.187
@@ -58,9 +62,10 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.286
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 47, y: 46, z: -1}
+      textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 3, y: 3, z: 0, w: 0}
-      detailScaleOffset: {x: 3, y: 3, z: 0, w: 0}
+      detailScaleOffset: {x: 50, y: 50, z: 0, w: 0}
     - _SpecularIntensity: 0.3
       _MetallicIntensity: 0.1
       _EmissionColor: {x: 0, y: 0, z: 0, w: 1}
@@ -68,6 +73,7 @@ MonoBehaviour:
       _Glossiness: 0.207
       _Color: {x: 1, y: 1, z: 1, w: 1}
       textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -77,6 +83,7 @@ MonoBehaviour:
       _Glossiness: 0
       _Color: {x: 0.7, y: 0.7, z: 0.7, w: 1}
       textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.295
@@ -85,7 +92,8 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.635
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 45, y: 44, z: -1}
+      textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -94,7 +102,8 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.38
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 43, y: 42, z: -1}
+      textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -104,6 +113,7 @@ MonoBehaviour:
       _Glossiness: 0
       _Color: {x: 0.8455882, y: 0.9552738, z: 1, w: 1}
       textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -112,9 +122,10 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 43, y: -1, z: -1}
+      textureIndex: {x: -1, y: -1, z: -1}
+      detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 0.75, y: 0.75, z: 0, w: 0}
-      detailScaleOffset: {x: 0.75, y: 0.75, z: 0, w: 0}
+      detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
     texPaths:
     - texName: _MainTex
       instancingIDs:
@@ -149,6 +160,32 @@ MonoBehaviour:
       - 
       - 
       - 
+      - 
+      - 
+      - 
+      - 
+      - 
+      - 
+    - texName: _DetailAlbedo
+      instancingIDs:
+      - 
+      - 
+      - 
+      - 
+      - e4c2e84731dcd574f89c553eeb03e16b
+      - 
+      - 
+      - 
+      - 
+      - 
+      - 
+    - texName: _DetailNormal
+      instancingIDs:
+      - 
+      - 
+      - 
+      - 
+      - 10d4fba18b4cf584885307b1ec479b06
       - 
       - 
       - 

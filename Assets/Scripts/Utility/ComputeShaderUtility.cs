@@ -51,13 +51,13 @@ public unsafe static class MUnsafeUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void CopyFrom<T>(this T[] array, T* source, int length) where T : unmanaged
     {
-        fixed(T* dest = array)
+        fixed (T* dest = array)
         {
             MemCpy(dest, source, length * sizeof(T));
         }
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T* Ptr<T>(this T[] array) where T: unmanaged
+    public static T* Ptr<T>(this T[] array) where T : unmanaged
     {
         return (T*)AddressOf(ref array[0]);
     }
@@ -94,5 +94,17 @@ public unsafe static class MUnsafeUtility
         PtrKeeper<T> keeper = new PtrKeeper<T>();
         MemCpy(AddressOf(ref keeper), &ptr, SizeOf<PtrKeeper<T>>());
         return keeper.value;
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T* Malloc<T>(long size, Allocator allocator) where T : unmanaged
+    {
+        long align = size % 16;
+        return (T*)UnsafeUtility.Malloc(size, align == 0 ? 16 : (int)align, allocator);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void* Malloc(long size, Allocator allocator)
+    {
+        long align = size % 16;
+        return UnsafeUtility.Malloc(size, align == 0 ? 16 : (int)align, allocator);
     }
 }
