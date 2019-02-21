@@ -87,7 +87,8 @@ namespace MPipeline
 
     public struct ReflectionData
     {
-        public float4x4 localToWorld;
+        public float3x3 localToWorld;
+        public float3 position;
         public float3 extent;
         public float4 hdr;
         public float blendDistance;
@@ -352,9 +353,9 @@ namespace MPipeline
         public Vector4[] frustumPlanes;
         public CommandBuffer buffer;
         public ScriptableRenderContext context;
-        public CullResults cullResults;
+        public CullingResults cullResults;
         public ScriptableCullingParameters cullParams;
         public PipelineResources resources;
-        public DrawRendererSettings defaultDrawSettings;
+        public DrawingSettings defaultDrawSettings;
     }
 }

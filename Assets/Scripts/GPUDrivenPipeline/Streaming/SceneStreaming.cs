@@ -77,10 +77,10 @@ namespace MPipeline
             Point* verticesData = pointsBuffer.Ptr();
             const string infosPath = "Assets/BinaryData/MapInfos/";
             const string pointsPath = "Assets/BinaryData/MapPoints/";
-            MStringBuilder sb = new MStringBuilder(pointsPath.Length + property.name.Length + ".txt".Length);
+            MStringBuilder sb = new MStringBuilder(pointsPath.Length + property.name.Length + ".mpipe".Length);
             allStrings[0] = infosPath;
             allStrings[1] = property.name;
-            allStrings[2] = ".txt";
+            allStrings[2] = ".mpipe";
             sb.Combine(allStrings);
             // FileStream fileStream = new FileStream(sb.str, FileMode.Open, FileAccess.Read);
             using (FileStream reader = new FileStream(sb.str, FileMode.Open, FileAccess.Read))
@@ -154,7 +154,7 @@ namespace MPipeline
             }
             MStringBuilder sb = new MStringBuilder(150);
             allStrings[0] = "Assets/BinaryData/Lightmaps/";
-            allStrings[2] = ".txt";
+            allStrings[2] = ".mpipe";
             for (int i = 0; i < property.lightmapGUIDs.Length; ++i)
             {
                 LightmapPaths lightmapGUID = property.lightmapGUIDs[i];
@@ -206,7 +206,7 @@ namespace MPipeline
                     string texName = property.texPaths[a].instancingIDs[i];
                     allStrings[0] = "Assets/BinaryData/Textures/";
                     allStrings[1] = texName;
-                    allStrings[2] = ".txt";
+                    allStrings[2] = ".mpipe";
                     sb.Combine(allStrings);
                     string texType = property.texPaths[a].texName;
                     bool alreadyContained;

@@ -13,6 +13,7 @@
         float3 direction;
         float radius;
     };
+
 inline float4 GetPlane(float3 normal, float3 inPoint)
 {
     return float4(normal, -dot(normal, inPoint));

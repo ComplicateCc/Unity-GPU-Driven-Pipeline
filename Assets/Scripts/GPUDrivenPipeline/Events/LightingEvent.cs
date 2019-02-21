@@ -10,7 +10,6 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using System.Collections.Concurrent;
 using static Unity.Mathematics.math;
-using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Lighting")]
@@ -104,8 +103,8 @@ namespace MPipeline
             }
             addMLightCommandList.Clear();
             LightFilter.allMLightCommandList = addMLightCommandList;
-            pointLightArray = new NativeArray<PointLightStruct>(LightFilter.allVisibleLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            spotLightArray = new NativeArray<SpotLight>(LightFilter.allVisibleLight.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            pointLightArray = new NativeArray<PointLightStruct>(LightFilter.allVisibleLight.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            spotLightArray = new NativeArray<SpotLight>(LightFilter.allVisibleLight.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             cubemapVPMatrices = new NativeList<CubemapViewProjMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
             spotLightMatrices = new NativeList<SpotLightMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
             LightFilter.allLights = allLights;
@@ -202,7 +201,7 @@ namespace MPipeline
                 {
                     var cullShader = data.resources.shaders.gpuFrustumCulling;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
-                    List<VisibleLight> allLights = data.cullResults.visibleLights;
+                    NativeArray<VisibleLight> allLights = data.cullResults.visibleLights;
                     PointLightStruct* pointLightPtr = pointLightArray.Ptr();
                     for (int i = 0; i < cubemapVPMatrices.Length; ++i)
                     {
@@ -253,7 +252,7 @@ namespace MPipeline
                     buffer.SetGlobalTexture(ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
                     spotBuffer.renderTarget = cbdr.spotArrayMap;
                     spotBuffer.shadowMatrices = spotLightMatrices.unsafePtr;
-                    List<VisibleLight> allLights = data.cullResults.visibleLights;
+                    NativeArray<VisibleLight> allLights = data.cullResults.visibleLights;
                     for (int i = 0; i < spotLightMatrices.Length; ++i)
                     {
                         ref SpotLightMatrix vpMatrices = ref spotLightMatrices[i];
@@ -440,7 +439,7 @@ namespace MPipeline
 
         public unsafe struct LightFilter : IJobParallelFor
         {
-            public static List<VisibleLight> allVisibleLight;
+            public static NativeArray<VisibleLight> allVisibleLight;
             public static List<Light> allLights;
             public static List<Light> allMLightCommandList;
             public static NativeList<CubemapViewProjMatrix> cubemapVPMatrices;
@@ -454,7 +453,6 @@ namespace MPipeline
                 pointLightCount = 0;
                 spotLightCount = 0;
                 allLights = null;
-                allVisibleLight = null;
             }
             public static void CalculateCubemapMatrix(PointLightStruct* allLights, CubemapViewProjMatrix* allMatrix, int index)
             {
@@ -554,7 +552,7 @@ namespace MPipeline
                         PointLightStruct* currentPtr = indStr + currentPointCount;
                         Color col = i.finalColor;
                         currentPtr->lightColor = new float3(col.r, col.g, col.b) / LUMENRATE;
-                        currentPtr->sphere = i.localToWorld.GetColumn(3);
+                        currentPtr->sphere = i.localToWorldMatrix.GetColumn(3);
                         currentPtr->sphere.w = i.range;
                         if (mlight.useShadow)
                         {
@@ -588,14 +586,14 @@ namespace MPipeline
                         Color spotCol = i.finalColor;
                         currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b) / LUMENRATE;
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
-                        currentSpot->lightCone = new Cone((Vector3)i.localToWorld.GetColumn(3), i.range, normalize((Vector3)i.localToWorld.GetColumn(2)), deg);
+                        currentSpot->lightCone = new Cone((Vector3)i.localToWorldMatrix.GetColumn(3), i.range, normalize((Vector3)i.localToWorldMatrix.GetColumn(2)), deg);
                         currentSpot->angle = deg;
-                        currentSpot->lightRight = normalize((Vector3)i.localToWorld.GetColumn(1));
+                        currentSpot->lightRight = normalize((Vector3)i.localToWorldMatrix.GetColumn(1));
                         currentSpot->smallAngle = Mathf.Deg2Rad * mlight.smallSpotAngle * 0.5f;
                         currentSpot->nearClip = mlight.spotNearClip;
                         if (mlight.useShadow)
                         {
-                            currentSpot->vpMatrix = i.localToWorld;
+                            currentSpot->vpMatrix = i.localToWorldMatrix;
                             currentSpot->shadowIndex = spotLightMatrices.ConcurrentAdd(new SpotLightMatrix
                             {
                                 index = new int2(currentSpotCount, index),

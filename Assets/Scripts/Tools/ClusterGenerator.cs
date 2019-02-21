@@ -179,7 +179,7 @@ namespace MPipeline
             byte[] pointDataArray;
             ClusterFunctions.GetByteDataFromArray(meshData, pointsList, out meshDataArray, out pointDataArray);
             int len = meshData.Length;
-            string filenameWithExtent = fileName + ".txt";
+            string filenameWithExtent = fileName + ".mpipe";
             File.WriteAllBytes("Assets/BinaryData/MapInfos/" + filenameWithExtent, meshDataArray);
             File.WriteAllBytes("Assets/BinaryData/MapPoints/" + filenameWithExtent, pointDataArray);
             //Dispose Native Array

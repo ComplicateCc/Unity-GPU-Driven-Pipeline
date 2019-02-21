@@ -1,14 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 namespace MPipeline
 {
     public unsafe class PipelineResources : RenderPipelineAsset
     {
-        protected override IRenderPipeline InternalCreatePipeline()
+        protected override UnityEngine.Rendering.RenderPipeline CreatePipeline()
         {
-            return new MPipeline.RenderPipeline(this);
+            return new RenderPipeline(this);
         }
         public enum CameraRenderingPath
         {

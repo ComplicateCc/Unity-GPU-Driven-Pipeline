@@ -28,15 +28,19 @@ CGINCLUDE
 	void surf (float2 uv, float2 lightmapUV, int lightmapIndex, uint index, inout SurfaceOutputStandardSpecular o) {
 		PropertyValue prop = _PropertiesBuffer[index];
     float2 detailUV = uv * prop.detailScaleOffset.xy + prop.detailScaleOffset.zw;
+    float4 detailAlbedo = prop.detailTextureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.x)) : 1;
+    float3 detailNormal = prop.detailTextureIndex.y >= 0 ? UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.y))) : float3(0,0,1);
     uv *= prop.mainScaleOffset.xy;
     uv += prop.mainScaleOffset.zw;
-		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1) * prop._Color;
+    half4 spec = prop.textureIndex.z >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)) : 1;
+		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1);
 		o.Albedo = c.rgb;
+    o.Albedo = lerp(detailAlbedo.rgb, o.Albedo, spec.b) * prop._Color;
 		o.Alpha = 1;
-		half4 spec = prop.textureIndex.z >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)) : 1;
 		o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity); 
 		o.Smoothness = prop._Glossiness * spec.g;
-    o.Occlusion = lerp(1, c.a, prop._Occlusion);
+    o.Occlusion = lerp(min(detailAlbedo.a, c.a), c.a, spec.b);
+    o.Occlusion = lerp(1, o.Occlusion, prop._Occlusion);
 		if(prop.textureIndex.y >= 0){
 			o.Normal =  UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.y)));
 		}else{
@@ -46,12 +50,9 @@ CGINCLUDE
     if(lightmapIndex >= 0)
     {
       o.Emission.rgb += _LightMap.Sample(sampler_LightMap, float3(lightmapUV, lightmapIndex)) * c.rgb;
-    }
-    float4 detailAlbedo = prop.detailTextureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.x)) : 1;
-    float3 detailNormal = prop.detailTextureIndex.y >= 0 ? UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.y))) : float3(0,0,1);
-    o.Albedo = lerp(detailAlbedo.rgb, o.Albedo, spec.b);
+    }    
     o.Normal = lerp(detailNormal, o.Normal, spec.b);
-    o.Occlusion = lerp(detailAlbedo.a, o.Occlusion, spec.b);
+    
 	}
 
 

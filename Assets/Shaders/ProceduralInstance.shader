@@ -57,20 +57,21 @@ CGINCLUDE
 			// Albedo comes from a texture tinted by color
 			float2 uv = IN.uv_MainTex;// - parallax_mapping(IN.uv_MainTex,IN.viewDir);
 			float2 detailUV = TRANSFORM_TEX(uv, _DetailAlbedo);
+			float4 spec = tex2D(_SpecularMap,uv);
 			uv = TRANSFORM_TEX(uv, _MainTex);
 			float4 c = tex2D (_MainTex, uv);
 			o.Albedo = c.rgb;
+			float4 detailColor = tex2D(_DetailAlbedo, detailUV);
+			o.Albedo = lerp(detailColor.rgb, o.Albedo, spec.b) * _Color.rgb;
 			o.Alpha = 1;
-			float4 spec = tex2D(_SpecularMap,uv);
-			o.Occlusion = lerp(1, c.a, _Occlusion);
+			o.Occlusion = lerp(min(detailColor.a, c.a), c.a, spec.b);
+			o.Occlusion = lerp(1, o.Occlusion, _Occlusion);
 			o.Specular = lerp(_SpecularIntensity * spec.r, o.Albedo * _SpecularIntensity * spec.r, _MetallicIntensity); 
 			o.Smoothness = _Glossiness * spec.g;
 			o.Normal = UnpackNormal(tex2D(_BumpMap,uv));
 			float3 detailNormal = UnpackNormal(tex2D(_DetailNormal, detailUV));
-			float4 detailColor = tex2D(_DetailAlbedo, detailUV);
-			o.Albedo = lerp(detailColor.rgb, o.Albedo, spec.b) * _Color.rgb;
 			o.Normal = lerp(detailNormal, o.Normal, spec.b);
-			o.Occlusion = lerp(detailColor.a, o.Occlusion, spec.b);
+			
 			o.Emission = _EmissionColor;
 		}
 
@@ -171,7 +172,8 @@ pass
   comp always
   pass replace
 }
-Tags {"LightMode" = "GBuffer"}
+Name "GBuffer"
+Tags {"LightMode" = "GBuffer" "Name" = "GBuffer"}
 ZTest Less
 CGPROGRAM
 

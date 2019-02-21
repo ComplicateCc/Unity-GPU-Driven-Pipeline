@@ -1,0 +1,37 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include "CGINC/VoxelLight.cginc"
+#include "CGINC/Reflection.cginc"
+
+RWTexture3D<float4> _XYPlaneTexture;
+RWTexture2D<float4> _ZPlaneTexture;
+RWTexture2D<int> _ReflectionIndices;
+StructuredBuffer<ReflectionData> _ReflectionData;
+TextureCubeArray<float4> _ReflectionTextures;
+int _Count;
+
+[numthreads(XRES, YRES, 1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int i;
+    int index = DownDimension(id, int2(XRES, YRES));
+    float4 planes[6];
+    [unroll]
+    for(i = 0; i < 4; ++i)
+        planes[i] = _XYPlaneTexture[uint3(id.xy, i)];
+    planes[4] = _ZPlaneTexture[uint2(id.z, 0)];
+    planes[5] = _ZPlaneTexture[uint2(id.z, 1)];
+//    float BoxIntersect(float3 extent, float3x3 boxLocalToWorld, float3 position, float4 planes[6])
+    int count = 1;
+    [loop]
+    for(i = 0; i < _Count; ++i)
+    {
+        ReflectionData data = _ReflectionData[i];
+        if(BoxIntersect(data.extent, data.localToWorld, data.position, planes))
+        {
+            _ReflectionIndices[int2(index, count)] = i;
+            count++;
+        }
+        _ReflectionIndices[int2(index, 0)] = count;
+    }
+}

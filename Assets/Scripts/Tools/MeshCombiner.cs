@@ -316,7 +316,7 @@ namespace MPipeline
                     {
                         dict.Add(pt.instancingIDs[j], true);
                         TextureToBytes((Texture2D)textures[i, j], ref bytes, false);
-                        string path = "Assets/BinaryData/Textures/" + pt.instancingIDs[j] + ".txt";
+                        string path = "Assets/BinaryData/Textures/" + pt.instancingIDs[j] + ".mpipe";
                         File.WriteAllBytes(path, bytes);
                     }
                 }
@@ -395,7 +395,7 @@ namespace MPipeline
                     name = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(model.lightmaps[i])),
                     size = model.lightmaps[i].width
                 };
-                File.WriteAllBytes("Assets/BinaryData/Lightmaps/" + lightmapGUIDs[i].name + ".txt", bytes);
+                File.WriteAllBytes("Assets/BinaryData/Lightmaps/" + lightmapGUIDs[i].name + ".mpipe", bytes);
             }
             property.lightmapGUIDs = lightmapGUIDs;
             res.clusterProperties.Add(property);

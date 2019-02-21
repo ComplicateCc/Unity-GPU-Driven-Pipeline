@@ -4,10 +4,10 @@ using Unity.Jobs;
 using System;
 using UnityEngine.Rendering;
 using System.Reflection;
-using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 namespace MPipeline
 {
-    public unsafe sealed class RenderPipeline : UnityEngine.Experimental.Rendering.RenderPipeline
+    public unsafe sealed class RenderPipeline : UnityEngine.Rendering.RenderPipeline
     {
         #region STATIC_AREA
 
@@ -81,7 +81,7 @@ namespace MPipeline
             foreach (var i in keys)
             {
                 PipelineEvent[] events = allEvents[i];
-                foreach(var j in events)
+                foreach (var j in events)
                 {
                     j.Prepare(i);
                 }
@@ -92,7 +92,7 @@ namespace MPipeline
             }
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
             if (current != this) return;
             current = null;
@@ -108,7 +108,7 @@ namespace MPipeline
                 }
             }
         }
-        public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
+        protected override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
             bool* propertyCheckedFlags = stackalloc bool[]
             {
@@ -154,12 +154,11 @@ namespace MPipeline
             PipelineResources.CameraRenderingPath path = pipelineCam.renderingPath;
             pipelineCam.cam = cam;
             pipelineCam.EnableThis();
-            if (!CullResults.GetCullingParameters(cam, out data.cullParams)) return;
+            if (!cam.TryGetCullingParameters(out data.cullParams)) return;
             context.SetupCameraProperties(cam);
             //Set Global Data
-            data.defaultDrawSettings = new DrawRendererSettings(cam, new ShaderPassName(""));
             data.context = context;
-            data.cullResults = CullResults.Cull(ref data.cullParams, context);
+            data.cullResults = context.Cull(ref data.cullParams);
 
             PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, data.buffer);
             data.resources = resources;

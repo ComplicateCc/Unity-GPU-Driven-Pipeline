@@ -195,8 +195,8 @@ namespace MPipeline
             public Camera targetCam;
             public RenderQueueRange renderRange;
             public string passName;
-            public CullFlag flag;
-            public RendererConfiguration configure;
+            public CullingOptions flag;
+            public PerObjectData configure;
             public Material clusterMat;
         }
         public static SceneCommonData commonData;
@@ -381,18 +381,13 @@ namespace MPipeline
         private static void RenderScene(ref PipelineCommandData data, Camera cam)
         {
             data.ExecuteCommandBuffer();
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true);
+            FilteringSettings renderSettings = new FilteringSettings();
             renderSettings.renderQueueRange = RenderQueueRange.opaque;
             renderSettings.layerMask = cam.cullingMask;
-            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("GBuffer"));
-            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-            {
-                flags = SortFlags.CommonOpaque,
-                sortMode = DrawRendererSortMode.Perspective,
-                cameraPosition = cam.transform.position
-            };
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.PerObjectMotionVectors;
-            data.context.DrawRenderers(data.cullResults.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            renderSettings.renderingLayerMask = uint.MaxValue;
+            data.defaultDrawSettings = new DrawingSettings(new ShaderTagId("GBuffer"), new SortingSettings(cam));
+            data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.MotionVectors;
+            data.context.DrawRenderers(data.cullResults, ref data.defaultDrawSettings, ref renderSettings);
         }
         public static void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
         {
@@ -420,7 +415,7 @@ namespace MPipeline
             buffer.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
             buffer.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
             buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
-            CullResults.GetCullingParameters(currentCam, out data.cullParams);
+            currentCam.TryGetCullingParameters(out data.cullParams);
             if (gpurpEnabled)
             {
                 float4* frustumPlanes = stackalloc float4[6];
@@ -435,21 +430,18 @@ namespace MPipeline
             }
 
             data.ExecuteCommandBuffer();
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            FilteringSettings renderSettings = new FilteringSettings()
             {
                 renderQueueRange = RenderQueueRange.opaque,
-                layerMask = currentCam.cullingMask
+                layerMask = currentCam.cullingMask,
+                renderingLayerMask = uint.MaxValue
             };
-            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("SpotLightPass"));
-            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-            {
-                flags = SortFlags.None
-            };
-
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
-            CullResults results = CullResults.Cull(ref data.cullParams, data.context);
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            data.defaultDrawSettings.SetShaderPassName(0, new ShaderTagId("SpotLightPass"));
+            data.defaultDrawSettings.sortingSettings = new SortingSettings();
+            data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive | CullingOptions.DisablePerObjectCulling;
+            CullingResults results = data.context.Cull(ref data.cullParams);
+            data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
             buffer.SetInvertCulling(false);
         }
 
@@ -506,7 +498,7 @@ options.frustumPlanes);
                 float4* vec = (float4*)opts.frustumPlanes.Ptr();
                 SunLight.shadowCam.worldToCameraMatrix = worldToCamMatrices[pass];
                 SunLight.shadowCam.projectionMatrix = projectionMatrices[pass];
-                if (!CullResults.GetCullingParameters(SunLight.shadowCam, out data.cullParams))
+                if (!SunLight.shadowCam.TryGetCullingParameters(out data.cullParams))
                     return;
                 for (int i = 0; i < 6; ++i)
                 {
@@ -522,22 +514,20 @@ options.frustumPlanes);
                     opts.command.DrawProceduralIndirect(Matrix4x4.identity, sunLight.shadowDepthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
                 }
                 data.ExecuteCommandBuffer();
-                FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+                FilteringSettings renderSettings = new FilteringSettings()
                 {
                     renderQueueRange = RenderQueueRange.opaque,
-                    layerMask = currentCam.cullingMask
+                    layerMask = currentCam.cullingMask,
+                    renderingLayerMask = uint.MaxValue,
+                    
                 };
-                data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("DirectionalLight"));
-                data.defaultDrawSettings.flags = DrawRendererFlags.EnableDynamicBatching;
-                data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-                data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-                {
-                    flags = SortFlags.None
-                };
-                data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive;
-                CullResults results = CullResults.Cull(ref data.cullParams, data.context);
-                data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-                data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+                data.defaultDrawSettings.SetShaderPassName(0, new ShaderTagId("DirectionalLight"));
+                data.defaultDrawSettings.enableDynamicBatching = true;
+                data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
+                data.defaultDrawSettings.sortingSettings = new SortingSettings();
+                data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive | CullingOptions.DisablePerObjectCulling;
+                CullingResults results = data.context.Cull(ref data.cullParams);
+                data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
             }
             opts.command.SetInvertCulling(false);
         }
@@ -547,18 +537,16 @@ options.frustumPlanes);
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
             cb.SetGlobalVector(ShaderIDs._LightPos, light.sphere);
             cb.SetInvertCulling(true);
-            FilterRenderersSettings renderSettings = new FilterRenderersSettings(true)
+            FilteringSettings renderSettings = new FilteringSettings()
             {
                 renderQueueRange = RenderQueueRange.opaque,
+                layerMask = -1,
+                renderingLayerMask = uint.MaxValue
             };
-            data.defaultDrawSettings.SetShaderPassName(0, new ShaderPassName("PointLightPass"));
-            data.defaultDrawSettings.flags = DrawRendererFlags.EnableDynamicBatching;
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
-            data.defaultDrawSettings.sorting = new DrawRendererSortSettings
-            {
-                flags = SortFlags.None
-            };
-            data.defaultDrawSettings.rendererConfiguration = RendererConfiguration.None;
+            data.defaultDrawSettings.SetShaderPassName(0, new ShaderTagId("PointLightPass"));
+            data.defaultDrawSettings.enableDynamicBatching = true;
+            data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
+            data.defaultDrawSettings.sortingSettings = new SortingSettings();
 
             //Forward
             int depthSlice = offset * 6;
@@ -572,16 +560,16 @@ options.frustumPlanes);
             lit.shadowCam.farClipPlane = light.sphere.w;
             lit.shadowCam.orthographicSize = light.sphere.w;
             lit.shadowCam.aspect = 1;
-            CullResults.GetCullingParameters(lit.shadowCam, out data.cullParams);
-            data.cullParams.cullingFlags = CullFlag.ForceEvenIfCameraIsNotActive | CullFlag.DisablePerObjectCulling;
-            CullResults results = CullResults.Cull(ref data.cullParams, data.context);
+            lit.shadowCam.TryGetCullingParameters(out data.cullParams);
+            data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive | CullingOptions.DisablePerObjectCulling;
+            CullingResults results = data.context.Cull(ref data.cullParams);
             if (gpurpEnabled)
             {
                 PipelineFunctions.SetBaseBuffer(baseBuffer, cullingShader, vpMatrices.frustumPlanes, cb);
                 PipelineFunctions.RunCullDispatching(baseBuffer, cullingShader, cb);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
             //Back
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -591,7 +579,7 @@ options.frustumPlanes);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.ExecuteCommandBuffer();
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
             //Up
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
@@ -602,7 +590,7 @@ options.frustumPlanes);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.ExecuteCommandBuffer();
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
             //Down
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
@@ -613,7 +601,7 @@ options.frustumPlanes);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.ExecuteCommandBuffer();
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
             //Right
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice);
@@ -624,7 +612,7 @@ options.frustumPlanes);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.ExecuteCommandBuffer();
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
             //Left
             cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
@@ -635,7 +623,7 @@ options.frustumPlanes);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.ExecuteCommandBuffer();
-            data.context.DrawRenderers(results.visibleRenderers, ref data.defaultDrawSettings, renderSettings);
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings,ref renderSettings);
             cb.SetInvertCulling(false);
         }
         public static void GICubeCull(float3 position, float extent, CommandBuffer buffer, ComputeShader cullingshader)

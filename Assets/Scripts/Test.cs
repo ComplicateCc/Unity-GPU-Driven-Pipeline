@@ -8,6 +8,7 @@ public unsafe sealed class Test : MonoBehaviour
     [EasyButtons.Button]
     void Run()
     {
+        Debug.Log(((Cubemap)GetComponent<ReflectionProbe>().texture).format);
     }
 }
 
