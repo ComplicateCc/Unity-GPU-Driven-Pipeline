@@ -187,7 +187,7 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            Object.DestroyImmediate(volumeMat);
+            DestroyImmediate(volumeMat);
             randomBuffer.Dispose();
         }
         [Unity.Burst.BurstCompile]

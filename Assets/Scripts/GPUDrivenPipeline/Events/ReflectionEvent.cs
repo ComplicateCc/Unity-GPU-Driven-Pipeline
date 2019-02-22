@@ -20,32 +20,51 @@ namespace MPipeline
             x64 = 64, x128 = 128, x256 = 256, x512 = 512, x1024 = 1024
         }
         public Resolution unitedResolution = Resolution.x128;
+        public bool reflectionEnabled { get; private set; }
         private NativeArray<VisibleReflectionProbe> reflectProbes;
         private NativeArray<ReflectionData> reflectionData;
         private JobHandle storeDataHandler;
         private ComputeBuffer probeBuffer;
         private LightingEvent lightingEvents;
-        private CubemapArray reflectionAtlas;
         private ComputeBuffer reflectionIndices;
         private Material deferredReflectMat;
+        private NativeList<int> reflectionCubemapIDs;
+        private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
         public override bool CheckProperty()
         {
-            return reflectionAtlas != null;
+            return deferredReflectMat != null;
         }
         protected override void Init(PipelineResources resources)
         {
             deferredReflectMat = new Material(resources.shaders.reflectionShader);
-            reflectionAtlas = new CubemapArray((int)unitedResolution, maximumProbe, TextureFormat.BC6H, true, true);
-            reflectionAtlas.filterMode = FilterMode.Trilinear;
             probeBuffer = new ComputeBuffer(maximumProbe, sizeof(ReflectionData));
             lightingEvents = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
             reflectionIndices = new ComputeBuffer(CBDRSharedData.XRES * CBDRSharedData.YRES * CBDRSharedData.ZRES * (maximumProbe + 1), sizeof(int));
+            string old = "_ReflectionCubeMap";
+            string newStr = new string(' ', old.Length + 1);
+            reflectionCubemapIDs = new NativeList<int>(maximumProbe, maximumProbe, Allocator.Persistent);
+            fixed (char* ctr = old)
+            {
+                fixed (char* newCtr = newStr)
+                {
+                    for (int i = 0; i < old.Length; ++i)
+                    {
+                        newCtr[i] = ctr[i];
+                    }
+                    for(int i = 0; i < reflectionCubemapIDs.Length; ++i)
+                    {
+                        newCtr[old.Length] = (char)(i + 48);
+                        reflectionCubemapIDs[i] = Shader.PropertyToID(newStr);
+                    }
+                }
+            }
+
         }
         protected override void Dispose()
         {
-            DestroyImmediate(reflectionAtlas);
             probeBuffer.Dispose();
             reflectionIndices.Dispose();
+            reflectionCubemapIDs.Dispose();
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
@@ -64,25 +83,11 @@ namespace MPipeline
         {
             storeDataHandler.Complete();
             int count = Mathf.Min(maximumProbe, reflectProbes.Length);
-            if (count == 0) return;
+            reflectionEnabled = (count > 0);
+            if (!reflectionEnabled) return;
 
             CommandBuffer buffer = data.buffer;
-            for (int i = 0; i < count; ++i)
-            {
-                Texture tex = reflectProbes[i].texture;
-                if (!tex) continue;
-#if UNITY_EDITOR
-                if (tex.width != (int)unitedResolution)
-                {
-                    Debug.LogError("Probe: " + reflectProbes[i].reflectionProbe.name + "'s resolution is wrong!");
-                    return;
-                }
-#endif
-                for (int j = 0; j < 6; ++j)
-                {
-                    buffer.CopyTexture(tex, j, 0, reflectionAtlas, j + i * 6, 0);
-                }
-            }
+
             ComputeShader cullingShader = data.resources.shaders.reflectionCullingShader;
             ref CBDRSharedData cbdr = ref lightingEvents.cbdr;
             probeBuffer.SetData(reflectionData, 0, 0, count);
@@ -94,8 +99,11 @@ namespace MPipeline
             buffer.DispatchCompute(cullingShader, 0, 1, 1, CBDRSharedData.ZRES);
             buffer.SetGlobalBuffer(ShaderIDs._ReflectionIndices, reflectionIndices);
             buffer.SetGlobalBuffer(ShaderIDs._ReflectionData, probeBuffer);
-            buffer.SetGlobalTexture(ShaderIDs._ReflectionCubeMap, reflectionAtlas);
-            //   buffer.BlitSRT(cam.targets.renderTargetIdentifier, deferredReflectMat, 0);
+            for(int i = 0; i < count; ++i)
+            {
+                buffer.SetGlobalTexture(reflectionCubemapIDs[i], reflectProbes[i].texture);
+            }
+            buffer.BlitSRT(cam.targets.renderTargetIdentifier, deferredReflectMat, 0);
             //TODO
         }
         [Unity.Burst.BurstCompile]

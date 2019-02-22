@@ -114,5 +114,5 @@ public static partial class ShaderIDs
     public static readonly int _ReflectionIndices = Shader.PropertyToID("_ReflectionIndices");
     public static readonly int _ReflectionData = Shader.PropertyToID("_ReflectionData");
     public static readonly int _ReflectionTextures = Shader.PropertyToID("_ReflectionTextures");
-    public static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
+    
 }

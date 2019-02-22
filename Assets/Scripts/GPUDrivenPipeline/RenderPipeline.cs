@@ -158,6 +158,7 @@ namespace MPipeline
             context.SetupCameraProperties(cam);
             //Set Global Data
             data.context = context;
+            data.cullParams.reflectionProbeSortingCriteria = ReflectionProbeSortingCriteria.ImportanceThenSize;
             data.cullResults = context.Cull(ref data.cullParams);
 
             PipelineFunctions.InitRenderTarget(ref pipelineCam.targets, cam, data.buffer);
