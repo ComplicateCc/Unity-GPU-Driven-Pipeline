@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 namespace MPipeline
 {
     public unsafe struct CBDRSharedData
@@ -58,7 +59,7 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                colorFormat = RenderTextureFormat.ARGBFloat,
+                graphicsFormat = GraphicsFormat.R32G32B32A32_SFloat,
                 depthBufferBits = 0,
                 enableRandomWrite = true,
                 dimension = TextureDimension.Tex3D,
@@ -76,7 +77,7 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                colorFormat = RenderTextureFormat.RHalf,
+                graphicsFormat = GraphicsFormat.R16_SFloat,
                 depthBufferBits = 16,
                 dimension = TextureDimension.CubeArray,
                 volumeDepth = 6 * MAXIMUMPOINTLIGHTCOUNT,
@@ -96,7 +97,7 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                colorFormat = RenderTextureFormat.RHalf,
+                graphicsFormat = GraphicsFormat.R16_SFloat,
                 depthBufferBits = 16,
                 dimension = TextureDimension.Tex2DArray,
                 enableRandomWrite = false,
@@ -128,7 +129,7 @@ namespace MPipeline
             desc.width = XRES;
             desc.height = YRES;
             desc.volumeDepth = MAXPOINTLIGHTPERTILE;
-            desc.colorFormat = RenderTextureFormat.RInt;
+            desc.graphicsFormat = GraphicsFormat.R32_SInt;
             desc.dimension = TextureDimension.Tex3D;
             pointTileLightList = new RenderTexture(desc);
             pointTileLightList.Create();

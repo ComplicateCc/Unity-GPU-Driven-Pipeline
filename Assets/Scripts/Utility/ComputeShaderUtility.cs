@@ -39,12 +39,12 @@ public unsafe static class MUnsafeUtility
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T* Ptr<T>(ref this NativeArray<T> arr) where T : unmanaged
+    public static T* Ptr<T>(this NativeArray<T> arr) where T : unmanaged
     {
         return (T*)arr.GetUnsafePtr();
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ref T Get<T>(ref this NativeArray<T> arr, int index) where T : unmanaged
+    public static ref T Get<T>(this NativeArray<T> arr, int index) where T : unmanaged
     {
         return ref *((T*)arr.GetUnsafePtr() + index);
     }

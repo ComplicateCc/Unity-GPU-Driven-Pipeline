@@ -26,6 +26,7 @@ namespace MPipeline
             public ComputeShader volumetricScattering;
             public ComputeShader probeCoeffShader;
             public ComputeShader texCopyShader;
+            public ComputeShader reflectionCullingShader;
             public Shader taaShader;
             public Shader indirectDepthShader;
             public Shader HizLodShader;

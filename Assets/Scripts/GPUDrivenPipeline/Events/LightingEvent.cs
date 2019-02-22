@@ -94,17 +94,18 @@ namespace MPipeline
         }
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
-            LightFilter.allVisibleLight = data.cullResults.visibleLights;
+            var visLights = data.cullResults.visibleLights;
+            LightFilter.allVisibleLight = visLights.Ptr();
             allLights.Clear();
             cbdr.UpdateFroxel(volumetricEvent.Enabled);
-            foreach (var i in LightFilter.allVisibleLight)
+            foreach (var i in visLights)
             {
                 allLights.Add(i.light);
             }
             addMLightCommandList.Clear();
             LightFilter.allMLightCommandList = addMLightCommandList;
-            pointLightArray = new NativeArray<PointLightStruct>(LightFilter.allVisibleLight.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            spotLightArray = new NativeArray<SpotLight>(LightFilter.allVisibleLight.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            pointLightArray = new NativeArray<PointLightStruct>(visLights.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            spotLightArray = new NativeArray<SpotLight>(visLights.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             cubemapVPMatrices = new NativeList<CubemapViewProjMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
             spotLightMatrices = new NativeList<SpotLightMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
             LightFilter.allLights = allLights;
@@ -439,7 +440,7 @@ namespace MPipeline
 
         public unsafe struct LightFilter : IJobParallelFor
         {
-            public static NativeArray<VisibleLight> allVisibleLight;
+            public static VisibleLight* allVisibleLight;
             public static List<Light> allLights;
             public static List<Light> allMLightCommandList;
             public static NativeList<CubemapViewProjMatrix> cubemapVPMatrices;
@@ -532,7 +533,6 @@ namespace MPipeline
             }
             public void Execute(int index)
             {
-                const float LUMENRATE = (4 * Mathf.PI);
                 PointLightStruct* indStr = pointLightArray.Ptr();
                 SpotLight* spotStr = spotLightArray.Ptr();
                 VisibleLight i = allVisibleLight[index];
@@ -551,7 +551,7 @@ namespace MPipeline
                         int currentPointCount = Interlocked.Increment(ref pointLightCount) - 1;
                         PointLightStruct* currentPtr = indStr + currentPointCount;
                         Color col = i.finalColor;
-                        currentPtr->lightColor = new float3(col.r, col.g, col.b) / LUMENRATE;
+                        currentPtr->lightColor = new float3(col.r, col.g, col.b);
                         currentPtr->sphere = i.localToWorldMatrix.GetColumn(3);
                         currentPtr->sphere.w = i.range;
                         if (mlight.useShadow)
@@ -584,7 +584,7 @@ namespace MPipeline
                         int currentSpotCount = Interlocked.Increment(ref spotLightCount) - 1;
                         SpotLight* currentSpot = spotStr + currentSpotCount;
                         Color spotCol = i.finalColor;
-                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b) / LUMENRATE;
+                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b);
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
                         currentSpot->lightCone = new Cone((Vector3)i.localToWorldMatrix.GetColumn(3), i.range, normalize((Vector3)i.localToWorldMatrix.GetColumn(2)), deg);
                         currentSpot->angle = deg;

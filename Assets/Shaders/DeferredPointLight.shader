@@ -80,6 +80,7 @@ ENDCG
                 uint2 LightIndex;// = uint2(sb + 1, _PointLightIndexBuffer[sb]);
                 uint c;
                 float3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
+                const float attenuation = 4 * 3.14159;
                 #if SPOTLIGHT
                 
                 LightIndex = uint2(sb + 1, _SpotLightIndexBuffer[sb]);
@@ -91,7 +92,7 @@ ENDCG
                 
                         float LightRange = SpotCone.radius;
                         float3 LightPos = SpotCone.vertex;
-                        float3 LightColor = Light.lightColor;
+                        float3 LightColor = Light.lightColor / attenuation;
                         
                         float LightAngle = Light.angle;
                         float3 LightForward = SpotCone.direction;
@@ -129,7 +130,7 @@ ENDCG
                     PointLight Light = _AllPointLight[_PointLightIndexBuffer[c]];
                     float LightRange = Light.sphere.a;
                     float3 LightPos = Light.sphere.rgb;
-                    float3 LightColor = Light.lightColor;
+                    float3 LightColor = Light.lightColor / attenuation;
                     
                     float3 Un_LightDir = LightPos - WorldPos.xyz;
                     float Length_LightDir = length(Un_LightDir);

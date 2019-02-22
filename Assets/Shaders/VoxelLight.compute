@@ -65,6 +65,7 @@ void CBDR(uint3 id : SV_DISPATCHTHREADID)
     uint i;
     planes[0] = _ZPlaneTexture[uint2(id.z, 0)];
     planes[1] = _ZPlaneTexture[uint2(id.z, 1)];
+    
     //TODO
     //
     uint clusterCount = 0;

@@ -87,7 +87,6 @@ namespace MPipeline
 
     public struct ReflectionData
     {
-        public float3x3 localToWorld;
         public float3 position;
         public float3 extent;
         public float4 hdr;

@@ -384,7 +384,7 @@ namespace MPipeline
             FilteringSettings renderSettings = new FilteringSettings();
             renderSettings.renderQueueRange = RenderQueueRange.opaque;
             renderSettings.layerMask = cam.cullingMask;
-            renderSettings.renderingLayerMask = uint.MaxValue;
+            renderSettings.renderingLayerMask = (uint)cam.cullingMask;
             data.defaultDrawSettings = new DrawingSettings(new ShaderTagId("GBuffer"), new SortingSettings(cam));
             data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.MotionVectors;
             data.context.DrawRenderers(data.cullResults, ref data.defaultDrawSettings, ref renderSettings);
@@ -433,12 +433,16 @@ namespace MPipeline
             FilteringSettings renderSettings = new FilteringSettings()
             {
                 renderQueueRange = RenderQueueRange.opaque,
-                layerMask = currentCam.cullingMask,
+                layerMask =  -1,
                 renderingLayerMask = uint.MaxValue
             };
+            data.defaultDrawSettings.enableDynamicBatching = false;
             data.defaultDrawSettings.SetShaderPassName(0, new ShaderTagId("SpotLightPass"));
-            data.defaultDrawSettings.sortingSettings = new SortingSettings();
-            data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive | CullingOptions.DisablePerObjectCulling;
+            data.defaultDrawSettings.sortingSettings = new SortingSettings
+            {
+                criteria = SortingCriteria.None
+            };
+            data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive;
             CullingResults results = data.context.Cull(ref data.cullParams);
             data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
             data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
@@ -518,15 +522,17 @@ options.frustumPlanes);
                 {
                     renderQueueRange = RenderQueueRange.opaque,
                     layerMask = currentCam.cullingMask,
-                    renderingLayerMask = uint.MaxValue,
-                    
+                    renderingLayerMask = (uint)currentCam.cullingMask,
+                    excludeMotionVectorObjects = true
                 };
                 data.defaultDrawSettings.SetShaderPassName(0, new ShaderTagId("DirectionalLight"));
-                data.defaultDrawSettings.enableDynamicBatching = true;
+                data.defaultDrawSettings.enableDynamicBatching = false;
                 data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
-                data.defaultDrawSettings.sortingSettings = new SortingSettings();
-                data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive | CullingOptions.DisablePerObjectCulling;
+                SortingSettings settings = new SortingSettings(SunLight.shadowCam);
+                data.defaultDrawSettings.sortingSettings = settings;
+                data.cullParams.cullingOptions = CullingOptions.None;
                 CullingResults results = data.context.Cull(ref data.cullParams);
+                
                 data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
             }
             opts.command.SetInvertCulling(false);
@@ -544,7 +550,7 @@ options.frustumPlanes);
                 renderingLayerMask = uint.MaxValue
             };
             data.defaultDrawSettings.SetShaderPassName(0, new ShaderTagId("PointLightPass"));
-            data.defaultDrawSettings.enableDynamicBatching = true;
+            data.defaultDrawSettings.enableDynamicBatching = false;
             data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
             data.defaultDrawSettings.sortingSettings = new SortingSettings();
 
@@ -561,7 +567,7 @@ options.frustumPlanes);
             lit.shadowCam.orthographicSize = light.sphere.w;
             lit.shadowCam.aspect = 1;
             lit.shadowCam.TryGetCullingParameters(out data.cullParams);
-            data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive | CullingOptions.DisablePerObjectCulling;
+            data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive;
             CullingResults results = data.context.Cull(ref data.cullParams);
             if (gpurpEnabled)
             {
