@@ -198,6 +198,11 @@ public unsafe class MLight : MonoBehaviour
     private void OnEnable()
     {
         light = GetComponent<Light>();
+        if(light.shadows != LightShadows.None)
+        {
+            useShadow = true;
+            light.shadows = LightShadows.None;
+        }
         lightDict.Add(light, this);
         updateShadowCache = true;
         if (!shadowCam)

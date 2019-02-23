@@ -72,7 +72,7 @@ ENDCG
                     ReflectionData data = _ReflectionData[currentIndex];
                     float3 leftDown = data.position - data.extent;
                     float3 cubemapUV = (worldPos.xyz - leftDown) / (data.extent * 2);
-                    if(abs(dot(cubemapUV - saturate(cubemapUV), 1)) > 0.001) continue;
+                    if(abs(dot(cubemapUV - saturate(cubemapUV), 1)) > 1e-13) continue;
                     //TODO
                     //data has been defined in Reflection.cginc
                     importance += data.importance;
