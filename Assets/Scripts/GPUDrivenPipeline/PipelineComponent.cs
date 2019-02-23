@@ -90,9 +90,9 @@ namespace MPipeline
         public float3 position;
         public float3 extent;
         public float4 hdr;
-        public float blendDistance;
-        public int importance;
-        public int boxProjection;
+        public float  blendDistance;
+        public int    importance;
+        public int    boxProjection;
     }
 
     public class PipelineBaseBuffer
@@ -325,7 +325,7 @@ namespace MPipeline
                 Shader.PropertyToID("_CameraMotionVectorsTexture"),
             };
             rt.gbufferIdentifier = new RenderTargetIdentifier[5];
-            for(int i = 0; i < 5; ++i)
+            for (int i = 0; i < 5; ++i)
             {
                 rt.gbufferIdentifier[i] = rt.gbufferIndex[i];
             }

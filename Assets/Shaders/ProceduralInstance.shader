@@ -254,6 +254,7 @@ ENDCG
 				float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
                 o.worldPos = worldPos.xyz;
                 o.vertex = mul(_VP, worldPos);
+				
                 return o;
             }
 

@@ -63,6 +63,7 @@
 				float4 worldPos = float4(v.vertex, 1);
 				v2f o;
 				o.vertex = mul(_ShadowMapVP, worldPos);
+				
 				return o;
 			}
 			

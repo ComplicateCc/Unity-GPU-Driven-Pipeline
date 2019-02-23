@@ -50,6 +50,8 @@ namespace MPipeline
             container = allVolumes.unsafePtr + allVolumes.Length - 1;
         }
 
+        
+
         private void OnDisable()
         {
             *container = allVolumes[allVolumes.Length - 1];

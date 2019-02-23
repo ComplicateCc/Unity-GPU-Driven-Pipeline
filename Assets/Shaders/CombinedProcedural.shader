@@ -108,6 +108,7 @@ v2f_surf vert_surf (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
   	float tangentSign = v.tangent.w;
   	o.worldBinormal = float4(cross(v.normal, o.worldTangent.xyz) * tangentSign, v.vertex.y);
   	o.worldViewDir = UnityWorldSpaceViewDir(v.vertex);
+    
   	return o;
 }
 float4x4 _VP;

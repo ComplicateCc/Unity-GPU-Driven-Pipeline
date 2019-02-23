@@ -5,7 +5,16 @@ CGINCLUDE
 #include "UnityCG.cginc"
 #include "CGINC/VoxelLight.cginc"
 #include "CGINC/Reflection.cginc"
+#define _CameraDepthTexture _
+#include "UnityDeferredLibrary.cginc"
+#include "UnityStandardUtils.cginc"
+#include "UnityGBuffer.cginc"
+#include "UnityStandardBRDF.cginc"
+#include "UnityPBSLighting.cginc"
+#pragma multi_compile ___ UNITY_HDR_ON
 #pragma target 5.0
+#undef _CameraDepthTexture
+
             struct appdata
             {
                 float4 vertex : POSITION;
@@ -61,10 +70,16 @@ ENDCG
                 uint3 intUV = uv * float3(XRES, YRES, ZRES);
                 int index = DownDimension(intUV, uint2(XRES, YRES), MAXIMUM_PROBE + 1);
                 int target = _ReflectionIndices[index];
-                float3 normal = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv).xyz * 2 - 1;
+                float3 normal = normalize(_CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv).xyz * 2 - 1);
+                float3 eyeVec = normalize(worldPos.xyz - _WorldSpaceCameraPos);
+                float3 worldNormalRefl = normalize(reflect(eyeVec, normal));
                 float3 finalColor = 0;
                 float4 specular = _CameraGBufferTexture1.Sample(sampler_CameraGBufferTexture1, i.uv);
                 float importance = 0;
+                float lod = (1 - specular.w) * 9.998;
+
+                
+                half oneMinusReflectivity = 1 - SpecularStrength(specular.xyz);
                 [loop]
                 for(int a = 1; a < target; ++a)
                 {
@@ -73,12 +88,34 @@ ENDCG
                     float3 leftDown = data.position - data.extent;
                     float3 cubemapUV = (worldPos.xyz - leftDown) / (data.extent * 2);
                     if(abs(dot(cubemapUV - saturate(cubemapUV), 1)) > 1e-13) continue;
+
+                    float blendDistance = data.blendDistance;
+                    UnityGIInput d;
+                    d.worldPos = worldPos.xyz;
+                    d.worldViewDir = -eyeVec;
+                    d.probeHDR[0] = data.hdr;
+                    d.boxMin[0].w = 1;
+                    if(data.boxProjection > 0)
+                    {
+                        d.probePosition[0]  = float4(data.position, 1);
+                        d.boxMin[0].xyz     = data.extent - float4(blendDistance,blendDistance,blendDistance,0);
+                        d.boxMax[0].xyz     = data.extent + float4(blendDistance,blendDistance,blendDistance,0);
+                    }
+                    Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(specular.w, d.worldViewDir, normal, specular.xyz);
+
+                    
                     //TODO
                     //data has been defined in Reflection.cginc
                     importance += data.importance;
-                    float3 color = GetColor(currentIndex, normal,(1 - specular.w) * 9.998);
-                    color *= data.importance;
-                    finalColor += color;
+                    float3 env0 = GetColor(currentIndex, worldNormalRefl, lod);
+                    UnityLight light;
+                    light.color = half3(0, 0, 0);
+                    light.dir = half3(0, 1, 0);
+                    UnityIndirect ind;
+                    ind.diffuse = 0;
+                    ind.specular = env0;
+                    half3 rgb = BRDF1_Unity_PBS (0, specular.xyz, oneMinusReflectivity, specular.w, normal, -eyeVec, light, ind).rgb;
+                    finalColor += rgb * data.importance;
                 }
                 if(importance < 1e-4) importance = 1;
                 finalColor /= importance;
