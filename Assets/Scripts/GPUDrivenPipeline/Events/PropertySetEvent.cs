@@ -17,6 +17,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             buffer.SetGlobalMatrix(ShaderIDs._LastVp, lastVp);
             buffer.SetGlobalMatrix(ShaderIDs._NonJitterVP, nonJitterVP);
+            buffer.SetGlobalMatrix(ShaderIDs._InvNonJitterVP, nonJitterVP.inverse);
             buffer.SetGlobalMatrix(ShaderIDs._InvVP, data.inverseVP);
             buffer.SetGlobalMatrix(ShaderIDs._VP, data.vp);
             buffer.SetGlobalMatrix(ShaderIDs._InvLastVP, lastVp.inverse);

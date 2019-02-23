@@ -64,7 +64,7 @@ namespace MPipeline
             buffer.SetGlobalTexture(ShaderIDs._HistoryTex, historyTex);
             int source, dest;
             PipelineFunctions.RunPostProcess(ref cam.targets, out source, out dest);
-            buffer.BlitSRT(source, dest, taaMat, 0);
+            buffer.BlitSRT(source, dest, cam.targets.depthIdentifier, taaMat, 0);
             buffer.CopyTexture(dest, historyTex);
         }
 
@@ -118,7 +118,7 @@ namespace MPipeline
             else if (history.width != cam.pixelWidth || history.height != cam.pixelHeight)
             {
                 history.Release();
-                Object.Destroy(history);
+                Destroy(history);
                 history = new RenderTexture(cam.pixelWidth, cam.pixelHeight, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
                 history.filterMode = FilterMode.Bilinear;
                 buffer.CopyTexture(renderTarget, history);

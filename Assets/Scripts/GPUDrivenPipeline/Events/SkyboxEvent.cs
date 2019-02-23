@@ -9,7 +9,6 @@ namespace MPipeline
     public class SkyboxEvent : PipelineEvent
     {
         public Material skyboxMaterial;
-        public RenderTargetIdentifier[] skyboxIdentifier = new RenderTargetIdentifier[2];
         protected override void Dispose()
         {
         }
@@ -24,9 +23,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera camera, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            skyboxIdentifier[0] = camera.targets.renderTargetIdentifier;
-            skyboxIdentifier[1] = camera.targets.motionVectorTexture;
-            buffer.SetRenderTarget(skyboxIdentifier, camera.targets.depthIdentifier);
+            buffer.SetRenderTarget(color: camera.targets.renderTargetIdentifier, depth: camera.targets.depthIdentifier);
             buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, skyboxMaterial, 0, 0);
         }
     }

@@ -55,6 +55,7 @@ public static partial class ShaderIDs
     public static readonly int _Depth = Shader.PropertyToID("_Depth");
     public static readonly int _LastDepth = Shader.PropertyToID("_LastDepth");
     public static readonly int _NonJitterVP = Shader.PropertyToID("_NonJitterVP");
+    public static readonly int _InvNonJitterVP = Shader.PropertyToID("_InvNonJitterVP");
     public static readonly int _Lut3D = Shader.PropertyToID("_Lut3D");
     public static readonly int _Lut3D_Params = Shader.PropertyToID("_Lut3D_Params");
     public static readonly int _PostExposure = Shader.PropertyToID("_PostExposure");

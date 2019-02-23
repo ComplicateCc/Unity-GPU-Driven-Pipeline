@@ -257,11 +257,12 @@ Shader "Hidden/PostProcessing/TemporalAntialiasing"
 
     SubShader
     {
-        Cull Off ZWrite Off ZTest Always
+        
 
         // 0: Perspective
         Pass
         {
+            Cull Off ZWrite Off ZTest Greater
             HLSLPROGRAM
 
                 #pragma vertex vert
@@ -274,6 +275,7 @@ Shader "Hidden/PostProcessing/TemporalAntialiasing"
         // 1: Ortho
         Pass
         {
+            Cull Off ZWrite Off ZTest Greater
             HLSLPROGRAM
 
                 #pragma vertex VertDefault
