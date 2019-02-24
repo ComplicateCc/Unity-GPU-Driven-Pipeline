@@ -38,10 +38,49 @@
     struct ReflectionData
     {
         float3 position;
-        float3 extent;
+        float3 minExtent;
+        float3 maxExtent;
         float4 hdr;
         float blendDistance;
-        int importance;
         int boxProjection;
     };
+
+#ifndef COMPUTE_SHADER
+inline half3 MPipelineGI_IndirectSpecular(UnityGIInput data, half occlusion, Unity_GlossyEnvironmentData glossIn, ReflectionData reflData, int currentIndex, float lod)
+{
+    half3 specular;
+    half3 originalReflUVW = 0;
+    if(reflData.boxProjection > 0)
+    {
+        // we will tweak reflUVW in glossIn directly (as we pass it to Unity_GlossyEnvironment twice for probe0 and probe1), so keep original to pass into BoxProjectedCubemapDirection
+        originalReflUVW = glossIn.reflUVW;
+        glossIn.reflUVW = BoxProjectedCubemapDirection (originalReflUVW, data.worldPos, data.probePosition[0], data.boxMin[0], data.boxMax[0]);
+    }
+    float3 env0 = GetColor(currentIndex, glossIn.reflUVW, lod);
+    /*
+        #ifdef UNITY_SPECCUBE_BLENDING
+            const float kBlendFactor = 0.99999;
+            float blendLerp = data.boxMin[0].w;
+            UNITY_BRANCH
+            if (blendLerp < kBlendFactor)
+            {
+                #ifdef UNITY_SPECCUBE_BOX_PROJECTION
+                    glossIn.reflUVW = BoxProjectedCubemapDirection (originalReflUVW, data.worldPos, data.probePosition[1], data.boxMin[1], data.boxMax[1]);
+                #endif
+
+                half3 env1 = Unity_GlossyEnvironment (UNITY_PASS_TEXCUBE_SAMPLER(unity_SpecCube1,unity_SpecCube0), data.probeHDR[1], glossIn);
+                specular = lerp(env1, env0, blendLerp);
+            }
+            else
+            {
+                specular = env0;
+            }
+        #else
+            specular = env0;
+        #endif
+        */
+        specular = env0;
+    return specular * occlusion;
+}
+#endif
 #endif

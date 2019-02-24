@@ -242,11 +242,9 @@ public unsafe static class PipelineFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void GetViewProjectMatrix(Camera currentCam, out Matrix4x4 vp, out Matrix4x4 invVP)
     {
-
         vp = mul(GraphicsUtility.GetGPUProjectionMatrix(currentCam.projectionMatrix, false), currentCam.worldToCameraMatrix);
         invVP = vp.inverse;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, CommandBuffer buffer)
     {
         buffer.GetTemporaryRT(tar.gbufferIndex[0], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1, false);

@@ -118,11 +118,11 @@ namespace MPipeline
                 VisibleReflectionProbe vis = allProbes[i];
                 dt.blendDistance = vis.blendDistance;
                 float4x4 localToWorld = vis.localToWorldMatrix;
-                dt.extent = vis.bounds.extents;
+                dt.minExtent = (float3)vis.bounds.extents - dt.blendDistance * 0.5f;
+                dt.maxExtent = (float3)vis.bounds.extents + dt.blendDistance * 0.5f;
                 dt.boxProjection = vis.isBoxProjection ? 1 : 0;
                 dt.position = localToWorld.c3.xyz;
                 dt.hdr = vis.hdrData;
-                dt.importance = vis.importance;
             }
         }
 

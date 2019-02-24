@@ -4,13 +4,13 @@
 CGINCLUDE
 #include "UnityCG.cginc"
 #include "CGINC/VoxelLight.cginc"
-#include "CGINC/Reflection.cginc"
 #define _CameraDepthTexture _
 #include "UnityDeferredLibrary.cginc"
 #include "UnityStandardUtils.cginc"
 #include "UnityGBuffer.cginc"
 #include "UnityStandardBRDF.cginc"
 #include "UnityPBSLighting.cginc"
+#include "CGINC/Reflection.cginc"
 #pragma multi_compile ___ UNITY_HDR_ON
 #pragma target 5.0
 #undef _CameraDepthTexture
@@ -37,6 +37,8 @@ CGINCLUDE
             float2 _CameraClipDistance; //X: Near Y: Far - Near
             StructuredBuffer<uint> _ReflectionIndices;
             StructuredBuffer<ReflectionData> _ReflectionData;
+
+            
 ENDCG
     SubShader
     {
@@ -71,11 +73,10 @@ ENDCG
                 int index = DownDimension(intUV, uint2(XRES, YRES), MAXIMUM_PROBE + 1);
                 int target = _ReflectionIndices[index];
                 float3 normal = normalize(_CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv).xyz * 2 - 1);
+                float occlusion = _CameraGBufferTexture0.Sample(sampler_CameraGBufferTexture0, i.uv).w;
                 float3 eyeVec = normalize(worldPos.xyz - _WorldSpaceCameraPos);
-                float3 worldNormalRefl = normalize(reflect(eyeVec, normal));
                 float3 finalColor = 0;
                 float4 specular = _CameraGBufferTexture1.Sample(sampler_CameraGBufferTexture1, i.uv);
-                float importance = 0;
                 float lod = (1 - specular.w) * 9.998;
 
                 
@@ -85,40 +86,32 @@ ENDCG
                 {
                     int currentIndex = _ReflectionIndices[index + a];
                     ReflectionData data = _ReflectionData[currentIndex];
-                    float3 leftDown = data.position - data.extent;
-                    float3 cubemapUV = (worldPos.xyz - leftDown) / (data.extent * 2);
+                    float3 leftDown = data.position - data.maxExtent;
+                    float3 cubemapUV = (worldPos.xyz - leftDown) / (data.maxExtent * 2);
                     if(abs(dot(cubemapUV - saturate(cubemapUV), 1)) > 1e-13) continue;
-
-                    float blendDistance = data.blendDistance;
                     UnityGIInput d;
                     d.worldPos = worldPos.xyz;
                     d.worldViewDir = -eyeVec;
                     d.probeHDR[0] = data.hdr;
-                    d.boxMin[0].w = 1;
                     if(data.boxProjection > 0)
                     {
                         d.probePosition[0]  = float4(data.position, 1);
-                        d.boxMin[0].xyz     = data.extent - float4(blendDistance,blendDistance,blendDistance,0);
-                        d.boxMax[0].xyz     = data.extent + float4(blendDistance,blendDistance,blendDistance,0);
+                        d.boxMin[0].xyz     = leftDown;
+                        d.boxMax[0].xyz     = (data.position + data.maxExtent);
                     }
                     Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(specular.w, d.worldViewDir, normal, specular.xyz);
-
-                    
                     //TODO
                     //data has been defined in Reflection.cginc
-                    importance += data.importance;
-                    float3 env0 = GetColor(currentIndex, worldNormalRefl, lod);
                     UnityLight light;
                     light.color = half3(0, 0, 0);
                     light.dir = half3(0, 1, 0);
                     UnityIndirect ind;
                     ind.diffuse = 0;
-                    ind.specular = env0;
+                    ind.specular = MPipelineGI_IndirectSpecular(d, occlusion, g, data, currentIndex, lod);
                     half3 rgb = BRDF1_Unity_PBS (0, specular.xyz, oneMinusReflectivity, specular.w, normal, -eyeVec, light, ind).rgb;
-                    finalColor += rgb * data.importance;
+                    float3 distanceToMin = saturate((abs(worldPos.xyz - data.position) - data.minExtent) / data.blendDistance);
+                    finalColor = lerp(rgb, finalColor, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
                 }
-                if(importance < 1e-4) importance = 1;
-                finalColor /= importance;
                 return finalColor;
             }
             ENDCG

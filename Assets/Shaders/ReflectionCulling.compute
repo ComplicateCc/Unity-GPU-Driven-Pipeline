@@ -1,6 +1,7 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 #include "CGINC/VoxelLight.cginc"
+#define COMPUTE_SHADER
 #include "CGINC/Reflection.cginc"
 
 Texture3D<float4> _XYPlaneTexture;
@@ -25,7 +26,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     for(i = 0; i < _Count; ++i)
     {
         ReflectionData data = _ReflectionData[i];
-        if(BoxIntersect(data.extent, data.position, planes) > 0.5)
+        if(BoxIntersect(data.maxExtent, data.position, planes) > 0.5)
         {
             _ReflectionIndices[index + count] = i;
             count++;

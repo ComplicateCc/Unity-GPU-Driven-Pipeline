@@ -88,10 +88,10 @@ namespace MPipeline
     public struct ReflectionData
     {
         public float3 position;
-        public float3 extent;
+        public float3 minExtent;
+        public float3 maxExtent;
         public float4 hdr;
         public float  blendDistance;
-        public int    importance;
         public int    boxProjection;
     }
 

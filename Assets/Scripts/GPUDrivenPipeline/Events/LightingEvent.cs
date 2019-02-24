@@ -551,7 +551,7 @@ namespace MPipeline
                         int currentPointCount = Interlocked.Increment(ref pointLightCount) - 1;
                         PointLightStruct* currentPtr = indStr + currentPointCount;
                         Color col = i.finalColor;
-                        currentPtr->lightColor = new float3(col.r, col.g, col.b);
+                        currentPtr->lightColor = new float3(col.r, col.g, col.b) / (4 * Mathf.PI);
                         currentPtr->sphere = i.localToWorldMatrix.GetColumn(3);
                         currentPtr->sphere.w = i.range;
                         if (mlight.useShadow)
@@ -584,7 +584,7 @@ namespace MPipeline
                         int currentSpotCount = Interlocked.Increment(ref spotLightCount) - 1;
                         SpotLight* currentSpot = spotStr + currentSpotCount;
                         Color spotCol = i.finalColor;
-                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b);
+                        currentSpot->lightColor = new float3(spotCol.r, spotCol.g, spotCol.b) / (4 * Mathf.PI);
                         float deg = Mathf.Deg2Rad * i.spotAngle * 0.5f;
                         currentSpot->lightCone = new Cone((Vector3)i.localToWorldMatrix.GetColumn(3), i.range, normalize((Vector3)i.localToWorldMatrix.GetColumn(2)), deg);
                         currentSpot->angle = deg;
