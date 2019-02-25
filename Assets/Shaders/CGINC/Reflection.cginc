@@ -5,15 +5,15 @@
         const uint3 multiValue = uint3(1, size.x, size.x * size.y) * multiply;
         return dot(id, multiValue);
     }
-    TextureCube<float3> _ReflectionCubeMap0; SamplerState sampler_ReflectionCubeMap0;
-    TextureCube<float3> _ReflectionCubeMap1; SamplerState sampler_ReflectionCubeMap1;
-    TextureCube<float3> _ReflectionCubeMap2; SamplerState sampler_ReflectionCubeMap2;
-    TextureCube<float3> _ReflectionCubeMap3; SamplerState sampler_ReflectionCubeMap3;
-    TextureCube<float3> _ReflectionCubeMap4; SamplerState sampler_ReflectionCubeMap4;
-    TextureCube<float3> _ReflectionCubeMap5; SamplerState sampler_ReflectionCubeMap5;
-    TextureCube<float3> _ReflectionCubeMap6; SamplerState sampler_ReflectionCubeMap6;
-    TextureCube<float3> _ReflectionCubeMap7; SamplerState sampler_ReflectionCubeMap7;
-    float3 GetColor(int index, float3 normal, float lod)
+    TextureCube<float4> _ReflectionCubeMap0; SamplerState sampler_ReflectionCubeMap0;
+    TextureCube<float4> _ReflectionCubeMap1; SamplerState sampler_ReflectionCubeMap1;
+    TextureCube<float4> _ReflectionCubeMap2; SamplerState sampler_ReflectionCubeMap2;
+    TextureCube<float4> _ReflectionCubeMap3; SamplerState sampler_ReflectionCubeMap3;
+    TextureCube<float4> _ReflectionCubeMap4; SamplerState sampler_ReflectionCubeMap4;
+    TextureCube<float4> _ReflectionCubeMap5; SamplerState sampler_ReflectionCubeMap5;
+    TextureCube<float4> _ReflectionCubeMap6; SamplerState sampler_ReflectionCubeMap6;
+    TextureCube<float4> _ReflectionCubeMap7; SamplerState sampler_ReflectionCubeMap7;
+    float4 GetColor(int index, float3 normal, float lod)
     {
         switch(index)
         {
@@ -48,15 +48,12 @@
 #ifndef COMPUTE_SHADER
 inline half3 MPipelineGI_IndirectSpecular(UnityGIInput data, half occlusion, Unity_GlossyEnvironmentData glossIn, ReflectionData reflData, int currentIndex, float lod)
 {
-    half3 specular;
-    half3 originalReflUVW = 0;
     if(reflData.boxProjection > 0)
     {
-        // we will tweak reflUVW in glossIn directly (as we pass it to Unity_GlossyEnvironment twice for probe0 and probe1), so keep original to pass into BoxProjectedCubemapDirection
-        originalReflUVW = glossIn.reflUVW;
-        glossIn.reflUVW = BoxProjectedCubemapDirection (originalReflUVW, data.worldPos, data.probePosition[0], data.boxMin[0], data.boxMax[0]);
+        glossIn.reflUVW = BoxProjectedCubemapDirection (glossIn.reflUVW, data.worldPos, data.probePosition[0], data.boxMin[0], data.boxMax[0]);
     }
-    float3 env0 = GetColor(currentIndex, glossIn.reflUVW, lod);
+    float4 env0 = GetColor(currentIndex, glossIn.reflUVW, lod);
+    
     /*
         #ifdef UNITY_SPECCUBE_BLENDING
             const float kBlendFactor = 0.99999;
@@ -79,8 +76,7 @@ inline half3 MPipelineGI_IndirectSpecular(UnityGIInput data, half occlusion, Uni
             specular = env0;
         #endif
         */
-        specular = env0;
-    return specular * occlusion;
+    return DecodeHDR(env0, data.probeHDR[0]) * occlusion;
 }
 #endif
 #endif

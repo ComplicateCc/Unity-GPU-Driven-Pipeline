@@ -77,10 +77,15 @@ ENDCG
                 float3 eyeVec = normalize(worldPos.xyz - _WorldSpaceCameraPos);
                 float3 finalColor = 0;
                 float4 specular = _CameraGBufferTexture1.Sample(sampler_CameraGBufferTexture1, i.uv);
-                float lod = (1 - specular.w) * 9.998;
-
                 
+                Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(specular.w, -eyeVec, normal, specular.xyz);
+                half perceptualRoughness = g.roughness;
+                perceptualRoughness = perceptualRoughness*(1.7 - 0.7*perceptualRoughness);
+                float lod = perceptualRoughnessToMipmapLevel(perceptualRoughness);;
                 half oneMinusReflectivity = 1 - SpecularStrength(specular.xyz);
+                UnityGIInput d;
+                d.worldPos = worldPos.xyz;
+                d.worldViewDir = -eyeVec;
                 [loop]
                 for(int a = 1; a < target; ++a)
                 {
@@ -89,9 +94,7 @@ ENDCG
                     float3 leftDown = data.position - data.maxExtent;
                     float3 cubemapUV = (worldPos.xyz - leftDown) / (data.maxExtent * 2);
                     if(abs(dot(cubemapUV - saturate(cubemapUV), 1)) > 1e-13) continue;
-                    UnityGIInput d;
-                    d.worldPos = worldPos.xyz;
-                    d.worldViewDir = -eyeVec;
+                   
                     d.probeHDR[0] = data.hdr;
                     if(data.boxProjection > 0)
                     {
@@ -99,9 +102,7 @@ ENDCG
                         d.boxMin[0].xyz     = leftDown;
                         d.boxMax[0].xyz     = (data.position + data.maxExtent);
                     }
-                    Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(specular.w, d.worldViewDir, normal, specular.xyz);
-                    //TODO
-                    //data has been defined in Reflection.cginc
+                    
                     UnityLight light;
                     light.color = half3(0, 0, 0);
                     light.dir = half3(0, 1, 0);
@@ -110,7 +111,7 @@ ENDCG
                     ind.specular = MPipelineGI_IndirectSpecular(d, occlusion, g, data, currentIndex, lod);
                     half3 rgb = BRDF1_Unity_PBS (0, specular.xyz, oneMinusReflectivity, specular.w, normal, -eyeVec, light, ind).rgb;
                     float3 distanceToMin = saturate((abs(worldPos.xyz - data.position) - data.minExtent) / data.blendDistance);
-                    finalColor = lerp(rgb, finalColor, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
+                    finalColor = lerp(rgb * data.hdr.r, finalColor, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
                 }
                 return finalColor;
             }
