@@ -43,14 +43,16 @@ MonoBehaviour:
     terrainShader: {fileID: 4800000, guid: 6fb475602d94ae848a82d502a93ade30, type: 3}
     spotLightDepthShader: {fileID: 4800000, guid: bed89509ad0b6d844a4a9086fbabac3c,
       type: 3}
+    gtaoShader: {fileID: 4800000, guid: 2dbab40b5193e7640a8d53163872d2f7, type: 3}
     occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
-  gpurpEvents:
-  - {fileID: 11400000, guid: 4ba4d0b7b30f88a4d92a2fccd277f94c, type: 2}
-  - {fileID: 11400000, guid: b9e7b54c776eb18408cdafca469b13e0, type: 2}
-  - {fileID: 11400000, guid: bd3ad988b135ba44abd421986d3d7561, type: 2}
-  - {fileID: 11400000, guid: eed54e1aa86953840809795e80367826, type: 2}
-  - {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
-  - {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
-  - {fileID: 11400000, guid: ec8cef056d08590479397b93336d090c, type: 2}
-  - {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}
+  gpuDeferred:
+    propertySet: {fileID: 11400000, guid: 4ba4d0b7b30f88a4d92a2fccd277f94c, type: 2}
+    geometry: {fileID: 11400000, guid: b9e7b54c776eb18408cdafca469b13e0, type: 2}
+    ambientOcclusion: {fileID: 11400000, guid: cfd7bbc3e9481ec458e874a8577ee260, type: 2}
+    lighting: {fileID: 11400000, guid: bd3ad988b135ba44abd421986d3d7561, type: 2}
+    reflection: {fileID: 11400000, guid: eed54e1aa86953840809795e80367826, type: 2}
+    skybox: {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
+    volumetric: {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
+    temporalAA: {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}
+    postEffects: {fileID: 11400000, guid: ec8cef056d08590479397b93336d090c, type: 2}

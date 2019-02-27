@@ -11,7 +11,8 @@ CGINCLUDE
 #include "UnityStandardBRDF.cginc"
 #include "UnityPBSLighting.cginc"
 #include "CGINC/Reflection.cginc"
-#pragma multi_compile ___ UNITY_HDR_ON
+#pragma multi_compile _ UNITY_HDR_ON
+#pragma multi_compile _ EnableGTAO
 #pragma target 5.0
 #undef _CameraDepthTexture
 
@@ -33,7 +34,7 @@ CGINCLUDE
             Texture2D<half4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;       //RGB Specular A Smoothness
             Texture2D<half3> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;       //RGB Normal
             Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
-            
+			Texture2D<float2> _AOROTexture; SamplerState sampler_AOROTexture;
             float2 _CameraClipDistance; //X: Near Y: Far - Near
             StructuredBuffer<uint> _ReflectionIndices;
             StructuredBuffer<ReflectionData> _ReflectionData;
@@ -74,6 +75,10 @@ ENDCG
                 int target = _ReflectionIndices[index];
                 float3 normal = normalize(_CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv).xyz * 2 - 1);
                 float occlusion = _CameraGBufferTexture0.Sample(sampler_CameraGBufferTexture0, i.uv).w;
+#if EnableGTAO
+				float2 aoro = _AOROTexture.Sample(sampler_AOROTexture, i.uv);
+				occlusion = min(occlusion, aoro.x);
+#endif
                 float3 eyeVec = normalize(worldPos.xyz - _WorldSpaceCameraPos);
                 float3 finalColor = 0;
                 float4 specular = _CameraGBufferTexture1.Sample(sampler_CameraGBufferTexture1, i.uv);
@@ -86,6 +91,11 @@ ENDCG
                 UnityGIInput d;
                 d.worldPos = worldPos.xyz;
                 d.worldViewDir = -eyeVec;
+                UnityLight light;
+                light.color = half3(0, 0, 0);
+                light.dir = half3(0, 1, 0);
+                UnityIndirect ind;
+                ind.diffuse = 0;
                 [loop]
                 for(int a = 1; a < target; ++a)
                 {
@@ -102,17 +112,14 @@ ENDCG
                         d.boxMin[0].xyz     = leftDown;
                         d.boxMax[0].xyz     = (data.position + data.maxExtent);
                     }
-                    
-                    UnityLight light;
-                    light.color = half3(0, 0, 0);
-                    light.dir = half3(0, 1, 0);
-                    UnityIndirect ind;
-                    ind.diffuse = 0;
                     ind.specular = MPipelineGI_IndirectSpecular(d, occlusion, g, data, currentIndex, lod);
                     half3 rgb = BRDF1_Unity_PBS (0, specular.xyz, oneMinusReflectivity, specular.w, normal, -eyeVec, light, ind).rgb;
                     float3 distanceToMin = saturate((abs(worldPos.xyz - data.position) - data.minExtent) / data.blendDistance);
                     finalColor = lerp(rgb * data.hdr.r, finalColor, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
                 }
+#if EnableGTAO
+				finalColor *= aoro.y;
+#endif
                 return finalColor;
             }
             ENDCG

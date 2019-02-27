@@ -5,8 +5,8 @@
 
 CGINCLUDE
 #pragma target 5.0
-            #pragma multi_compile _ POINTLIGHT
-            #pragma multi_compile _ SPOTLIGHT
+#pragma multi_compile _ POINTLIGHT
+#pragma multi_compile _ SPOTLIGHT
             #include "UnityCG.cginc"
             #include "CGINC/VoxelLight.cginc"
             #include "CGINC/Shader_Include/Common.hlsl"
@@ -64,7 +64,7 @@ ENDCG
                 float2 NDC_UV = uv * 2 - 1;
 
                 //////Screen Data
-                float3 AlbedoColor = _CameraGBufferTexture0.SampleLevel(sampler_CameraGBufferTexture0, uv, 0).rgb;
+				float3 AlbedoColor = _CameraGBufferTexture0.SampleLevel(sampler_CameraGBufferTexture0, uv, 0).rgb;
                 float3 WorldNormal = _CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1;
                 float4 SpecularColor = _CameraGBufferTexture1.SampleLevel(sampler_CameraGBufferTexture1, uv, 0); 
                 float Roughness = clamp(1 - SpecularColor.a, 0.02, 1);
@@ -127,7 +127,8 @@ ENDCG
                             }
 
                             float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), 1.0 / LightRange, LightData.NoL) * ShadowTrem;
-                            ShadingColor += max( 0, Defult_Lit(LightData, Energy, 1.0, AlbedoColor, SpecularColor, Roughness, 1) );
+                            ShadingColor += max( 0, Defult_Lit(LightData, Energy, 1.0, AlbedoColor, SpecularColor, Roughness) );
+
                         
 
                     }
@@ -169,7 +170,7 @@ ENDCG
 
                         //////Shading
                         float3 Energy = Point_Energy(Un_LightDir, LightColor, 1.0 / LightRange, LightData.NoL) * ShadowTrem;
-                        ShadingColor += max( 0.0, Defult_Lit(LightData, Energy, 1.0, AlbedoColor, SpecularColor, Roughness, 1.0) );
+                        ShadingColor += max( 0.0, Defult_Lit(LightData, Energy, 1.0, AlbedoColor, SpecularColor, Roughness) );
                     }
                 #endif
 

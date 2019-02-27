@@ -69,6 +69,7 @@ namespace MPipeline
             cubeDepthMaterial = new Material(resources.shaders.cubeDepthShader);
             spotBuffer = new RenderSpotShadowCommand();
             spotBuffer.Init(resources.shaders.spotLightDepthShader);
+
         }
 
         protected override void Dispose()
@@ -217,7 +218,7 @@ namespace MPipeline
                             {
                                 light.updateShadowCache = false;
                                 SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
-                                for(int a = 0; a < 6; ++a)
+                                for (int a = 0; a < 6; ++a)
                                 {
                                     buffer.CopyTexture(cbdr.cubeArrayMap, i + a, light.shadowMap, a);
                                 }

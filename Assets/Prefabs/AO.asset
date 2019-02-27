@@ -9,13 +9,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bb72a6113add9284daffedf1d521dbfd, type: 3}
-  m_Name: TemporalAA
+  m_Script: {fileID: 11500000, guid: e1a49654a285f6645961f5fdf60ff457, type: 3}
+  m_Name: AO
   m_EditorClassIdentifier: 
   enabled: 1
-  jitterSpread: 1
-  sharpness: 0
-  stationaryBlending: 0.95
-  motionBlending: 0.85
-  stationaryAABBScale: 2
-  motionAABBScale: 1
+  DirSampler: 2
+  SliceSampler: 2
+  Radius: 2.5
+  Intensity: 1
+  Power: 2.5
+  MultiBounce: 1
+  Sharpeness: 0.25
+  TemporalScale: 1
+  TemporalResponse: 1
+  AODeBug: 4

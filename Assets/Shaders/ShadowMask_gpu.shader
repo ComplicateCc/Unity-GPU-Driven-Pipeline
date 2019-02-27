@@ -176,6 +176,7 @@ ENDCG
 				UnityLight light;
 				light.dir = _DirLightPos;
 				light.color = _DirLightFinalColor * atten;
+				
 				return UNITY_BRDF_PBS (data.diffuseColor, data.specularColor, oneMinusReflectivity, data.smoothness, data.normalWorld, -eyeVec, light, ind);
 			}
 			ENDCG

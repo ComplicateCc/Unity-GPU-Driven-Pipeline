@@ -262,7 +262,7 @@ Shader "Hidden/PostProcessing/TemporalAntialiasing"
         // 0: Perspective
         Pass
         {
-            Cull Off ZWrite Off ZTest Greater
+            Cull Off ZWrite Off ZTest Always
             HLSLPROGRAM
 
                 #pragma vertex vert

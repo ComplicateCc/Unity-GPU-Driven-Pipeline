@@ -14,9 +14,12 @@ namespace MPipeline
             return (T)data;
         }
 
-        public static bool GetProperty<T>(PipelineCamera camera, out IPerCameraData data)
+        public static bool GetProperty<T>(PipelineCamera camera, out T data) where T : IPerCameraData
         {
-            return camera.postDatas.TryGetValue(typeof(T), out data);
+            IPerCameraData camData;
+            bool b = camera.postDatas.TryGetValue(typeof(T), out camData);
+            data = (T)camData;
+            return b;
         }
 
         public static void RemoveProperty<T>(PipelineCamera camera)

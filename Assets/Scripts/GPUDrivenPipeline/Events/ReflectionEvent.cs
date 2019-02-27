@@ -29,6 +29,7 @@ namespace MPipeline
         private ComputeBuffer reflectionIndices;
         private Material deferredReflectMat;
         private NativeList<int> reflectionCubemapIDs;
+        private AOEvents aoEvents;
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
         public override bool CheckProperty()
         {
@@ -36,6 +37,7 @@ namespace MPipeline
         }
         protected override void Init(PipelineResources resources)
         {
+            aoEvents = RenderPipeline.GetEvent<AOEvents>(renderingPath);
             deferredReflectMat = new Material(resources.shaders.reflectionShader);
             probeBuffer = new ComputeBuffer(maximumProbe, sizeof(ReflectionData));
             lightingEvents = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
@@ -51,7 +53,7 @@ namespace MPipeline
                     {
                         newCtr[i] = ctr[i];
                     }
-                    for(int i = 0; i < reflectionCubemapIDs.Length; ++i)
+                    for (int i = 0; i < reflectionCubemapIDs.Length; ++i)
                     {
                         newCtr[old.Length] = (char)(i + 48);
                         reflectionCubemapIDs[i] = Shader.PropertyToID(newStr);
@@ -87,7 +89,14 @@ namespace MPipeline
             if (!reflectionEnabled) return;
 
             CommandBuffer buffer = data.buffer;
-
+            if (aoEvents && aoEvents.Enabled)
+            {
+                buffer.EnableShaderKeyword("EnableGTAO");
+            }
+            else
+            {
+                buffer.DisableShaderKeyword("EnableGTAO");
+            }
             ComputeShader cullingShader = data.resources.shaders.reflectionCullingShader;
             ref CBDRSharedData cbdr = ref lightingEvents.cbdr;
             probeBuffer.SetData(reflectionData, 0, 0, count);
@@ -99,7 +108,7 @@ namespace MPipeline
             buffer.DispatchCompute(cullingShader, 0, 1, 1, CBDRSharedData.ZRES);
             buffer.SetGlobalBuffer(ShaderIDs._ReflectionIndices, reflectionIndices);
             buffer.SetGlobalBuffer(ShaderIDs._ReflectionData, probeBuffer);
-            for(int i = 0; i < count; ++i)
+            for (int i = 0; i < count; ++i)
             {
                 buffer.SetGlobalTexture(reflectionCubemapIDs[i], reflectProbes[i].texture);
             }

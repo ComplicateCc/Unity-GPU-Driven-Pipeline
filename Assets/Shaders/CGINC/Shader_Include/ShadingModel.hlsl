@@ -3,7 +3,7 @@
 
 #include "BSDF_Library.hlsl"
 
-half3 Defult_Lit(BSDFContext LightData, half3 Energy, half3 MultiScatterEnergy, half3 AlbedoColor, half3 SpecularColor, half Roughness, half Occlusion)
+half3 Defult_Lit(BSDFContext LightData, half3 Energy, half3 MultiScatterEnergy, half3 AlbedoColor, half3 SpecularColor, half Roughness)
 {
     half3 Diffuse = Diffuse_RenormalizeBurley(LightData.LoH, LightData.NoL, LightData.NoV, AlbedoColor, Roughness);
 
