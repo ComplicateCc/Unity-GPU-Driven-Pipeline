@@ -9,7 +9,7 @@ namespace UnityEngine.Rendering.PostProcessing
     }
 
     [Serializable]
-    public sealed class EyeAdaptationParameter : ParameterOverride<EyeAdaptation> {}
+    public sealed class EyeAdaptationParameter : ParameterOverride<EyeAdaptation> { }
 
     [Serializable]
     [PostProcess(typeof(AutoExposureRenderer), "Unity/Auto Exposure")]
@@ -76,6 +76,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
         public override void Render(PostProcessRenderContext context)
         {
+            if (!settings.active) return;
             var cmd = context.command;
             cmd.BeginSample("AutoExposureLookup");
 
@@ -129,7 +130,7 @@ namespace UnityEngine.Rendering.PostProcessing
                 int pp = m_AutoExposurePingPong[context.xrActiveEye];
                 var src = m_AutoExposurePool[context.xrActiveEye][++pp % 2];
                 var dst = m_AutoExposurePool[context.xrActiveEye][++pp % 2];
-                
+
                 cmd.SetComputeTextureParam(compute, kernel, "_Source", src);
                 cmd.SetComputeTextureParam(compute, kernel, "_Destination", dst);
                 cmd.DispatchCompute(compute, kernel, 1, 1, 1);

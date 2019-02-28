@@ -77,7 +77,7 @@ ENDCG
                 float occlusion = _CameraGBufferTexture0.Sample(sampler_CameraGBufferTexture0, i.uv).w;
 #if EnableGTAO
 				float2 aoro = _AOROTexture.Sample(sampler_AOROTexture, i.uv);
-				occlusion = min(occlusion, aoro.x);
+				occlusion = min(occlusion, aoro.y);
 #endif
                 float3 eyeVec = normalize(worldPos.xyz - _WorldSpaceCameraPos);
                 float3 finalColor = 0;
@@ -117,9 +117,7 @@ ENDCG
                     float3 distanceToMin = saturate((abs(worldPos.xyz - data.position) - data.minExtent) / data.blendDistance);
                     finalColor = lerp(rgb * data.hdr.r, finalColor, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
                 }
-#if EnableGTAO
-				finalColor *= aoro.y;
-#endif
+
                 return finalColor;
             }
             ENDCG
