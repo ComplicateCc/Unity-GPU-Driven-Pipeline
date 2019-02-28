@@ -15,13 +15,13 @@ Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
 float4 _Screen_TexelSize;
 
 float4 _RandomSeed;
-inline int ihash(int n)
+inline int2 ihash(int2 n)
 {
 	n = (n<<13)^n;
 	return (n*(n*n*15731+789221)+1376312589) & 2147483647;
 }
 
-inline float frand(int n)
+inline float2 frand(int2 n)
 {
 	return ihash(n) / 2147483647.0;
 }
@@ -29,7 +29,7 @@ inline float frand(int n)
 inline float2 cellNoise(int2 p)
 {
 	int i = p.y*256 + p.x;
-	return sin(float2(frand(i), frand(i + 57)) * _RandomSeed.xy + _RandomSeed.zw) * 0.8;
+	return sin(float2(frand(int2(i, i + 57))) * _RandomSeed.xy + _RandomSeed.zw) * 0.8;
 }
 
 float4 Fog(float linear01Depth, float2 screenuv)

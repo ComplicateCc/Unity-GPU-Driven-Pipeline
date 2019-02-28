@@ -7,11 +7,12 @@ CGINCLUDE
 #pragma target 5.0
 			#pragma multi_compile _ POINTLIGHT
 			#pragma multi_compile _ SPOTLIGHT
-			#include "UnityCG.cginc"
-			#include "CGINC/VoxelLight.cginc"
-			#include "CGINC/Shader_Include/Common.hlsl"
-			#include "CGINC/Shader_Include/BSDF_Library.hlsl"
-			#include "CGINC/Shader_Include/AreaLight.hlsl"
+#include "UnityCG.cginc"
+#include "CGINC/VoxelLight.cginc"
+#include "CGINC/Shader_Include/Common.hlsl"
+#include "CGINC/Random.cginc"
+#include "CGINC/Shader_Include/BSDF_Library.hlsl"
+#include "CGINC/Shader_Include/AreaLight.hlsl"
 			Texture2D _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
 			Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
 			Texture2D<float4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
@@ -62,7 +63,7 @@ ENDCG
 				float2 uv = i.uv;
 				float SceneDepth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv).r;
 				float2 NDC_UV = uv * 2 - 1;
-
+				
 				//////Screen Data
 				float3 AlbedoColor = _CameraGBufferTexture0.SampleLevel(sampler_CameraGBufferTexture0, uv, 0).rgb;
 				float3 WorldNormal = _CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1;
@@ -81,7 +82,7 @@ ENDCG
 				uint c;
 				float3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
 				#if SPOTLIGHT
-
+				float2 spotRandomSeed = NDC_UV;
 				LightIndex = uint2(sb + 1, _SpotLightIndexBuffer[sb]);
 				[loop]
 				for (c = LightIndex.x; c < LightIndex.y; c++)
@@ -109,6 +110,10 @@ ENDCG
 						float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), 1.0 / LightRange, LightData.NoL);
 						if (Light.shadowIndex >= 0)
 					{
+							//TODO
+						//Soft Shadow
+							//Get random number (-1, 1)
+							//spotRandomSeed = cellNoise(spotRandomSeed);
 						float4 clipPos = mul(Light.vpMatrix, WorldPos);
 						clipPos /= clipPos.w;
 						float2 uv = clipPos.xy * 0.5 + 0.5;
@@ -121,7 +126,7 @@ ENDCG
 				}
 				#endif
 				#if POINTLIGHT
-				
+				float3 pointRandomSeed = ViewDir;
 				LightIndex = uint2(sb + 1, _PointLightIndexBuffer[sb]);
 				[loop]
 				for (c = LightIndex.x; c < LightIndex.y; c++)
@@ -138,7 +143,10 @@ ENDCG
 					ShadowTrem = 1;
 					//////Shadow
 					if (Light.shadowIndex >= 0) {
-
+						//TODO
+						//Soft Shadow
+						//Get random number (-1, 1)
+						//pointRandomSeed = cellNoise(pointRandomSeed);
 						float DepthMap = (Length_LightDir - 0.25) / LightRange;
 						float ShadowMap = _CubeShadowMapArray.Sample(sampler_CubeShadowMapArray, float4(Un_LightDir * float3(-1, -1, 1), Light.shadowIndex));
 						// ShadingColor += ShadowMap;

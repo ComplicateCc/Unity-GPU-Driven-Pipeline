@@ -9,6 +9,7 @@ using UnityEngine.Jobs;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using System.Collections.Concurrent;
+using Random = Unity.Mathematics.Random;
 using static Unity.Mathematics.math;
 namespace MPipeline
 {
@@ -16,6 +17,7 @@ namespace MPipeline
     [RequireEvent(typeof(PropertySetEvent))]
     public unsafe sealed class LightingEvent : PipelineEvent
     {
+        private Random rand;
         #region DIR_LIGHT
         private Material shadMaskMaterial;
         private static int[] _Count = new int[2];
@@ -58,6 +60,7 @@ namespace MPipeline
         #endregion
         protected override void Init(PipelineResources resources)
         {
+            rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
             cbdr = new CBDRSharedData(resources);
             volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>(renderingPath);
             shadMaskMaterial = new Material(resources.shaders.shadowMaskShader);
@@ -74,9 +77,9 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            Object.DestroyImmediate(shadMaskMaterial);
-            Object.DestroyImmediate(pointLightMaterial);
-            Object.DestroyImmediate(cubeDepthMaterial);
+            DestroyImmediate(shadMaskMaterial);
+            DestroyImmediate(pointLightMaterial);
+            DestroyImmediate(cubeDepthMaterial);
             spotBuffer.Dispose();
             cbdr.Dispose();
         }
@@ -188,6 +191,7 @@ namespace MPipeline
         private void PointLight(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
+            buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
             VoxelLightCommonData(buffer, cam.cam);
             ClearDispatch(buffer);
             lightingHandle.Complete();
