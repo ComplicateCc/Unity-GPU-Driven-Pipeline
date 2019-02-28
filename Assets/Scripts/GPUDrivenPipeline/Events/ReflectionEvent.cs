@@ -77,7 +77,7 @@ namespace MPipeline
             storeDataHandler = new StoreReflectionData
             {
                 data = reflectionData.Ptr(),
-                allProbes = reflectProbes
+                allProbes = reflectProbes.Ptr()
             }.Schedule(count, 32);
         }
 
@@ -118,7 +118,8 @@ namespace MPipeline
         [Unity.Burst.BurstCompile]
         public unsafe struct StoreReflectionData : IJobParallelFor
         {
-            public NativeArray<VisibleReflectionProbe> allProbes;
+            [NativeDisableUnsafePtrRestriction]
+            public VisibleReflectionProbe* allProbes;
             [NativeDisableUnsafePtrRestriction]
             public ReflectionData* data;
             public void Execute(int i)

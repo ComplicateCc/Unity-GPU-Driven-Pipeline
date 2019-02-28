@@ -59,7 +59,7 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                graphicsFormat = GraphicsFormat.R32G32B32A32_SFloat,
+                colorFormat = RenderTextureFormat.ARGBFloat,
                 depthBufferBits = 0,
                 enableRandomWrite = true,
                 dimension = TextureDimension.Tex3D,
@@ -77,7 +77,7 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                graphicsFormat = GraphicsFormat.R16_SFloat,
+                colorFormat = RenderTextureFormat.RHalf,
                 depthBufferBits = 16,
                 dimension = TextureDimension.CubeArray,
                 volumeDepth = 6 * MAXIMUMPOINTLIGHTCOUNT,
@@ -97,7 +97,7 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                graphicsFormat = GraphicsFormat.R16_SFloat,
+                colorFormat = RenderTextureFormat.RHalf,
                 depthBufferBits = 16,
                 dimension = TextureDimension.Tex2DArray,
                 enableRandomWrite = false,
@@ -129,7 +129,7 @@ namespace MPipeline
             desc.width = XRES;
             desc.height = YRES;
             desc.volumeDepth = MAXPOINTLIGHTPERTILE;
-            desc.graphicsFormat = GraphicsFormat.R32_SInt;
+            desc.colorFormat = RenderTextureFormat.RInt;
             desc.dimension = TextureDimension.Tex3D;
             pointTileLightList = new RenderTexture(desc);
             pointTileLightList.Create();

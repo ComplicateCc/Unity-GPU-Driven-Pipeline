@@ -218,9 +218,10 @@ namespace MPipeline
                             {
                                 light.updateShadowCache = false;
                                 SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                                int offset = i * 6;
                                 for (int a = 0; a < 6; ++a)
                                 {
-                                    buffer.CopyTexture(cbdr.cubeArrayMap, i + a, light.shadowMap, a);
+                                    buffer.CopyTexture(cbdr.cubeArrayMap, offset + a, light.shadowMap, a);
                                 }
                             }
                             else

@@ -77,7 +77,7 @@ public unsafe class MLight : MonoBehaviour
                 if (value)
                 {
                     updateShadowCache = true;
-                    if (useShadow && !shadowMap)
+                    if (useShadow)
                     {
                         GenerateShadowCache();
                     }
@@ -139,6 +139,7 @@ public unsafe class MLight : MonoBehaviour
     {
         if (useCubemap)
         {
+
             shadowMap = RenderTexture.GetTemporary(new RenderTextureDescriptor
             {
                 autoGenerateMips = false,
@@ -181,7 +182,6 @@ public unsafe class MLight : MonoBehaviour
             });
             shadowMap.filterMode = FilterMode.Point;
         }
-        shadowMap.Create();
     }
     public void UpdateShadowCacheType(bool useCubemap)
     {
@@ -198,7 +198,7 @@ public unsafe class MLight : MonoBehaviour
     private void OnEnable()
     {
         light = GetComponent<Light>();
-        if(light.shadows != LightShadows.None)
+        if (light.shadows != LightShadows.None)
         {
             useShadow = true;
             light.shadows = LightShadows.None;

@@ -51,7 +51,12 @@ namespace UnityEngine.Rendering.PostProcessing
     {
         const int k_NumEyes = 2;
         const int k_NumAutoExposureTextures = 2;
-
+        private static readonly int _HistogramBuffer = Shader.PropertyToID("_HistogramBuffer");
+        private static readonly int _Params1 = Shader.PropertyToID("_Params1");
+        private static readonly int _Params2 = Shader.PropertyToID("_Params2");
+        private static readonly int _ScaleOffsetRes = Shader.PropertyToID("_ScaleOffsetRes");
+        private static readonly int _Destination = Shader.PropertyToID("_Destination");
+        private static readonly int _Source = Shader.PropertyToID("_Source");
         readonly RenderTexture[][] m_AutoExposurePool = new RenderTexture[k_NumEyes][];
         int[] m_AutoExposurePingPong = new int[k_NumEyes];
         RenderTexture m_CurrentAutoExposure;
@@ -108,17 +113,17 @@ namespace UnityEngine.Rendering.PostProcessing
 
             var compute = context.resources.computeShaders.autoExposure;
             int kernel = compute.FindKernel(adaptation);
-            cmd.SetComputeBufferParam(compute, kernel, "_HistogramBuffer", context.logHistogram.data);
-            cmd.SetComputeVectorParam(compute, "_Params1", new Vector4(lowPercent * 0.01f, highPercent * 0.01f, RuntimeUtilities.Exp2(settings.minLuminance.value), RuntimeUtilities.Exp2(settings.maxLuminance.value)));
-            cmd.SetComputeVectorParam(compute, "_Params2", new Vector4(settings.speedDown.value, settings.speedUp.value, settings.keyValue.value, Time.deltaTime));
-            cmd.SetComputeVectorParam(compute, "_ScaleOffsetRes", context.logHistogram.GetHistogramScaleOffsetRes(context));
+            cmd.SetComputeBufferParam(compute, kernel, _HistogramBuffer, context.logHistogram.data);
+            cmd.SetComputeVectorParam(compute, _Params1, new Vector4(lowPercent * 0.01f, highPercent * 0.01f, RuntimeUtilities.Exp2(settings.minLuminance.value), RuntimeUtilities.Exp2(settings.maxLuminance.value)));
+            cmd.SetComputeVectorParam(compute, _Params2, new Vector4(settings.speedDown.value, settings.speedUp.value, settings.keyValue.value, Time.deltaTime));
+            cmd.SetComputeVectorParam(compute, _ScaleOffsetRes, context.logHistogram.GetHistogramScaleOffsetRes(context));
 
             if (firstFrame)
             {
                 // We don't want eye adaptation when not in play mode because the GameView isn't
                 // animated, thus making it harder to tweak. Just use the final audo exposure value.
                 m_CurrentAutoExposure = m_AutoExposurePool[context.xrActiveEye][0];
-                cmd.SetComputeTextureParam(compute, kernel, "_Destination", m_CurrentAutoExposure);
+                cmd.SetComputeTextureParam(compute, kernel, _Destination, m_CurrentAutoExposure);
                 cmd.DispatchCompute(compute, kernel, 1, 1, 1);
 
                 // Copy current exposure to the other pingpong target to avoid adapting from black
@@ -131,8 +136,8 @@ namespace UnityEngine.Rendering.PostProcessing
                 var src = m_AutoExposurePool[context.xrActiveEye][++pp % 2];
                 var dst = m_AutoExposurePool[context.xrActiveEye][++pp % 2];
 
-                cmd.SetComputeTextureParam(compute, kernel, "_Source", src);
-                cmd.SetComputeTextureParam(compute, kernel, "_Destination", dst);
+                cmd.SetComputeTextureParam(compute, kernel, _Source, src);
+                cmd.SetComputeTextureParam(compute, kernel, _Destination, dst);
                 cmd.DispatchCompute(compute, kernel, 1, 1, 1);
 
                 m_AutoExposurePingPong[context.xrActiveEye] = ++pp % 2;
