@@ -552,7 +552,10 @@ options.frustumPlanes);
             data.defaultDrawSettings.SetShaderPassName(0, new ShaderTagId("PointLightPass"));
             data.defaultDrawSettings.enableDynamicBatching = false;
             data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
-            data.defaultDrawSettings.sortingSettings = new SortingSettings();
+            data.defaultDrawSettings.sortingSettings = new SortingSettings
+            {
+                criteria = SortingCriteria.None
+            };
 
             //Forward
             int depthSlice = offset * 6;

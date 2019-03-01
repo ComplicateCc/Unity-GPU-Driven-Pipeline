@@ -118,9 +118,9 @@ static const float2 DirPoissonDisks[64] =
 			float3 _DirLightFinalColor;
 			#define RANDOM(seed) cos(sin(seed * float2(54.135764, 77.468761) + float2(631.543147, 57.4687)) * float2(657.387478, 86.1653) + float2(65.15686, 15.3574563))
 			float _ShadowOffset;
-			float GetShadow(inout float4 worldPos, float depth, float2 screenUV)
+			float GetShadow(float4 worldPos, float depth, float2 screenUV)
 			{
-				worldPos /= worldPos.w;
+				
 				float eyeDistance = LinearEyeDepth(depth);
 				float4 eyeRange = eyeDistance < _ShadowDisableDistance;
 				eyeRange.yzw -= eyeRange.xyz;
@@ -148,6 +148,35 @@ static const float2 DirPoissonDisks[64] =
 				atten = lerp(1, atten, fadeDistance);
 				return atten;
 			}
+
+			float4 CalculateSunLight(UnityStandardData data, float depth, float4 wpos, float3 viewDir, float2 screenUV)
+			{
+				float atten = GetShadow(wpos, depth, screenUV);
+				float oneMinusReflectivity = 1 - SpecularStrength(data.specularColor.rgb);
+				UnityIndirect ind;
+				UNITY_INITIALIZE_OUTPUT(UnityIndirect, ind);
+				ind.diffuse = 0;
+				ind.specular = 0;
+				UnityLight light;
+				light.dir = _DirLightPos;
+				light.color = _DirLightFinalColor * atten;
+
+				return UNITY_BRDF_PBS(data.diffuseColor, data.specularColor, oneMinusReflectivity, data.smoothness, data.normalWorld, -viewDir, light, ind);
+
+			}
+			float4 CalculateSunLight_NoShadow(UnityStandardData data, float3 viewDir)
+			{
+				float oneMinusReflectivity = 1 - SpecularStrength(data.specularColor.rgb);
+				UnityIndirect ind;
+				UNITY_INITIALIZE_OUTPUT(UnityIndirect, ind);
+				ind.diffuse = 0;
+				ind.specular = 0;
+				UnityLight light;
+				light.dir = _DirLightPos;
+				light.color = _DirLightFinalColor;
+				return UNITY_BRDF_PBS(data.diffuseColor, data.specularColor, oneMinusReflectivity, data.smoothness, data.normalWorld, -viewDir, light, ind);
+
+			}
 ENDCG
 
 		Pass
@@ -165,19 +194,10 @@ ENDCG
     			float4 gbuffer2 = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv);
 				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
 				float4 wpos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
-				float atten = GetShadow(wpos, depth, i.uv);
+				wpos /= wpos.w;
 				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
-				float3 eyeVec = normalize(wpos.xyz - _WorldSpaceCameraPos);
-				float oneMinusReflectivity = 1 - SpecularStrength(data.specularColor.rgb);
-    			UnityIndirect ind;
-    			UNITY_INITIALIZE_OUTPUT(UnityIndirect, ind);
-    			ind.diffuse = 0;
-    			ind.specular = 0;
-				UnityLight light;
-				light.dir = _DirLightPos;
-				light.color = _DirLightFinalColor * atten;
-				
-				return UNITY_BRDF_PBS (data.diffuseColor, data.specularColor, oneMinusReflectivity, data.smoothness, data.normalWorld, -eyeVec, light, ind);
+				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
+				return CalculateSunLight(data, depth, wpos, viewDir, i.uv);
 			}
 			ENDCG
 		}
@@ -198,18 +218,10 @@ ENDCG
 				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
 				float4 wpos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
 				wpos /= wpos.w;
+				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
 				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
-				float3 eyeVec = normalize(wpos.xyz - _WorldSpaceCameraPos);
-				float oneMinusReflectivity = 1 - SpecularStrength(data.specularColor.rgb);
-    			UnityIndirect ind;
-    			UNITY_INITIALIZE_OUTPUT(UnityIndirect, ind);
-    			ind.diffuse = 0;
-    			ind.specular = 0;
-				UnityLight light;
-				light.dir = _DirLightPos;
-				light.color = _DirLightFinalColor;
-				return UNITY_BRDF_PBS (data.diffuseColor, data.specularColor, oneMinusReflectivity, data.smoothness, data.normalWorld, -eyeVec, light, ind);
-			}
+				return CalculateSunLight_NoShadow(data, viewDir);
+							}
 			ENDCG
 		}
 	}

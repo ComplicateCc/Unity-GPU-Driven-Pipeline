@@ -24,7 +24,8 @@
         #pragma target 5.0
             struct Input
         {
-            float2 uv_texcoord;
+            float2 uv_MainTex;
+			float2 uv_DetailAlbedo;
         };
     float _SpecularIntensity;
 	float _MetallicIntensity;
@@ -34,8 +35,8 @@
 		float _VertexOffset;
 		sampler2D _BumpMap;
 		sampler2D _SpecularMap;
-		sampler2D _MainTex; float4 _MainTex_ST;
-		sampler2D _DetailAlbedo; float4 _DetailAlbedo_ST;
+		sampler2D _MainTex;
+		sampler2D _DetailAlbedo; 
 		sampler2D _DetailNormal;
 
 		float _Glossiness;
@@ -44,10 +45,9 @@
 
         void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
 			// Albedo comes from a texture tinted by color
-			float2 uv = IN.uv_texcoord;// - parallax_mapping(IN.uv_MainTex,IN.viewDir);
-			float2 detailUV = TRANSFORM_TEX(uv, _DetailAlbedo);
+			float2 uv = IN.uv_MainTex;// - parallax_mapping(IN.uv_MainTex,IN.viewDir);
+			float2 detailUV = IN.uv_DetailAlbedo;
 			float4 spec = tex2D(_SpecularMap,uv);
-			uv = TRANSFORM_TEX(uv, _MainTex);
 			float4 c = tex2D (_MainTex, uv);
 			o.Albedo = c.rgb;
 			float4 detailColor = tex2D(_DetailAlbedo, detailUV);

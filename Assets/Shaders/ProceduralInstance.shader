@@ -120,7 +120,7 @@ struct appdata
 	float3 normal : NORMAL;
 	float2 texcoord : TEXCOORD0;
 };
-v2f_surf vert_deferred (appdata v) 
+v2f_surf vert_surf (appdata v) 
 {
   	v2f_surf o;
   	o.pack0 = v.texcoord;
@@ -177,7 +177,7 @@ Tags {"LightMode" = "GBuffer" "Name" = "GBuffer"}
 ZTest Less
 CGPROGRAM
 
-#pragma vertex vert_deferred
+#pragma vertex vert_surf
 #pragma fragment frag_surf
 ENDCG
 }
@@ -305,6 +305,22 @@ ENDCG
 
 			ENDCG
 		}
+			pass
+			{
+				Tags{ "LightMode" = "Transparent" }
+					ZTest less
+					Cull back
+					CGPROGRAM
+#pragma vertex vert_surf
+#pragma fragment frag
+#include "UnityCG.cginc"
+#include "CGINC/Procedural.cginc"
+					float4 frag(v2f_surf i) : SV_Target
+				{
+					return 0;
+				}
+					ENDCG
+			}
 }
 CustomEditor "SpecularShaderEditor"
 }
