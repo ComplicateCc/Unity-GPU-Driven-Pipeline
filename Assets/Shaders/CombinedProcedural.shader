@@ -34,24 +34,23 @@ CGINCLUDE
     uv += prop.mainScaleOffset.zw;
     half4 spec = prop.textureIndex.z >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)) : 1;
 		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1);
-		o.Albedo = c.rgb;
-    o.Albedo = lerp(detailAlbedo.rgb, o.Albedo, spec.b) * prop._Color;
-		o.Alpha = 1;
-		o.Specular = lerp(prop._SpecularIntensity * spec.r, o.Albedo * prop._SpecularIntensity * spec.r, prop._MetallicIntensity); 
-		o.Smoothness = prop._Glossiness * spec.g;
-    o.Occlusion = lerp(min(detailAlbedo.a, c.a), c.a, spec.b);
-    o.Occlusion = lerp(1, o.Occlusion, prop._Occlusion);
-		if(prop.textureIndex.y >= 0){
+    if(prop.textureIndex.y >= 0){
 			o.Normal =  UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.y)));
 		}else{
 			o.Normal =  float3(0,0,1);
 		}
-		o.Emission = prop._EmissionColor;
     if(lightmapIndex >= 0)
     {
-      o.Emission.rgb += _LightMap.Sample(sampler_LightMap, float3(lightmapUV, lightmapIndex)) * c.rgb;
-    }    
-    o.Normal = lerp(detailNormal, o.Normal, spec.b);
+      o.Emission.rgb = _LightMap.Sample(sampler_LightMap, float3(lightmapUV, lightmapIndex)) * c.rgb;
+    }   
+		o.Albedo = c.rgb;
+    o.Albedo = lerp(detailAlbedo.rgb, o.Albedo, c.a) * prop._Color;
+		o.Alpha = 1;
+		o.Specular = lerp(prop._SpecularIntensity * spec.g, o.Albedo * prop._SpecularIntensity * spec.g, prop._MetallicIntensity); 
+		o.Smoothness = prop._Glossiness * spec.r;
+    o.Occlusion = lerp(1, spec.b, prop._Occlusion);
+		o.Emission += prop._EmissionColor;
+    o.Normal = lerp(detailNormal, o.Normal, c.a);
     
 	}
 

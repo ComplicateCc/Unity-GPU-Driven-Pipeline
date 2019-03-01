@@ -20,8 +20,7 @@ namespace MPipeline
         public float indirectIntensity = 1;
         const int marchStep = 64;
         const int scatterPass = 8;
-        const int initVoxelPass = 9;
-        const int calculateGI = 10;
+        const int calculateGI = 9;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
         private Random rand;
@@ -158,8 +157,7 @@ namespace MPipeline
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
             buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
-            buffer.SetComputeTextureParam(scatter, initVoxelPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
-            buffer.DispatchCompute(scatter, initVoxelPass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
+            /*
             if (ProbeBaker.allBakers.Count > 0)
             {
                 buffer.SetComputeBufferParam(scatter, calculateGI, ShaderIDs._RandomBuffer, randomBuffer);
@@ -174,7 +172,7 @@ namespace MPipeline
                         buffer.DispatchCompute(scatter, calculateGI, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
                     }
                 }
-            }
+            }*/
             cbdr.dirLightShadowmap = null;
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
             buffer.DispatchCompute(scatter, pass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);

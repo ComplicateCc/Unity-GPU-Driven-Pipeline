@@ -26,16 +26,16 @@ CGINCLUDE
 				float2 uv : TEXCOORD0;
 				float4 vertex : SV_POSITION;
 			};
-		
+			float2 _Jitter;
 			v2f vert (appdata v)
 			{
 				v2f o;
 				o.vertex = v.vertex;
-				o.uv = v.uv;
+				o.uv = v.uv - _Jitter;
 				return o;
 			}
 			
-			float4x4 _InvVP;
+			float4x4 _InvNonJitterVP;
 			
 			Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
 			Texture2D<float4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
@@ -58,7 +58,7 @@ ENDCG
     			float4 gbuffer1 = _CameraGBufferTexture1.Sample(sampler_CameraGBufferTexture1, i.uv);
     			float4 gbuffer2 = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv);
 				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
-				float4 wpos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
+				float4 wpos = mul(_InvNonJitterVP, float4(i.uv * 2 - 1, depth, 1));
 				wpos /= wpos.w;
 				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
 				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
@@ -81,7 +81,7 @@ ENDCG
     			float4 gbuffer1 = _CameraGBufferTexture1.Sample(sampler_CameraGBufferTexture1, i.uv);
     			float4 gbuffer2 = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv);
 				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
-				float4 wpos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
+				float4 wpos = mul(_InvNonJitterVP, float4(i.uv * 2 - 1, depth, 1));
 				wpos /= wpos.w;
 				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
 				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);

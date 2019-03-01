@@ -18,9 +18,9 @@ CGINCLUDE
 			Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
 			Texture2D<float4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
 			Texture2D<float4> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;
+			float2 _Jitter;
 
-
-			float4x4 _InvVP;
+			float4x4 _InvNonJitterVP;
 
 			struct v2fScreen
 			{
@@ -36,7 +36,7 @@ CGINCLUDE
 			{
 				v2fScreen o;
 				o.vertex = v.vertex;
-				o.uv = v.uv;
+				o.uv = v.uv - _Jitter;
 				return o;
 			}
 ENDCG
@@ -63,7 +63,7 @@ ENDCG
 				float3 WorldNormal = _CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1;
 				float4 SpecularColor = _CameraGBufferTexture1.SampleLevel(sampler_CameraGBufferTexture1, uv, 0);
 				float Roughness = clamp(1 - SpecularColor.a, 0.02, 1);
-				float4 WorldPos = mul(_InvVP, float4(NDC_UV, SceneDepth, 1));
+				float4 WorldPos = mul(_InvNonJitterVP, float4(NDC_UV, SceneDepth, 1));
 				WorldPos /= WorldPos.w;
 				return CalculateLocalLight(uv, WorldPos, linearDepth, AlbedoColor, WorldNormal, SpecularColor, Roughness);
 			}

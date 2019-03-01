@@ -24,15 +24,10 @@
 CGINCLUDE
 #define UNITY_PASS_DEFERRED
 #pragma target 5.0
-#include "HLSLSupport.cginc"
-#include "UnityShaderVariables.cginc"
-#include "UnityShaderUtilities.cginc"
 #include "UnityCG.cginc"
-#include "Lighting.cginc"
-#include "UnityMetaPass.cginc"
-#include "AutoLight.cginc"
+#include "UnityDeferredLibrary.cginc"
 #include "UnityPBSLighting.cginc"
-#include "CGINC/Procedural.cginc"
+
 		struct Input {
 			float2 uv_MainTex;
 		};
@@ -57,21 +52,19 @@ CGINCLUDE
 			// Albedo comes from a texture tinted by color
 			float2 uv = IN.uv_MainTex;// - parallax_mapping(IN.uv_MainTex,IN.viewDir);
 			float2 detailUV = TRANSFORM_TEX(uv, _DetailAlbedo);
-			float4 spec = tex2D(_SpecularMap,uv);
 			uv = TRANSFORM_TEX(uv, _MainTex);
+			float4 spec = tex2D(_SpecularMap,uv);
 			float4 c = tex2D (_MainTex, uv);
 			o.Albedo = c.rgb;
 			float4 detailColor = tex2D(_DetailAlbedo, detailUV);
-			o.Albedo = lerp(detailColor.rgb, o.Albedo, spec.b) * _Color.rgb;
+			o.Albedo = lerp(detailColor.rgb, o.Albedo, c.a) * _Color.rgb;
 			o.Alpha = 1;
-			o.Occlusion = lerp(min(detailColor.a, c.a), c.a, spec.b);
-			o.Occlusion = lerp(1, o.Occlusion, _Occlusion);
-			o.Specular = lerp(_SpecularIntensity * spec.r, o.Albedo * _SpecularIntensity * spec.r, _MetallicIntensity); 
-			o.Smoothness = _Glossiness * spec.g;
+			o.Occlusion = lerp(1, spec.b, _Occlusion);
+			o.Specular = lerp(_SpecularIntensity * spec.g, o.Albedo * _SpecularIntensity * spec.g, _MetallicIntensity); 
+			o.Smoothness = _Glossiness * spec.r;
 			o.Normal = UnpackNormal(tex2D(_BumpMap,uv));
 			float3 detailNormal = UnpackNormal(tex2D(_DetailNormal, detailUV));
-			o.Normal = lerp(detailNormal, o.Normal, spec.b);
-			
+			o.Normal = lerp(detailNormal, o.Normal, c.a);
 			o.Emission = _EmissionColor;
 		}
 
@@ -135,7 +128,6 @@ v2f_surf vert_surf (appdata v)
   	o.worldViewDir = UnityWorldSpaceViewDir(worldPos);
   	return o;
 }
-float4 unity_Ambient;
 
 // fragment shader
 void frag_surf (v2f_surf IN,
@@ -247,7 +239,6 @@ ENDCG
                 float3 worldPos : TEXCOORD0;
             };
             float4x4 _VP;
-            float4 _LightPos;
             v2f vert (appdata_shadow v) 
             {
                 v2f o;
@@ -278,7 +269,6 @@ ENDCG
 			#include "UnityCG.cginc"
 			#include "CGINC/Procedural.cginc"
 			float4x4 _ShadowMapVP;
-			float3 _LightPos;
 			float _LightRadius;
 			struct v2f
 			{
@@ -305,22 +295,6 @@ ENDCG
 
 			ENDCG
 		}
-			pass
-			{
-				Tags{ "LightMode" = "Transparent" }
-					ZTest less
-					Cull back
-					CGPROGRAM
-#pragma vertex vert_surf
-#pragma fragment frag
-#include "UnityCG.cginc"
-#include "CGINC/Procedural.cginc"
-					float4 frag(v2f_surf i) : SV_Target
-				{
-					return 0;
-				}
-					ENDCG
-			}
 }
 CustomEditor "SpecularShaderEditor"
 }

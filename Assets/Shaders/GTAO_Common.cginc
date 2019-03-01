@@ -9,7 +9,6 @@ half2 _AO_FadeParams;
 half4	_AO_UVToView, _AO_RT_TexelSize, _AO_FadeValues;
 half4x4	_WorldToCameraMatrix, _CameraToWorldMatrix, _ProjectionMatrix, _LastFrameViewProjectionMatrix, _View_ProjectionMatrix, _Inverse_View_ProjectionMatrix;
 sampler2D _CameraGBufferTexture0, _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraMotionVectorsTexture, _CameraDepthTexture, _BentNormal_Texture, _GTAO_Texture, _GTAO_Spatial_Texture, _PrevRT, _CurrRT;
-
 struct VertexInput
 {
 	half4 vertex : POSITION;

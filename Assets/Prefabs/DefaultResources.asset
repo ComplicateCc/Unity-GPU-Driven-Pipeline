@@ -55,4 +55,5 @@ MonoBehaviour:
     skybox: {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
     volumetric: {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
     temporalAA: {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}
+    transparent: {fileID: 11400000, guid: 6fe05694a7e3c07469031a6ab5c74e0d, type: 2}
     postEffects: {fileID: 11400000, guid: ec8cef056d08590479397b93336d090c, type: 2}

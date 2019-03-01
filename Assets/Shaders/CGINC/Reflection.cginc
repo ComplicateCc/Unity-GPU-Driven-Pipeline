@@ -78,8 +78,9 @@ inline half3 MPipelineGI_IndirectSpecular(UnityGIInput data, half occlusion, Uni
         */
     return DecodeHDR(env0, data.probeHDR[0]) * occlusion;
 }
-
+#ifndef __LOCALLIGHTING_INCLUDE__
 float2 _CameraClipDistance; //X: Near Y: Far - Near
+#endif
 StructuredBuffer<uint> _ReflectionIndices;
 StructuredBuffer<ReflectionData> _ReflectionData;
 float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, float4 specular, float3 normal, float occlusion, float2 screenUV)

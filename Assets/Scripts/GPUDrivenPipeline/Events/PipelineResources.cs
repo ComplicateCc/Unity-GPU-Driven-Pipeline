@@ -70,6 +70,7 @@ namespace MPipeline
             public SkyboxEvent skybox;
             public VolumetricLightEvent volumetric;
             public TemporalAAEvent temporalAA;
+            public TransEvent transparent;
             public FinalPostEvent postEffects;
         }
         public GPUDeferred gpuDeferred;

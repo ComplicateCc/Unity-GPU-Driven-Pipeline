@@ -44,6 +44,8 @@ namespace MPipeline
             {
                 if (value == enabled) return;
                 enabled = value;
+                if (value) OnEnable();
+                else OnDisable();
                 if (initialized)
                 {
                     if (value)
@@ -105,6 +107,16 @@ namespace MPipeline
                     }
                 }
             }
+            if (Enabled) OnEnable();
+        }
+
+        protected virtual void OnEnable()
+        {
+
+        }
+        protected virtual void OnDisable()
+        {
+
         }
         public void Prepare(PipelineResources.CameraRenderingPath renderingPath)
         {
@@ -130,6 +142,7 @@ namespace MPipeline
         public void DisposeEvent()
         {
             initialized = false;
+            OnDisable();
             Dispose();
         }
         protected abstract void Init(PipelineResources resources);

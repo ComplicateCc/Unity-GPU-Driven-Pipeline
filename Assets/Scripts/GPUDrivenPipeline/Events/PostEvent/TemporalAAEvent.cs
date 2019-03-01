@@ -72,7 +72,7 @@ namespace MPipeline
         {
             cam.cam.ResetProjectionMatrix();
             ConfigureJitteredProjectionMatrix(cam.cam);
-            Shader.SetGlobalVector(ShaderIDs._Jitter, jitter);
+            data.buffer.SetGlobalVector(ShaderIDs._Jitter, jitter);
         }
 
         Vector2 GenerateRandomOffset()
@@ -87,7 +87,10 @@ namespace MPipeline
 
             return offset;
         }
-
+        protected override void OnDisable()
+        {
+            Shader.SetGlobalVector(ShaderIDs._Jitter, Vector4.zero);
+        }
         public Matrix4x4 GetJitteredProjectionMatrix(Camera camera)
         {
             Matrix4x4 cameraProj;

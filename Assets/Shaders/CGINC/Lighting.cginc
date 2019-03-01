@@ -1,5 +1,5 @@
-#ifndef __LIGHTING_INCLUDE__
-#define __LIGHTING_INCLUDE__
+#ifndef __LOCALLIGHTING_INCLUDE__
+#define __LOCALLIGHTING_INCLUDE__
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<uint> _PointLightIndexBuffer;
 StructuredBuffer<SpotLight> _AllSpotLight;

@@ -44,24 +44,26 @@ ENDCG
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-			float4x4 _InvVP;    //Inverse View Project Matrix
+			float4x4 _InvNonJitterVP;    //Inverse View Project Matrix
 			Texture2D<half4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;       //RGB Diffuse A AO
 			Texture2D<half4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;       //RGB Specular A Smoothness
 			Texture2D<half3> _CameraGBufferTexture2; SamplerState sampler_CameraGBufferTexture2;       //RGB Normal
 			Texture2D<float> _CameraDepthTexture; SamplerState sampler_CameraDepthTexture;
 			Texture2D<float2> _AOROTexture; SamplerState sampler_AOROTexture;
+            float2 _Jitter;
             v2f vert (appdata v)
             {
                 v2f o;
                 o.vertex = v.vertex;
-                o.uv = v.uv;
+                o.uv = v.uv - _Jitter;
                 return o;
             }
 
             float3 frag (v2f i) : SV_Target
             {
+                
                 float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
-                float4 worldPos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
+                float4 worldPos = mul(_InvNonJitterVP, float4(i.uv * 2 - 1, depth, 1));
 				float linearDepth = LinearEyeDepth(depth);
                 worldPos /= worldPos.w;
 
