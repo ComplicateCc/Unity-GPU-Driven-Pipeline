@@ -78,5 +78,54 @@ inline half3 MPipelineGI_IndirectSpecular(UnityGIInput data, half occlusion, Uni
         */
     return DecodeHDR(env0, data.probeHDR[0]) * occlusion;
 }
+
+float2 _CameraClipDistance; //X: Near Y: Far - Near
+StructuredBuffer<uint> _ReflectionIndices;
+StructuredBuffer<ReflectionData> _ReflectionData;
+float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, float4 specular, float3 normal, float occlusion, float2 screenUV)
+{
+	float3 finalColor = 0;
+	Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(specular.w, -viewDir, normal, specular.xyz);
+	half perceptualRoughness = g.roughness;
+	perceptualRoughness = perceptualRoughness * (1.7 - 0.7*perceptualRoughness);
+	float lod = perceptualRoughnessToMipmapLevel(perceptualRoughness);;
+	half oneMinusReflectivity = 1 - SpecularStrength(specular.xyz);
+	UnityGIInput d;
+	d.worldPos = worldPos.xyz;
+	d.worldViewDir = -viewDir;
+	UnityLight light;
+	light.color = half3(0, 0, 0);
+	light.dir = half3(0, 1, 0);
+	UnityIndirect ind;
+	ind.diffuse = 0;
+	float rate = saturate((linearDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
+	float3 uv = float3(screenUV, rate);
+	uint3 intUV = uv * float3(XRES, YRES, ZRES);
+	int index = DownDimension(intUV, uint2(XRES, YRES), MAXIMUM_PROBE + 1);
+	int target = _ReflectionIndices[index];
+	[loop]
+	for (int a = 1; a < target; ++a)
+	{
+		int currentIndex = _ReflectionIndices[index + a];
+		ReflectionData data = _ReflectionData[currentIndex];
+		float3 leftDown = data.position - data.maxExtent;
+		float3 cubemapUV = (worldPos.xyz - leftDown) / (data.maxExtent * 2);
+		if (abs(dot(cubemapUV - saturate(cubemapUV), 1)) > 1e-13) continue;
+
+		d.probeHDR[0] = data.hdr;
+		if (data.boxProjection > 0)
+		{
+			d.probePosition[0] = float4(data.position, 1);
+			d.boxMin[0].xyz = leftDown;
+			d.boxMax[0].xyz = (data.position + data.maxExtent);
+		}
+		ind.specular = MPipelineGI_IndirectSpecular(d, occlusion, g, data, currentIndex, lod);
+		half3 rgb = BRDF1_Unity_PBS(0, specular.xyz, oneMinusReflectivity, specular.w, normal, -viewDir, light, ind).rgb;
+		float3 distanceToMin = saturate((abs(worldPos.xyz - data.position) - data.minExtent) / data.blendDistance);
+		finalColor = lerp(rgb * data.hdr.r, finalColor, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
+	}
+
+	return finalColor;
+}
 #endif
 #endif
