@@ -3,19 +3,28 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using System.Reflection;
+using System;
 namespace MPipeline
-{ 
+{
     public abstract class EventsCollection
     {
         public PipelineEvent[] GetAllEvents()
         {
             FieldInfo[] infos = GetType().GetFields();
             PipelineEvent[] events = new PipelineEvent[infos.Length];
-            for(int i = 0; i < events.Length; ++i)
+            for (int i = 0; i < events.Length; ++i)
             {
                 events[i] = infos[i].GetValue(this) as PipelineEvent;
             }
             return events;
+        }
+    }
+    public class TargetPathAttribute : Attribute
+    {
+        public PipelineResources.CameraRenderingPath path { get; private set; }
+        public TargetPathAttribute(PipelineResources.CameraRenderingPath renderingPath)
+        {
+            path = renderingPath;
         }
     }
     public unsafe sealed class PipelineResources : RenderPipelineAsset
@@ -26,9 +35,9 @@ namespace MPipeline
         }
         public enum CameraRenderingPath
         {
-            Unlit = 0, Forward = 1, GPUDeferred = 2
+            GPUDeferred, Bake
         }
-        [System.Serializable]
+        [Serializable]
         public struct Shaders
         {
             public ComputeShader cbdrShader;
@@ -59,31 +68,35 @@ namespace MPipeline
             public Mesh sphereMesh;
         }
         public Shaders shaders = new Shaders();
-        [System.Serializable]
-        public class GPUDeferred : EventsCollection
-        {
-            public PropertySetEvent propertySet;
-            public GeometryEvent geometry;
-            public AOEvents ambientOcclusion;
-            public LightingEvent lighting;
-            public ReflectionEvent reflection;
-            public SkyboxEvent skybox;
-            public VolumetricLightEvent volumetric;
-            public TemporalAAEvent temporalAA;
-            public TransEvent transparent;
-            public FinalPostEvent postEffects;
-        }
-        public GPUDeferred gpuDeferred;
-        private Dictionary<CameraRenderingPath, PipelineEvent[]> presetDict = new Dictionary<CameraRenderingPath, PipelineEvent[]>();
-        public Dictionary<CameraRenderingPath, PipelineEvent[]> renderingPaths
-        {
-            get { return presetDict; }
-        }
+        public PipelineEvent[][] allEvents { get; private set; }
         public void SetRenderingPath()
         {
-            presetDict.Clear();
-            presetDict.Add(CameraRenderingPath.GPUDeferred, gpuDeferred.GetAllEvents());
-            //Add New Events Here
+            FieldInfo[] infos = events.GetType().GetFields();
+            List<Pair<int, EventsCollection>> allCollection = new List<Pair<int, EventsCollection>>();
+            foreach (var i in infos)
+            {
+                TargetPathAttribute target = i.GetCustomAttribute<TargetPathAttribute>();
+                if(target != null)
+                {
+                    EventsCollection collection = i.GetValue(events) as EventsCollection;
+                    if(collection != null)
+                    {
+                        allCollection.Add(new Pair<int, EventsCollection>((int)target.path, collection));
+                    }
+                }
+            }
+            int maximum = -1;
+            foreach(var i in allCollection)
+            {
+                if (i.key > maximum)
+                    maximum = i.key;
+            }
+            allEvents = new PipelineEvent[maximum + 1][];
+            foreach(var i in allCollection)
+            {
+                allEvents[i.key] = i.value.GetAllEvents();
+            }
         }
+        public AllEvents events = new AllEvents();
     }
 }

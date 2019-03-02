@@ -27,7 +27,7 @@ CGINCLUDE
 #include "UnityCG.cginc"
 #include "UnityDeferredLibrary.cginc"
 #include "UnityPBSLighting.cginc"
-
+#pragma shader_feature DETAIL_ON
 		struct Input {
 			float2 uv_MainTex;
 		};
@@ -55,16 +55,22 @@ CGINCLUDE
 			uv = TRANSFORM_TEX(uv, _MainTex);
 			float4 spec = tex2D(_SpecularMap,uv);
 			float4 c = tex2D (_MainTex, uv);
-			o.Albedo = c.rgb;
+#if DETAIL_ON
+			float3 detailNormal = UnpackNormal(tex2D(_DetailNormal, detailUV));
 			float4 detailColor = tex2D(_DetailAlbedo, detailUV);
+#endif
+			o.Normal = UnpackNormal(tex2D(_BumpMap,uv));
+			o.Albedo = c.rgb;
+#if DETAIL_ON
 			o.Albedo = lerp(detailColor.rgb, o.Albedo, c.a) * _Color.rgb;
+			o.Normal = lerp(detailNormal, o.Normal, c.a);
+#else
+			o.Albedo *= _Color.rgb;
+#endif
 			o.Alpha = 1;
 			o.Occlusion = lerp(1, spec.b, _Occlusion);
 			o.Specular = lerp(_SpecularIntensity * spec.g, o.Albedo * _SpecularIntensity * spec.g, _MetallicIntensity); 
 			o.Smoothness = _Glossiness * spec.r;
-			o.Normal = UnpackNormal(tex2D(_BumpMap,uv));
-			float3 detailNormal = UnpackNormal(tex2D(_DetailNormal, detailUV));
-			o.Normal = lerp(detailNormal, o.Normal, c.a);
 			o.Emission = _EmissionColor;
 		}
 
@@ -296,6 +302,6 @@ ENDCG
 			ENDCG
 		}
 }
-CustomEditor "SpecularShaderEditor"
+	CustomEditor "ShouShouEditor"
 }
 

@@ -36,7 +36,7 @@ CGINCLUDE
 			{
 				v2fScreen o;
 				o.vertex = v.vertex;
-				o.uv = v.uv - _Jitter;
+				o.uv = v.uv;
 				return o;
 			}
 ENDCG

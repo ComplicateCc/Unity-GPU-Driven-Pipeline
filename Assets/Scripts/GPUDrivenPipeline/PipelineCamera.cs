@@ -15,6 +15,7 @@ namespace MPipeline
         public RenderTargets targets;
         public PipelineResources.CameraRenderingPath renderingPath = PipelineResources.CameraRenderingPath.GPUDeferred;
         public Dictionary<Type, IPerCameraData> postDatas = new Dictionary<Type, IPerCameraData>(47);
+        public bool inverseRender = false;
         public void EnableThis()
         {
             if (!targets.initialized)

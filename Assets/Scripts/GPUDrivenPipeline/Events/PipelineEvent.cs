@@ -79,8 +79,14 @@ namespace MPipeline
         private List<PipelineEvent> dependedEvents = null;
         private List<PipelineEvent> dependingEvents = null;
         public PipelineResources.CameraRenderingPath renderingPath { get; private set; }
+        public void CheckInit(PipelineResources resources)
+        {
+            initialized = true;
+            Init(resources);
+        }
         public void InitEvent(PipelineResources resources)
         {
+            if (initialized) return;
             initialized = true;
             Init(resources);
             if (enabled)
@@ -141,6 +147,7 @@ namespace MPipeline
         }
         public void DisposeEvent()
         {
+            if (!initialized) return;
             initialized = false;
             OnDisable();
             Dispose();

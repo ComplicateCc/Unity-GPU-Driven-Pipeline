@@ -33,7 +33,7 @@ CGINCLUDE
 ENDCG
     SubShader
     {
-        Cull off ZWrite off ZTest Always
+        Cull off ZWrite off ZTest Greater
         Blend one one
         Tags { "RenderType"="Opaque" }
         LOD 100
@@ -55,13 +55,12 @@ ENDCG
             {
                 v2f o;
                 o.vertex = v.vertex;
-                o.uv = v.uv - _Jitter;
+                o.uv = v.uv;
                 return o;
             }
 
             float3 frag (v2f i) : SV_Target
             {
-                
                 float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
                 float4 worldPos = mul(_InvNonJitterVP, float4(i.uv * 2 - 1, depth, 1));
 				float linearDepth = LinearEyeDepth(depth);

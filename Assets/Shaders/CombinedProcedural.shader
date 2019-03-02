@@ -28,12 +28,26 @@ CGINCLUDE
 	void surf (float2 uv, float2 lightmapUV, int lightmapIndex, uint index, inout SurfaceOutputStandardSpecular o) {
 		PropertyValue prop = _PropertiesBuffer[index];
     float2 detailUV = uv * prop.detailScaleOffset.xy + prop.detailScaleOffset.zw;
-    float4 detailAlbedo = prop.detailTextureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.x)) : 1;
-    float3 detailNormal = prop.detailTextureIndex.y >= 0 ? UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.y))) : float3(0,0,1);
+    float4 detailAlbedo = 0;
+    float3 detailNormal = 0;
+    int usedetail = 1;
+    if(prop.detailTextureIndex.x >= 0)
+    {
+      detailAlbedo = _MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.x));
+    }else{
+      usedetail--;
+    }
+    if(prop.detailTextureIndex.y >= 0)
+    {
+      detailNormal = UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(detailUV, prop.detailTextureIndex.y)));
+    }else{
+      usedetail--;
+    }
     uv *= prop.mainScaleOffset.xy;
     uv += prop.mainScaleOffset.zw;
     half4 spec = prop.textureIndex.z >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.z)) : 1;
 		half4 c = (prop.textureIndex.x >= 0 ? _MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.x)) : 1);
+    c.a = usedetail < 0 ? 1 : c.a;
     if(prop.textureIndex.y >= 0){
 			o.Normal =  UnpackNormal(_MainTex.Sample(sampler_MainTex, float3(uv, prop.textureIndex.y)));
 		}else{
@@ -194,6 +208,5 @@ CGPROGRAM
 ENDCG
 }
 }
-CustomEditor "SpecularShaderEditor"
 }
 

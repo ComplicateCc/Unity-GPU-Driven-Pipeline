@@ -101,7 +101,7 @@ namespace MPipeline
             var visLights = data.cullResults.visibleLights;
             LightFilter.allVisibleLight = visLights.Ptr();
             allLights.Clear();
-            cbdr.UpdateFroxel(volumetricEvent.Enabled);
+            cbdr.UpdateFroxel(volumetricEvent && volumetricEvent.Enabled);
             foreach (var i in visLights)
             {
                 allLights.Add(i.light);
@@ -172,7 +172,7 @@ namespace MPipeline
                     SunLight.current.farestDistance));//Only Mask
                 buffer.SetGlobalVector(ShaderIDs._SoftParam, SunLight.current.cascadeSoftValue / SunLight.current.resolution);
                 csmHandle.Complete();
-                SceneController.DrawDirectionalShadow(cam.cam, ref staticFit, ref data, ref opts, clipDistances, cascadeWorldToCamera, cascadeProjection);
+                SceneController.DrawDirectionalShadow(cam, ref staticFit, ref data, ref opts, clipDistances, cascadeWorldToCamera, cascadeProjection);
                 buffer.SetGlobalMatrixArray(ShaderIDs._ShadowMapVPs, cascadeShadowMapVP);
                 buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.current.shadowmapTexture);
                 cbdr.dirLightShadowmap = SunLight.current.shadowmapTexture;
@@ -221,7 +221,7 @@ namespace MPipeline
                             if (light.updateShadowCache)
                             {
                                 light.updateShadowCache = false;
-                                SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                                SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap, cam.inverseRender);
                                 int offset = i * 6;
                                 for (int a = 0; a < 6; ++a)
                                 {
@@ -235,7 +235,7 @@ namespace MPipeline
                         }
                         else
                         {
-                            SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap);
+                            SceneController.DrawPointLight(light, ref pointLightPtr[lightIndex.x], cubeDepthMaterial, buffer, cullShader, i, ref data, cubemapVPMatrices.unsafePtr, cbdr.cubeArrayMap, cam.inverseRender);
                         }
 
                         //TODO
@@ -272,7 +272,7 @@ namespace MPipeline
                             if (mlight.updateShadowCache)
                             {
                                 mlight.updateShadowCache = false;
-                                SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
+                                SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer, cam.inverseRender);
                                 buffer.CopyTexture(cbdr.spotArrayMap, spot.shadowIndex, mlight.shadowMap, 0);
                             }
                             else
@@ -284,7 +284,7 @@ namespace MPipeline
                         }
                         else
                         {
-                            SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer);
+                            SceneController.DrawSpotLight(buffer, data.resources.shaders.gpuFrustumCulling, ref data, mlight.shadowCam, ref spot, ref spotBuffer, cam.inverseRender);
                         }
                     }
                 }

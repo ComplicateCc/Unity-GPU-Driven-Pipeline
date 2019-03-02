@@ -403,7 +403,7 @@ namespace MPipeline
             RenderScene(ref data, cam);
 
         }
-        public static void DrawSpotLight(CommandBuffer buffer, ComputeShader cullingShader, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand)
+        public static void DrawSpotLight(CommandBuffer buffer, ComputeShader cullingShader, ref PipelineCommandData data, Camera currentCam, ref SpotLight spotLights, ref RenderSpotShadowCommand spotcommand, bool inverseRender)
         {
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
@@ -446,7 +446,7 @@ namespace MPipeline
             CullingResults results = data.context.Cull(ref data.cullParams);
             data.defaultDrawSettings.perObjectData = UnityEngine.Rendering.PerObjectData.None;
             data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
-            buffer.SetInvertCulling(false);
+            buffer.SetInvertCulling(inverseRender);
         }
 
         public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
@@ -486,7 +486,7 @@ options.frustumPlanes);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
 
-        public static void DrawDirectionalShadow(Camera currentCam, ref StaticFit staticFit, ref PipelineCommandData data, ref RenderClusterOptions opts, float* clipDistances, float4x4* worldToCamMatrices, float4x4* projectionMatrices)
+        public static void DrawDirectionalShadow(PipelineCamera cam, ref StaticFit staticFit, ref PipelineCommandData data, ref RenderClusterOptions opts, float* clipDistances, float4x4* worldToCamMatrices, float4x4* projectionMatrices)
         {
             SunLight sunLight = SunLight.current;
             if (gpurpEnabled)
@@ -495,6 +495,7 @@ options.frustumPlanes);
                 opts.command.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
             }
             opts.command.SetInvertCulling(true);
+            Camera currentCam = cam.cam;
             float bias = sunLight.bias / currentCam.farClipPlane;
             opts.command.SetGlobalFloat(ShaderIDs._ShadowOffset, bias);
             for (int pass = 0; pass < SunLight.CASCADELEVELCOUNT; ++pass)
@@ -535,10 +536,10 @@ options.frustumPlanes);
                 
                 data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
             }
-            opts.command.SetInvertCulling(false);
+            opts.command.SetInvertCulling(cam.inverseRender);
         }
 
-        public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, CommandBuffer cb, ComputeShader cullingShader, int offset, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget)
+        public static void DrawPointLight(MLight lit, ref PointLightStruct light, Material depthMaterial, CommandBuffer cb, ComputeShader cullingShader, int offset, ref PipelineCommandData data, CubemapViewProjMatrix* vpMatrixArray, RenderTexture renderTarget, bool inverseRender)
         {
             ref CubemapViewProjMatrix vpMatrices = ref vpMatrixArray[offset];
             cb.SetGlobalVector(ShaderIDs._LightPos, light.sphere);
@@ -633,7 +634,7 @@ options.frustumPlanes);
             }
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results, ref data.defaultDrawSettings,ref renderSettings);
-            cb.SetInvertCulling(false);
+            cb.SetInvertCulling(inverseRender);
         }
         public static void GICubeCull(float3 position, float extent, CommandBuffer buffer, ComputeShader cullingshader)
         {
