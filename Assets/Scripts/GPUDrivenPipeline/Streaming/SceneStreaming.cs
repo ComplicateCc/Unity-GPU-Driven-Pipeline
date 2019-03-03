@@ -401,7 +401,6 @@ namespace MPipeline
             pointsBuffer.Dispose();
             loading = false;
             state = State.Loaded;
-            yield return null;
             ComputeShader texCopyShader = resources.shaders.texCopyShader;
             foreach (var i in allTextureDatas)
             {

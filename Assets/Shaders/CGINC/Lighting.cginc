@@ -77,7 +77,7 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 
 		//////Shading
 		float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), 1.0 / LightRange, LightData.NoL) * ShadowTrem;
-		ShadingColor += Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness);
+		ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness));
 
 
 	}

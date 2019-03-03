@@ -47,7 +47,7 @@ namespace MPipeline
         [NativeDisableUnsafePtrRestriction]
         private DictData* data;
         public bool isCreated { get; private set; }
-        public Func<K, K, bool> equalsFunc;
+        public void* equalsFunc;//Func<K, K, bool>
         private void Resize(int targetSize)
         {
             K** newData = (K**)MUnsafeUtility.Malloc(targetSize * 8, data->alloc);
@@ -78,7 +78,7 @@ namespace MPipeline
         public NativeDictionary(int capacity, Allocator alloc, Func<K, K, bool> equals)
         {
             capacity = Mathf.Max(capacity, 1);
-            equalsFunc = equals;
+            equalsFunc = MUnsafeUtility.GetManagedPtr(equals);
             isCreated = true;
             data = (DictData*)MUnsafeUtility.Malloc(sizeof(DictData), alloc);
             data->capacity = capacity;
@@ -104,6 +104,7 @@ namespace MPipeline
 
         public void Remove(K key)
         {
+            Func<K, K, bool> equalsFunc = MUnsafeUtility.GetObject<Func<K, K, bool>>(this.equalsFunc);
             int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
             K** currentPtr = GetK(index);
             while ((*currentPtr) != null)
@@ -127,6 +128,7 @@ namespace MPipeline
 
         public bool Contains(K key)
         {
+            Func<K, K, bool> equalsFunc = MUnsafeUtility.GetObject<Func<K, K, bool>>(this.equalsFunc);
             int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
             K** currentPos = GetK(index);
             while ((*currentPos) != null)
@@ -144,6 +146,7 @@ namespace MPipeline
         {
             get
             {
+                Func<K, K, bool> equalsFunc = MUnsafeUtility.GetObject<Func<K, K, bool>>(this.equalsFunc);
                 int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
                 K** currentPos = GetK(index);
                 while ((*currentPos) != null)
@@ -158,6 +161,7 @@ namespace MPipeline
             }
             set
             {
+                Func<K, K, bool> equalsFunc = MUnsafeUtility.GetObject<Func<K, K, bool>>(this.equalsFunc);
                 int hashCode = key.GetHashCode();
                 hashCode = Mathf.Abs(hashCode);
                 int index = hashCode % data->capacity;
@@ -219,6 +223,7 @@ namespace MPipeline
 
         public bool Get(K key, out V value)
         {
+            Func<K, K, bool> equalsFunc = MUnsafeUtility.GetObject<Func<K, K, bool>>(this.equalsFunc);
             int index = Mathf.Abs(key.GetHashCode()) % data->capacity;
             K** currentPos = GetK(index);
             while ((*currentPos) != null)

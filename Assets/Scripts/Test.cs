@@ -7,6 +7,10 @@ public class TestEventAttribute : Attribute
 {
     
 }
-public class Test : MonoBehaviour
+public unsafe class Test : MonoBehaviour
 {
+    [EasyButtons.Button]
+    void RunTest()
+    {
+    }
 }

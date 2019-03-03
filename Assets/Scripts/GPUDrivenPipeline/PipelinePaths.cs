@@ -59,7 +59,7 @@ namespace MPipeline
     }
 
     [Serializable]
-    public struct AllEvents
+    public class AllEvents
     {
         [TargetPath(PipelineResources.CameraRenderingPath.GPUDeferred)]
         public GPUDeferred gpuDeferred;

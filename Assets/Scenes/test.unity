@@ -481,6 +481,57 @@ MonoBehaviour:
   lookSpeed: 5
   moveSpeed: 5
   sprintSpeed: 50
+--- !u!1 &945518184
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 945518186}
+  - component: {fileID: 945518185}
+  m_Layer: 0
+  m_Name: IrradianceBake
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 4294967295
+  m_IsActive: 1
+--- !u!114 &945518185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 945518184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c6ab144630643439e769a75bc4f130, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  probeCount:
+    x: 10
+    y: 10
+    z: 10
+  considerRange: 20
+  resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
+  saveTarget: {fileID: 11400000, guid: 64bb376764f5c9848bbb1a526b40051d, type: 2}
+  volumeName: TestIrr
+--- !u!4 &945518186
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 945518184}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 13.638, y: 3.4639997, z: -28.640001}
+  m_LocalScale: {x: 12.4827385, y: 6.40653, z: 19.28491}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 10
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &963604118
 GameObject:
   m_ObjectHideFlags: 0
@@ -1109,13 +1160,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1423287068}
-  m_LocalRotation: {x: -0.077068515, y: -0.63657653, z: -0.07023095, w: 0.7641325}
-  m_LocalPosition: {x: 18.170998, y: 1.635459, z: -28.852154}
+  m_LocalRotation: {x: -0.02549768, y: -0.64071816, z: -0.008398914, w: 0.76730675}
+  m_LocalPosition: {x: 18.170998, y: 2.566, z: -28.852154}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 9
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -2.8600001, y: -79.754005, z: 1.1350001}
 --- !u!1 &1737725914
 GameObject:
   m_ObjectHideFlags: 0

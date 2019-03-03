@@ -78,7 +78,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             ComputeShader scatter = data.resources.shaders.volumetricScattering;
             ref CBDRSharedData cbdr = ref lightingData.cbdr;
-            if (cbdr.lightFlag == 0 && ProbeBaker.allBakers.Count == 0)
+            if (cbdr.lightFlag == 0)
             {
                 cbdr.dirLightShadowmap = null;
                 return;

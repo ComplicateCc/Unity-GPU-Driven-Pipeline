@@ -401,6 +401,8 @@ namespace MPipeline
             res.clusterProperties.Add(property);
             if (save)
                 AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/SceneManager.asset");
+            else
+                EditorUtility.SetDirty(res);
         }
 #endif
     }
