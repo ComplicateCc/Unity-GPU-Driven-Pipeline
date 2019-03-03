@@ -194,6 +194,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
             *(ptr + last) = value;
             return last;
         }
+        Interlocked.Exchange(ref data->count, data->capacity);
         return -1;
     }
     public int ConcurrentAdd(ref T value)
@@ -207,7 +208,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
             *(ptr + last) = value;
             return last;
         }
-
+        Interlocked.Exchange(ref data->count, data->capacity);
         return -1;
     }
     public int ConcurrentAdd(T value, object lockerObj)

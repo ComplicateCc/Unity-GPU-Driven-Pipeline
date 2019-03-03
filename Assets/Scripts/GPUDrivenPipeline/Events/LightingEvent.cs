@@ -111,7 +111,7 @@ namespace MPipeline
             pointLightArray = new NativeArray<PointLightStruct>(visLights.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             spotLightArray = new NativeArray<SpotLight>(visLights.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             cubemapVPMatrices = new NativeList<CubemapViewProjMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
-            spotLightMatrices = new NativeList<SpotLightMatrix>(CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT, Allocator.Temp);
+            spotLightMatrices = new NativeList<SpotLightMatrix>(CBDRSharedData.MAXIMUMSPOTLIGHTCOUNT, Allocator.Temp);
             LightFilter.allLights = allLights;
             LightFilter.pointLightArray = pointLightArray;
             LightFilter.spotLightArray = spotLightArray;
