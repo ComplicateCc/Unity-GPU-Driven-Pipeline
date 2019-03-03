@@ -4,7 +4,8 @@ using Unity.Jobs;
 using System;
 using UnityEngine.Rendering;
 using System.Reflection;
-using UnityEngine.Rendering;
+using Unity.Collections;
+using Unity.Mathematics;
 namespace MPipeline
 {
     public unsafe sealed class RenderPipeline : UnityEngine.Rendering.RenderPipeline
@@ -22,7 +23,37 @@ namespace MPipeline
         public PipelineResources resources;
         private static List<Command> afterRenderFrame = new List<Command>(10);
         private static List<Command> beforeRenderFrame = new List<Command>(10);
+
+#if UNITY_EDITOR
+        private struct EditorBakeCommand
+        {
+            public NativeList<float4x4> worldToCamera;
+            public NativeList<float4x4> projection;
+            public PipelineCamera pipelineCamera;
+            public RenderTexture texArray;
+            public RenderTexture tempTex;
+            public CommandBuffer buffer;
+        }
         private static List<CommandBuffer> bufferAfterFrame = new List<CommandBuffer>(10);
+        private static List<EditorBakeCommand> bakeList = new List<EditorBakeCommand>();
+        public static void AddRenderingMissionInEditor(NativeList<float4x4> worldToCameras, NativeList<float4x4> projections, PipelineCamera targetCameras, RenderTexture texArray, RenderTexture tempTexture, CommandBuffer buffer)
+        {
+            bakeList.Add(new EditorBakeCommand
+            {
+                worldToCamera = worldToCameras,
+                projection = projections,
+                texArray = texArray,
+                pipelineCamera = targetCameras,
+                tempTex = tempTexture,
+                buffer = buffer
+            });
+        }
+#else
+        public static void AddRenderingMissionInEditor(NativeList<float4x4> worldToCameras, NativeList<float4x4> projections, PipelineCamera targetCameras, RenderTexture texArray, RenderTexture tempTexture, CommandBuffer buffer)
+        {
+        //Shouldn't do anything in runtime
+        }
+#endif
         public static T GetEvent<T>(PipelineResources.CameraRenderingPath path) where T : PipelineEvent
         {
             var allEvents = current.resources.allEvents;
@@ -54,10 +85,16 @@ namespace MPipeline
                 obj = arg
             });
         }
+#if UNITY_EDITOR
         public static void ExecuteBufferAtFrameEnding(CommandBuffer buffer)
         {
             bufferAfterFrame.Add(buffer);
         }
+#else
+        public static void ExecuteBufferAtFrameEnding(CommandBuffer buffer){
+        //Shouldn't do anything in runtime
+        }
+#endif
         public static void AddCommandBeforeFrame(object arg, Action<object> func)
         {
             beforeRenderFrame.Add(new Command
@@ -124,6 +161,27 @@ namespace MPipeline
             }
             beforeRenderFrame.Clear();
             SceneController.SetState();
+#if UNITY_EDITOR
+            foreach (var pair in bakeList)
+            {
+                PipelineCamera pipelineCam = pair.pipelineCamera;
+                for (int i = 0; i < pair.worldToCamera.Length; ++i)
+                {
+                    pipelineCam.cam.worldToCameraMatrix = pair.worldToCamera[i];
+                    pipelineCam.cam.projectionMatrix = pair.projection[i];
+                    Render(pipelineCam, new RenderTargetIdentifier(pair.tempTex), ref renderContext, pipelineCam.cam, propertyCheckedFlags);
+                    PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
+                    data.buffer.CopyTexture(pair.tempTex, 0, pair.texArray, i);
+                    data.ExecuteCommandBuffer();
+                }
+                pair.worldToCamera.Dispose();
+                pair.projection.Dispose();
+                renderContext.ExecuteCommandBuffer(pair.buffer);
+                pair.buffer.Clear();
+                renderContext.Submit();
+            }
+            bakeList.Clear();
+#endif
             foreach (var cam in cameras)
             {
                 PipelineCamera pipelineCam = cam.GetComponent<PipelineCamera>();
@@ -137,18 +195,20 @@ namespace MPipeline
                 data.ExecuteCommandBuffer();
                 renderContext.Submit();
             }
+            foreach (var i in afterRenderFrame)
+            {
+                i.func(i.obj);
+            }
+            afterRenderFrame.Clear();
+#if UNITY_EDITOR
             foreach (var i in bufferAfterFrame)
             {
                 renderContext.ExecuteCommandBuffer(i);
                 i.Clear();
             }
             bufferAfterFrame.Clear();
-            foreach (var i in afterRenderFrame)
-            {
-                i.func(i.obj);
-            }
-            afterRenderFrame.Clear();
             renderContext.Submit();
+#endif
         }
 
         private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam, bool* pipelineChecked)

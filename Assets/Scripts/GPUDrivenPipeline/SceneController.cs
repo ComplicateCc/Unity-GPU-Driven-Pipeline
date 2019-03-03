@@ -58,7 +58,7 @@ namespace MPipeline
                     alreadyContained = false;
                     return -1;
                 }
-                
+
                 if (texDict.ContainsKey(guid) && texDict[guid].usedCount > 0)
                 {
                     TextureIdentifier ident = texDict[guid];
@@ -433,7 +433,7 @@ namespace MPipeline
             FilteringSettings renderSettings = new FilteringSettings()
             {
                 renderQueueRange = RenderQueueRange.opaque,
-                layerMask =  -1,
+                layerMask = -1,
                 renderingLayerMask = uint.MaxValue
             };
             data.defaultDrawSettings.enableDynamicBatching = false;
@@ -533,7 +533,7 @@ options.frustumPlanes);
                 data.defaultDrawSettings.sortingSettings = settings;
                 data.cullParams.cullingOptions = CullingOptions.None;
                 CullingResults results = data.context.Cull(ref data.cullParams);
-                
+
                 data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
             }
             opts.command.SetInvertCulling(cam.inverseRender);
@@ -558,11 +558,11 @@ options.frustumPlanes);
                 criteria = SortingCriteria.None
             };
 
-            //Forward
+            //X
             int depthSlice = offset * 6;
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
+            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.forwardProjView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.rightProjView);
             data.ExecuteCommandBuffer();
 
             lit.shadowCam.orthographic = true;
@@ -580,10 +580,10 @@ options.frustumPlanes);
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
-            //Back
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
+            //-X
+            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.backProjView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.leftProjView);
             if (gpurpEnabled)
             {
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
@@ -591,8 +591,8 @@ options.frustumPlanes);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
-            //Up
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
+            //Y
+            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.upProjView);
             if (gpurpEnabled)
@@ -602,8 +602,8 @@ options.frustumPlanes);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
-            //Down
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 3);
+            //-Y
+            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 2);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.downProjView);
             if (gpurpEnabled)
@@ -613,10 +613,10 @@ options.frustumPlanes);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
-            //Right
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice);
+            //Z
+            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 5);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.rightProjView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.forwardProjView);
             if (gpurpEnabled)
             {
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
@@ -624,92 +624,18 @@ options.frustumPlanes);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
 
-            //Left
-            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 1);
+            //-Z
+            cb.SetRenderTarget(renderTarget, 0, CubemapFace.Unknown, depthSlice + 4);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.leftProjView);
+            cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.backProjView);
             if (gpurpEnabled)
             {
                 cb.DrawProceduralIndirect(Matrix4x4.identity, depthMaterial, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
             }
             data.ExecuteCommandBuffer();
-            data.context.DrawRenderers(results, ref data.defaultDrawSettings,ref renderSettings);
+            data.context.DrawRenderers(results, ref data.defaultDrawSettings, ref renderSettings);
             cb.SetInvertCulling(inverseRender);
         }
-        public static void GICubeCull(float3 position, float extent, CommandBuffer buffer, ComputeShader cullingshader)
-        {
-            float4* cullingPlanes = stackalloc float4[]
-            {
-                VectorUtility.GetPlane(float3(0, 0, 1), position + float3(0, 0, extent)),
-                VectorUtility.GetPlane(float3(0, 0, -1), position - float3(0, 0, extent)),
-                VectorUtility.GetPlane(float3(0, 1, 0), position + float3(0, extent, 0)),
-                VectorUtility.GetPlane(float3(0, -1, 0), position - float3(0, extent, 0)),
-                VectorUtility.GetPlane(float3(1, 0, 0), position + float3(extent, 0, 0)),
-                VectorUtility.GetPlane(float3(-1, 0, 0), position - float3(extent, 0, 0))
-            };
-            PipelineFunctions.SetBaseBuffer(baseBuffer, cullingshader, cullingPlanes, buffer);
-            PipelineFunctions.RunCullDispatching(baseBuffer, cullingshader, buffer);
-        }
-        public static void DrawGIBuffer(RenderTexture targetRT, float4 renderCube, ComputeShader cullingshader, CommandBuffer buffer)
-        {
-            void GetMatrix(float4x4* allmat, ref PerspCam persp, float3 position)
-            {
-                persp.position = position;
-                //X
-                persp.up = float3(0, -1, 0);
-                persp.right = float3(0, 0, -1);
-                persp.forward = float3(1, 0, 0);
-                persp.UpdateTRSMatrix();
-                allmat[1] = persp.worldToCameraMatrix;
-                //-X
-                persp.up = float3(0, -1, 0);
-                persp.right = float3(0, 0, 1);
-                persp.forward = float3(-1, 0, 0);
-                persp.UpdateTRSMatrix();
-                allmat[0] = persp.worldToCameraMatrix;
-                //Y
-                persp.right = float3(-1, 0, 0);
-                persp.up = float3(0, 0, -1);
-                persp.forward = float3(0, 1, 0);
-                persp.UpdateTRSMatrix();
-                allmat[2] = persp.worldToCameraMatrix;
-                //-Y
-                persp.right = float3(-1, 0, 0);
-                persp.up = float3(0, 0, 1);
-                persp.forward = float3(0, -1, 0);
-                persp.UpdateTRSMatrix();
-                allmat[3] = persp.worldToCameraMatrix;
-                //Z
-                persp.right = float3(1, 0, 0);
-                persp.up = float3(0, -1, 0);
-                persp.forward = float3(0, 0, 1);
-                persp.UpdateTRSMatrix();
-                allmat[5] = persp.worldToCameraMatrix;
-                //-Z
-                persp.right = float3(-1, 0, 0);
-                persp.up = float3(0, -1, 0);
-                persp.forward = float3(0, 0, -1);
-                persp.UpdateTRSMatrix();
-                allmat[4] = persp.worldToCameraMatrix;
-            }
-            if (!gpurpEnabled) return;
-            PerspCam perspCam = new PerspCam();
-            perspCam.aspect = 1;
-            perspCam.farClipPlane = renderCube.w;
-            perspCam.nearClipPlane = 0.05f;
-            perspCam.fov = 90;
-            perspCam.position = renderCube.xyz;
-            perspCam.UpdateProjectionMatrix();
-            float4x4* worldToCamMatrix = stackalloc float4x4[6];
-            GetMatrix(worldToCamMatrix, ref perspCam, renderCube.xyz);
-            for (int i = 0; i < 6; ++i)
-            {
-                buffer.SetGlobalMatrix(ShaderIDs._VP, GL.GetGPUProjectionMatrix(perspCam.projectionMatrix, true) * (Matrix4x4)worldToCamMatrix[i]);
-                buffer.SetRenderTarget(targetRT, 0, CubemapFace.Unknown, i);
-                buffer.ClearRenderTarget(true, true, Color.black);
-                buffer.DrawProceduralIndirect(Matrix4x4.identity, commonData.clusterMaterial, 1, MeshTopology.Triangles, baseBuffer.instanceCountBuffer);
-            }
-        }
-       
+
     }
 }

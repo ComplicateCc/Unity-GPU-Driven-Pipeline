@@ -158,7 +158,7 @@ public unsafe class MLight : MonoBehaviour
                 useMipMap = false,
                 vrUsage = VRTextureUsage.None
             });
-            shadowMap.filterMode = FilterMode.Point;
+            shadowMap.filterMode = FilterMode.Bilinear;
         }
         else
         {
@@ -180,7 +180,7 @@ public unsafe class MLight : MonoBehaviour
                 useMipMap = false,
                 vrUsage = VRTextureUsage.None
             });
-            shadowMap.filterMode = FilterMode.Point;
+            shadowMap.filterMode = FilterMode.Bilinear;
         }
     }
     public void UpdateShadowCacheType(bool useCubemap)

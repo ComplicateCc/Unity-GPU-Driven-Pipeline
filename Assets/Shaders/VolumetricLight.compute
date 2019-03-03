@@ -91,7 +91,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * MieScattering(dot(lightDir / lenOfLightDir, viewDir), _MieG) * pt.lightColor;
             #ifdef CUBEMAP
             if(pt.shadowIndex >= 0){
-                float shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir * float3(-1,-1,1), pt.shadowIndex), 0);
+                float shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir, pt.shadowIndex), 0);
                 float lightDist = lenOfLightDir / pt.sphere.w;
                 currentCol *= lightDist <= shadowDist;
             }

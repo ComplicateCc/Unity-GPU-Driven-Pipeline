@@ -76,7 +76,7 @@ public class SunLight : MonoBehaviour
             volumeDepth = 4,
             vrUsage = VRTextureUsage.None
         }); 
-        shadowmapTexture.filterMode = FilterMode.Point;
+        shadowmapTexture.filterMode = FilterMode.Bilinear;
         shadowDepthMaterial = new Material(Shader.Find("Hidden/ShadowDepth"));
         shadowFrustumPlanes = new NativeArray<AspectInfo>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
     }

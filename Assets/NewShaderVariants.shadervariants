@@ -8,6 +8,11 @@ ShaderVariantCollection:
   m_PrefabAsset: {fileID: 0}
   m_Name: NewShaderVariants
   m_Shaders:
+  - first: {fileID: 19, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
   - first: {fileID: 66, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
@@ -144,3 +149,8 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+  - first: {fileID: 4800000, guid: 481dbac7a648df8449ccab33b1e3148f, type: 3}
+    second:
+      variants:
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+        passType: 13

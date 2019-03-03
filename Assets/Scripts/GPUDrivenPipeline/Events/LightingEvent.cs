@@ -473,42 +473,42 @@ namespace MPipeline
                 cam.position = str.sphere.xyz;
                 cam.fov = 90f;
                 //Forward
-                cam.forward = Vector3.forward;
-                cam.up = Vector3.down;
-                cam.right = Vector3.left;
+                cam.right = float3(1, 0, 0);
+                cam.up = float3(0, 1, 0);
+                cam.forward = float3(0, 0, 1);
                 cam.UpdateTRSMatrix();
                 cam.UpdateProjectionMatrix();
                 float4x4 proj = GraphicsUtility.GetGPUProjectionMatrix(cam.projectionMatrix, true);
                 cube.forwardProjView = mul(proj, cam.worldToCameraMatrix);
                 //Back
-                cam.forward = Vector3.back;
-                cam.up = Vector3.down;
-                cam.right = Vector3.right;
+                cam.right = float3(-1, 0, 0);
+                cam.up = float3(0, 1, 0);
+                cam.forward = float3(0, 0, -1);
                 cam.UpdateTRSMatrix();
 
                 cube.backProjView = mul(proj, cam.worldToCameraMatrix);
                 //Up
-                cam.forward = Vector3.up;
-                cam.up = Vector3.back;
-                cam.right = Vector3.right;
+                cam.right = float3(-1, 0, 0);
+                cam.up = float3(0, 0, 1);
+                cam.forward = float3(0, 1, 0);
                 cam.UpdateTRSMatrix();
                 cube.upProjView = mul(proj, cam.worldToCameraMatrix);
                 //Down
-                cam.forward = Vector3.down;
-                cam.up = Vector3.forward;
-                cam.right = Vector3.right;
+                cam.right = float3(-1, 0, 0);
+                cam.up = float3(0, 0, -1);
+                cam.forward = float3(0, -1, 0);
                 cam.UpdateTRSMatrix();
                 cube.downProjView = mul(proj, cam.worldToCameraMatrix);
                 //Right
-                cam.forward = Vector3.right;
-                cam.up = Vector3.down;
-                cam.right = Vector3.forward;
+                cam.up = float3(0, 1, 0);
+                cam.right = float3(0, 0, -1);
+                cam.forward = float3(1, 0, 0);
                 cam.UpdateTRSMatrix();
                 cube.rightProjView = mul(proj, cam.worldToCameraMatrix);
                 //Left
-                cam.forward = Vector3.left;
-                cam.up = Vector3.down;
-                cam.right = Vector3.back;
+                cam.up = float3(0, 1, 0);
+                cam.right = float3(0, 0, 1);
+                cam.forward = float3(-1, 0, 0);
                 cam.UpdateTRSMatrix();
                 cube.leftProjView = mul(proj, cam.worldToCameraMatrix);
                 NativeArray<float4> frustumArray = new NativeArray<float4>(6, Allocator.Temp, NativeArrayOptions.UninitializedMemory);

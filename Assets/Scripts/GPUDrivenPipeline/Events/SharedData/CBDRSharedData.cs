@@ -91,7 +91,7 @@ namespace MPipeline
                 useMipMap = false,
                 vrUsage = VRTextureUsage.None
             });
-            cubeArrayMap.filterMode = FilterMode.Point;
+            cubeArrayMap.filterMode = FilterMode.Bilinear;
             cubeArrayMap.Create();
             spotArrayMap = new RenderTexture(new RenderTextureDescriptor
             {
@@ -111,7 +111,7 @@ namespace MPipeline
                 vrUsage = VRTextureUsage.None,
                 width = MLight.perspShadowResolution
             });
-            spotArrayMap.filterMode = FilterMode.Point;
+            spotArrayMap.filterMode = FilterMode.Bilinear;
             spotArrayMap.Create();
             xyPlaneTexture = new RenderTexture(desc);
             xyPlaneTexture.filterMode = FilterMode.Point;
