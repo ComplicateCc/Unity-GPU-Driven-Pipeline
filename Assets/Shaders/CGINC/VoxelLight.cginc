@@ -3,7 +3,7 @@
 
 #define XRES 32
 #define YRES 16
-#define ZRES 256
+#define ZRES 128
 #define VOXELZ 64
 #define MAXLIGHTPERCLUSTER 16
 #define MAXPOINTLIGHTPERTILE 64

@@ -87,6 +87,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             if(lenOfLightDir > pt.sphere.w) continue;
             
             float3 currentCol = DistanceFalloff(lightDir, (1 / pt.sphere.w)) * MieScattering(dot(lightDir / lenOfLightDir, viewDir), _MieG) * pt.lightColor;
+            if(dot(currentCol, 1) < 1e-5) continue;
             #ifdef CUBEMAP
             if(pt.shadowIndex >= 0){
                 float shadowDist = _CubeShadowMapArray.SampleLevel(sampler_CubeShadowMapArray, float4(lightDir, pt.shadowIndex), 0);
@@ -120,6 +121,8 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             float SpotFalloff = AngleFalloff(ldf, lightAngleScale, lightAngleOffset);
             float isNear =  dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
             float ShadowTrem = 1;
+            float3 spotColor = SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor * isNear;
+            if(dot(spotColor, 1) < 1e-5) continue;
             #ifdef SPOTMAP
             if(Light.shadowIndex >= 0)
             {
@@ -129,7 +132,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         ShadowTrem = _SpotMapArray.SampleCmpLevelZero(sampler_SpotMapArray, float3(uv, Light.shadowIndex), clipPos.z);
             }
             #endif
-            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor * isNear;
+            color.rgb += ShadowTrem * spotColor;
         }
     }
    // color.rgb += GetVolumetricColor(targetWorldPos);

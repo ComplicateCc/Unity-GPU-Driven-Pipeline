@@ -23,7 +23,7 @@ namespace MPipeline
         public ComputeBuffer spotlightIndexBuffer;
         public const int XRES = 32;
         public const int YRES = 16;
-        public const int ZRES = 256;
+        public const int ZRES = 128;
         public const int MAXLIGHTPERCLUSTER = 16;
         public const int MAXPOINTLIGHTPERTILE = 64;
         public const int MAXSPOTLIGHTPERTILE = 64;

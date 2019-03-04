@@ -42,22 +42,24 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		float3 LightPos = SpotCone.vertex;
 		float3 LightColor = Light.lightColor;
 
-		float LightAngle = Light.angle;
+		float LightAngle = cos(Light.angle);
 		float3 LightForward = SpotCone.direction;
 		float3 Un_LightDir = LightPos - WorldPos.xyz;
 		float lightDirLen = length(Un_LightDir);
 		float3 LightDir = Un_LightDir / lightDirLen;
 		float3 floatDir = normalize(ViewDir + LightDir);
 		float ldh = -dot(LightDir, SpotCone.direction);
+		float isNear =  dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
 		//////BSDF Variable
 		BSDFContext LightData;
 		Init(LightData, WorldNormal, ViewDir, LightDir, floatDir);
-
+		float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), LightAngle, 1.0 / LightRange, LightData.NoL) * isNear;
+		if(dot(Energy, 1) < 1e-5) continue;
 		//////Shadow
-		float ShadowResolution = 512.0;
-		float DiskRadius = 1;
+		const float ShadowResolution = 512.0;
+		const float DiskRadius = 1;
 		float ShadowSampler = 20.0;
-		float isNear =  dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
+		
 		if (Light.shadowIndex >= 0)
 		{
 			ShadowTrem = 0;
@@ -74,8 +76,8 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 			ShadowTrem = 1;
 
 		//////Shading
-		float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), 1.0 / LightRange, LightData.NoL) * ShadowTrem * isNear;
-		ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness));
+		
+		ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness))* ShadowTrem;
 
 
 	}
@@ -95,7 +97,10 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		float Length_LightDir = length(Un_LightDir);
 		float3 LightDir = Un_LightDir / Length_LightDir;
 		float3 floatDir = normalize(ViewDir + LightDir);
-		
+		BSDFContext LightData;
+		Init(LightData, WorldNormal, ViewDir, LightDir, floatDir);
+		float3 Energy = Point_Energy(Un_LightDir, LightColor, 1 / LightRange, LightData.NoL);
+		if(dot(Energy, 1) < 1e-5) continue;
 		//////Shadow
 		
 		float ShadowResolution = 128.0;
@@ -115,12 +120,11 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		 	ShadowTrem = 1;
 		
 		//////BSDF Variable
-		BSDFContext LightData;
-		Init(LightData, WorldNormal, ViewDir, LightDir, floatDir);
+
 
 		//////Shading
-		float3 Energy = Point_Energy(Un_LightDir, LightColor, 1 / LightRange, LightData.NoL) * ShadowTrem;
-		ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness));
+		
+		ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness)) * ShadowTrem;
 	}
 #endif
 
