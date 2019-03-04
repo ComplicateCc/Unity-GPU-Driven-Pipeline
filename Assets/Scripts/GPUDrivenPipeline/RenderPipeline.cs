@@ -132,6 +132,7 @@ namespace MPipeline
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
             if (current != this) return;
             current = null;
             data.buffer.Dispose();

@@ -148,6 +148,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             context.autoExposureTexture = m_CurrentAutoExposure;
             context.autoExposure = settings;
+            cmd.SetGlobalTexture(ShaderIDs.AutoExposureTex, m_CurrentAutoExposure);
         }
 
         public override void Release()

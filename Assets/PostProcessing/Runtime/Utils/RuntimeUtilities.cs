@@ -191,7 +191,31 @@ namespace UnityEngine.Rendering.PostProcessing
                 return s_FullscreenTriangle;
             }
         }
+        private static Mesh m_mesh = null;
+        public static Mesh MFullScreenTriangle
+        {
+            get
+            {
+                if (m_mesh != null)
+                    return m_mesh;
+                m_mesh = new Mesh();
+                m_mesh.vertices = new Vector3[] {
+                new Vector3(-1,-1,0f),
+                new Vector3(-1,1,0f),
+                new Vector3(1,1,0f),
+                new Vector3(1,-1,0f)
+            };
+                m_mesh.uv = new Vector2[] {
+                new Vector2(0,1),
+                new Vector2(0,0),
+                new Vector2(1,0),
+                new Vector2(1,1)
+            };
 
+                m_mesh.SetIndices(new int[] { 0, 1, 2, 0, 3, 2 }, MeshTopology.Triangles, 0);
+                return m_mesh;
+            }
+        }
         static Material s_CopyStdMaterial;
         public static Material copyStdMaterial
         {

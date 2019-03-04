@@ -186,10 +186,11 @@ namespace UnityEngine.Rendering.PostProcessing
                 int pass = i == 0
                     ? (int)Pass.Prefilter13 + qualityOffset
                     : (int)Pass.Downsample13 + qualityOffset;
-
-                context.GetScreenSpaceTemporaryRT(cmd, mipDown, 0, context.sourceFormat, RenderTextureReadWrite.Default, FilterMode.Bilinear, tw, th);
-                context.GetScreenSpaceTemporaryRT(cmd, mipUp, 0, context.sourceFormat, RenderTextureReadWrite.Default, FilterMode.Bilinear, tw, th);
-                cmd.BlitFullscreenTriangle(lastDown, mipDown, sheet, pass);
+                cmd.GetTemporaryRT(mipDown, tw, th, 0, FilterMode.Bilinear, context.sourceFormat, RenderTextureReadWrite.Default, 1, false, RenderTextureMemoryless.None, false);
+                cmd.GetTemporaryRT(mipUp, tw, th, 0, FilterMode.Bilinear, context.sourceFormat, RenderTextureReadWrite.Default, 1, false, RenderTextureMemoryless.None, false);
+                cmd.SetGlobalTexture(ShaderIDs.MainTex, lastDown);
+                cmd.SetRenderTarget(mipDown);
+                cmd.DrawMesh(RuntimeUtilities.MFullScreenTriangle, Matrix4x4.identity, sheet.material, 0, pass, sheet.properties);
 
                 lastDown = mipDown;
                 tw = tw / 2;
@@ -204,7 +205,9 @@ namespace UnityEngine.Rendering.PostProcessing
                 int mipDown = m_Pyramid[i].down;
                 int mipUp = m_Pyramid[i].up;
                 cmd.SetGlobalTexture(ShaderIDs.BloomTex, mipDown);
-                cmd.BlitFullscreenTriangle(lastUp, mipUp, sheet, (int)Pass.UpsampleTent + qualityOffset);
+                cmd.SetGlobalTexture(ShaderIDs.MainTex, lastUp);
+                cmd.SetRenderTarget(mipUp);
+                cmd.DrawMesh(RuntimeUtilities.MFullScreenTriangle, Matrix4x4.identity, sheet.material, 0, (int)Pass.UpsampleTent + qualityOffset, sheet.properties);
                 lastUp = mipUp;
             }
 

@@ -27,6 +27,7 @@ namespace MPipeline
             allEvents = new Dictionary<Type, PostProcessEffectRenderer>(7);
             AddEvents<ColorGrading, ColorGradingRenderer>();
             AddEvents<AutoExposure, AutoExposureRenderer>();
+            AddEvents<Bloom, BloomRenderer>();
             postContext = new PostProcessRenderContext();
             postContext.Reset();
             postContext.propertySheets = new PropertySheetFactory();
@@ -55,6 +56,7 @@ namespace MPipeline
         {
             postContext.camera = cam.cam;
             postContext.command = data.buffer;
+            postContext.bloomBufferNameID = -1;
             postContext.sourceFormat = RenderTextureFormat.ARGBHalf;
             var settings = profile.settings;
             postContext.autoExposureTexture = RuntimeUtilities.whiteTexture;
@@ -73,8 +75,8 @@ namespace MPipeline
                     renderer.Render(postContext);
                 }
             };
-            data.buffer.SetGlobalTexture(UnityEngine.Rendering.PostProcessing.ShaderIDs.AutoExposureTex, postContext.autoExposureTexture);
             data.buffer.BlitSRT(source, dest, postContext.uberSheet.material, 0, postContext.uberSheet.properties);
+            if (postContext.bloomBufferNameID > -1) data.buffer.ReleaseTemporaryRT(postContext.bloomBufferNameID);
         }
     }
 }
