@@ -131,7 +131,7 @@ namespace MPipeline
                     cascadeProjection = cascadeProjection,
                     cascadeWorldToCamera = cascadeWorldToCamera,
                     orthoCam = (OrthoCam*)UnsafeUtility.AddressOf(ref SunLight.current.shadCam),
-                    farClipPlane = staticFit.mainCamTrans.farClipPlane,
+                    farClipPlane = SunLight.current.farestZ,
                     frustumCorners = staticFit.frustumCorners.Ptr(),
                     resolution = staticFit.resolution,
                     isD3D = GraphicsUtility.platformIsD3D
@@ -530,7 +530,7 @@ namespace MPipeline
                     aspect = 1,
                     farClipPlane = lit.lightCone.height,
                     fov = lit.angle * 2 * Mathf.Rad2Deg,
-                    nearClipPlane = 0.3f
+                    nearClipPlane = Mathf.Max(0.3f, allLights->nearClip)
                 };
                 cam.UpdateViewMatrix(lit.vpMatrix);
                 cam.UpdateProjectionMatrix();

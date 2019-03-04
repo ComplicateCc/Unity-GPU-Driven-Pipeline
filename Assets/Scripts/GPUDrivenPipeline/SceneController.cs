@@ -412,8 +412,6 @@ namespace MPipeline
             currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
             buffer.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
             buffer.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
-            buffer.SetGlobalVector(ShaderIDs._LightPos, (Vector3)spotLights.lightCone.vertex);
-            buffer.SetGlobalFloat(ShaderIDs._LightRadius, spotLights.lightCone.height);
             buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
             currentCam.TryGetCullingParameters(out data.cullParams);
             if (gpurpEnabled)

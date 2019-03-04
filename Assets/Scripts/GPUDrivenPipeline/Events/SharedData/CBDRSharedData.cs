@@ -23,7 +23,7 @@ namespace MPipeline
         public ComputeBuffer spotlightIndexBuffer;
         public const int XRES = 32;
         public const int YRES = 16;
-        public const int ZRES = 64;
+        public const int ZRES = 256;
         public const int MAXLIGHTPERCLUSTER = 16;
         public const int MAXPOINTLIGHTPERTILE = 64;
         public const int MAXSPOTLIGHTPERTILE = 64;
@@ -97,14 +97,14 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                colorFormat = RenderTextureFormat.RHalf,
+                colorFormat = RenderTextureFormat.Shadowmap,
                 depthBufferBits = 16,
                 dimension = TextureDimension.Tex2DArray,
                 enableRandomWrite = false,
                 height = MLight.perspShadowResolution,
                 memoryless = RenderTextureMemoryless.None,
                 msaaSamples = 1,
-                shadowSamplingMode = ShadowSamplingMode.None,
+                shadowSamplingMode = ShadowSamplingMode.CompareDepths,
                 sRGB = false,
                 useMipMap = false,
                 volumeDepth = MAXIMUMSPOTLIGHTCOUNT,

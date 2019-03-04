@@ -26,11 +26,11 @@ float4 _SceneOffset;
 float _TemporalWeight;
 
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
-Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
+Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
 StructuredBuffer<FogVolume> _AllFogVolume;
-Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
+Texture2DArray<float> _DirShadowMap; SamplerComparisonState sampler_DirShadowMap;
 RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 Texture3D<int> _FroxelPointTileLightList;
@@ -52,12 +52,10 @@ float _IndirectIntensity;
 				float4 shadowPos = mul(vpMat, float4(worldPos, 1));
 				float2 shadowUV = shadowPos.xy;
 				shadowUV = shadowUV * 0.5 + 0.5;
-				#if UNITY_REVERSED_Z
-				float dist = 1 - shadowPos.z;
-				#else
+
 				float dist = shadowPos.z;
-				#endif
-				float atten = dist < _DirShadowMap.SampleLevel(sampler_DirShadowMap, float3(shadowUV, zAxisUV), 0);
+
+				float atten = _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV, zAxisUV), dist);
 				return atten;
 			}
 #define MieScattering(cosAngle, g) g.w * (g.x / (pow(g.y - g.z * cosAngle, 1.5)))
@@ -120,18 +118,18 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             float lightAngleScale = 1 / max ( 0.001, (SpotConeAngle.y - SpotConeAngle.x) );
             float lightAngleOffset = -SpotConeAngle.x * lightAngleScale;
             float SpotFalloff = AngleFalloff(ldf, lightAngleScale, lightAngleOffset);
-            float ShadowTrem =  dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
+            float isNear =  dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
+            float ShadowTrem = 1;
             #ifdef SPOTMAP
             if(Light.shadowIndex >= 0)
             {
                         float4 clipPos = mul(Light.vpMatrix, float4(targetWorldPos, 1));
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
-                        float shadowDist = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0);
-                        ShadowTrem *= lightDirLength / SpotCone.height < shadowDist;
+                        ShadowTrem = _SpotMapArray.SampleCmpLevelZero(sampler_SpotMapArray, float3(uv, Light.shadowIndex), clipPos.z);
             }
             #endif
-            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor;
+            color.rgb += ShadowTrem * SpotFalloff * DistanceFalloff(Un_LightDir, (1 / LightRange)) * MieScattering(-dot(lightDir, viewDir), _MieG) * Light.lightColor * isNear;
         }
     }
    // color.rgb += GetVolumetricColor(targetWorldPos);

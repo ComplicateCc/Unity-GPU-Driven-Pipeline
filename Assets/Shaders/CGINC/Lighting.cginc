@@ -6,9 +6,11 @@ StructuredBuffer<SpotLight> _AllSpotLight;
 StructuredBuffer<uint> _SpotLightIndexBuffer;
 float2 _CameraClipDistance; //X: Near Y: Far - Near
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
-Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
+//UNITY_SAMPLE_SHADOW
+Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
 float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3 AlbedoColor, float3 WorldNormal, float4 SpecularColor, float Roughness)
 {
+	WorldPos /= WorldPos.w;
 	float ShadowTrem = 0;
 	float3 ShadingColor = 0;
 	float rate = saturate((linearDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
@@ -52,31 +54,27 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		Init(LightData, WorldNormal, ViewDir, LightDir, floatDir);
 
 		//////Shadow
-		//ShadowTrem = dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
-		
 		float ShadowResolution = 512.0;
 		float DiskRadius = 1;
 		float ShadowSampler = 20.0;
-
+		float isNear =  dot(-Un_LightDir, SpotCone.direction) > Light.nearClip;
 		if (Light.shadowIndex >= 0)
 		{
 			ShadowTrem = 0;
-			float DepthMap = (lightDirLen - 0.25) / SpotCone.height;
 			for(int i = 0; i < ShadowSampler; ++i)
 			{
 				JitterSpot = cellNoise(JitterSpot);
-				float4 clipPos = mul(Light.vpMatrix, WorldPos);
+				float4 offsetPos = float4(WorldPos.xyz + LightDir * 0.25, 1);
+				float4 clipPos = mul(Light.vpMatrix, offsetPos);
 				clipPos /= clipPos.w;
-
-				float ShadowMap = _SpotMapArray.Sample( sampler_SpotMapArray, float3( (clipPos.xy * 0.5 + 0.5) + (JitterSpot / ShadowResolution) + ( (Offsets[i] * DiskRadius) / ShadowResolution ), Light.shadowIndex ) );
-				ShadowTrem += DepthMap < ShadowMap;
+				ShadowTrem += _SpotMapArray.SampleCmpLevelZero( sampler_SpotMapArray, float3( (clipPos.xy * 0.5 + 0.5) + (JitterSpot / ShadowResolution) + ( (Offsets[i] * DiskRadius) / ShadowResolution ), Light.shadowIndex ), clipPos.z);
 			}
 			ShadowTrem /= float(ShadowSampler);
 		}else
 			ShadowTrem = 1;
 
 		//////Shading
-		float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), 1.0 / LightRange, LightData.NoL) * ShadowTrem;
+		float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), cos(LightAngle), 1.0 / LightRange, LightData.NoL) * ShadowTrem * isNear;
 		ShadingColor += max(0, Defult_Lit(LightData, Energy, 1, AlbedoColor, SpecularColor, Roughness));
 
 
@@ -110,8 +108,7 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 			for(int i = 0; i < ShadowSampler; ++i)
 			{
 				JitterPoint = cellNoise(JitterPoint);
-				float ShadowMap = _CubeShadowMapArray.Sample( sampler_CubeShadowMapArray, float4( ( Un_LightDir + (JitterPoint / ShadowResolution) + ( (Offsets[i] * DiskRadius) / ShadowResolution ) ), Light.shadowIndex ) );
-				ShadowTrem += DepthMap < ShadowMap;
+				ShadowTrem += _CubeShadowMapArray.Sample( sampler_CubeShadowMapArray, float4( ( Un_LightDir + (JitterPoint / ShadowResolution) + ( (Offsets[i] * DiskRadius) / ShadowResolution ) ), Light.shadowIndex )) > DepthMap;
 			}
 			ShadowTrem /= float(ShadowSampler);
 		}else

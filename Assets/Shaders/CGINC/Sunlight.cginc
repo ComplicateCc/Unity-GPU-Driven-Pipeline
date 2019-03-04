@@ -78,7 +78,7 @@ float4 _SoftParam;
 float4x4 _ShadowMapVPs[4];
 float4 _ShadowDisableDistance;
 float3 _DirLightPos;
-Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
+Texture2DArray<float> _DirShadowMap; SamplerComparisonState sampler_DirShadowMap;
 float3 _DirLightFinalColor;
 #define RANDOM(seed) cos(sin(seed * float2(54.135764, 77.468761) + float2(631.543147, 57.4687)) * float2(657.387478, 86.1653) + float2(65.15686, 15.3574563))
 float _ShadowOffset;
@@ -94,18 +94,14 @@ float GetShadow(float4 worldPos, float depth, float2 screenUV)
 	float2 shadowUV = shadowPos.xy;
 	shadowUV = shadowUV * 0.5 + 0.5;
 	float softValue = dot(_SoftParam, eyeRange);
-#if UNITY_REVERSED_Z
-	float dist = 1 - shadowPos.z - _ShadowOffset;
-#else
-	float dist = shadowPos.z - _ShadowOffset;
-#endif
+	float dist = shadowPos.z + _ShadowOffset;
 	float2 seed = (_ScreenParams.yx * screenUV.yx + screenUV.xy) * _ScreenParams.xy + _Time.zw;
 	float atten = 0;
 	for (int i = 0; i < SAMPLECOUNT; ++i)
 	{
 		seed = RANDOM(seed + DirPoissonDisks[i]).yx;
 		float2 dir = DirPoissonDisks[i] + seed;
-		atten += dist < _DirShadowMap.Sample(sampler_DirShadowMap, float3(shadowUV + dir * softValue, zAxisUV));
+		atten += _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV + dir * softValue, zAxisUV), dist);
 	}
 	atten /= SAMPLECOUNT;
 	float fadeDistance = saturate((_ShadowDisableDistance.w - eyeDistance) / (_ShadowDisableDistance.w * 0.05));

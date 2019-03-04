@@ -213,13 +213,8 @@ ENDCG
 			}
 
 			
-			float frag (v2f i) : SV_Target
+			void frag (v2f i) 
 			{
-				#if UNITY_REVERSED_Z
-				return 1 - i.vertex.z;
-				#else
-				return i.vertex.z;
-				#endif
 			}
 
 			ENDCG
@@ -294,9 +289,8 @@ ENDCG
 				o.worldPos = worldPos.xyz;
 				return o;
 			}
-			float frag (v2f i) : SV_Target
+			void frag (v2f i)
 			{
-				return distance(_LightPos, i.worldPos) / _LightRadius;
 			}
 
 			ENDCG

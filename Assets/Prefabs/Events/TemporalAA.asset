@@ -18,4 +18,4 @@ MonoBehaviour:
   stationaryBlending: 0.95
   motionBlending: 0.85
   stationaryAABBScale: 2
-  motionAABBScale: 1
+  motionAABBScale: 1.25

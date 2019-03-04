@@ -139,7 +139,6 @@ public unsafe class MLight : MonoBehaviour
     {
         if (useCubemap)
         {
-
             shadowMap = RenderTexture.GetTemporary(new RenderTextureDescriptor
             {
                 autoGenerateMips = false,
@@ -166,8 +165,8 @@ public unsafe class MLight : MonoBehaviour
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                colorFormat = RenderTextureFormat.RHalf,
-                depthBufferBits = 0,
+                colorFormat = RenderTextureFormat.Shadowmap,
+                depthBufferBits = 16,
                 dimension = TextureDimension.Tex2D,
                 volumeDepth = 1,
                 enableRandomWrite = false,

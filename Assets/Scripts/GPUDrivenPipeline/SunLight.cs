@@ -13,6 +13,8 @@ public class SunLight : MonoBehaviour
     public static SunLight current = null;
     public bool enableShadow = true;
     public int resolution;
+    [Range(1, 1000)]
+    public float farestZ = 500;
     public float firstLevelDistance = 10;
     public float secondLevelDistance = 25;
     public float thirdLevelDistance = 55;
@@ -62,14 +64,14 @@ public class SunLight : MonoBehaviour
         {
             width = resolution,
             height = resolution,
-            depthBufferBits = 16,
-            colorFormat = RenderTextureFormat.RFloat,
+            depthBufferBits = 32,
+            colorFormat = RenderTextureFormat.Shadowmap,
             autoGenerateMips = false,
             bindMS = false,
             dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray,
             enableRandomWrite = false,
             memoryless = RenderTextureMemoryless.None,
-            shadowSamplingMode = UnityEngine.Rendering.ShadowSamplingMode.None,
+            shadowSamplingMode = UnityEngine.Rendering.ShadowSamplingMode.CompareDepths,
             msaaSamples = 1,
             sRGB = false,
             useMipMap = false,

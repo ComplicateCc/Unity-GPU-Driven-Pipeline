@@ -33,9 +33,8 @@
                 o.worldPos = worldPos.xyz;
 				return o;
 			}
-			float frag (v2f i) : SV_Target
+			void frag (v2f i)
 			{
-				return distance(_LightPos, i.worldPos) / _LightRadius;
 			}
 
 			ENDCG
