@@ -10,7 +10,6 @@ TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapA
 Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
 float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3 AlbedoColor, float3 WorldNormal, float4 SpecularColor, float Roughness)
 {
-	WorldPos /= WorldPos.w;
 	float ShadowTrem = 0;
 	float3 ShadingColor = 0;
 	float rate = saturate((linearDepth - _CameraClipDistance.x) / _CameraClipDistance.y);

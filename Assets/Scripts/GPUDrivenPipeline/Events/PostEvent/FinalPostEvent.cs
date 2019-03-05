@@ -25,15 +25,16 @@ namespace MPipeline
         protected override void Init(PipelineResources res)
         {
             allEvents = new Dictionary<Type, PostProcessEffectRenderer>(7);
-            AddEvents<ColorGrading, ColorGradingRenderer>();
-            AddEvents<AutoExposure, AutoExposureRenderer>();
             AddEvents<Bloom, BloomRenderer>();
+            AddEvents<AutoExposure, AutoExposureRenderer>();
+            AddEvents<ColorGrading, ColorGradingRenderer>();
             postContext = new PostProcessRenderContext();
             postContext.Reset();
             postContext.propertySheets = new PropertySheetFactory();
             postContext.resources = resources;
             postContext.logHistogram = new LogHistogram();
             postContext.uberSheet = new PropertySheet(new Material(resources.shaders.uber));
+            Shader.SetGlobalFloat("_RenderViewportScaleFactor", 1);
         }
 
         public override bool CheckProperty()

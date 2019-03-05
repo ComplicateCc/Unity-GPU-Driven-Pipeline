@@ -215,7 +215,7 @@ public unsafe class MLight : MonoBehaviour
             shadowCam.enabled = false;
         }
         useCubemap = light.type == LightType.Point;
-        shadowCam.orthographic = false;
+        shadowCam.orthographic = useCubemap;
         if (useShadowCache)
         {
             GenerateShadowCache();

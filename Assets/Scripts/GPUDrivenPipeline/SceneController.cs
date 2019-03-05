@@ -408,7 +408,6 @@ namespace MPipeline
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
             buffer.SetInvertCulling(true);
-            currentCam.worldToCameraMatrix = spotLightMatrix.worldToCamera;
             currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
             buffer.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
             buffer.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
@@ -562,12 +561,8 @@ options.frustumPlanes);
             cb.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.rightProjView);
             data.ExecuteCommandBuffer();
-
-            lit.shadowCam.orthographic = true;
-            lit.shadowCam.nearClipPlane = -light.sphere.w;
-            lit.shadowCam.farClipPlane = light.sphere.w;
-            lit.shadowCam.orthographicSize = light.sphere.w;
-            lit.shadowCam.aspect = 1;
+            float size = light.sphere.w;
+            lit.shadowCam.projectionMatrix = Matrix4x4.Ortho(-size, size, -size, size, -size, size);
             lit.shadowCam.TryGetCullingParameters(out data.cullParams);
             data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive;
             CullingResults results = data.context.Cull(ref data.cullParams);

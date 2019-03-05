@@ -60,7 +60,7 @@ ENDCG
 				
 				//////Screen Data
 				float3 AlbedoColor = _CameraGBufferTexture0.SampleLevel(sampler_CameraGBufferTexture0, uv, 0).rgb;
-				float3 WorldNormal = _CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1;
+				float3 WorldNormal = normalize(_CameraGBufferTexture2.SampleLevel(sampler_CameraGBufferTexture2, uv, 0).rgb * 2 - 1);
 				float4 SpecularColor = _CameraGBufferTexture1.SampleLevel(sampler_CameraGBufferTexture1, uv, 0);
 				float Roughness = clamp(1 - SpecularColor.a, 0.02, 1);
 				float4 WorldPos = mul(_InvNonJitterVP, float4(NDC_UV, SceneDepth, 1));
