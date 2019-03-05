@@ -146,7 +146,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
         if(b.x && b.y && b.z)
             color.a += vol.targetVolume;
     }
-    return clamp(color, 0, 128);
+    return min(color, 128);
 }
 
 float4 ScatterStep(float3 accumulatedLight, float accumulatedTransmittance, float3 sliceLight, float sliceDensity)
