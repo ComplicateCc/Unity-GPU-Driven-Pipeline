@@ -84,15 +84,15 @@ public unsafe static class MUnsafeUtility
     public static void* GetManagedPtr<T>(T obj) where T : class
     {
         PtrKeeper<T> keeper = new PtrKeeper<T> { value = obj };
-        void* ptr = null;
-        MemCpy(&ptr, AddressOf(ref keeper), SizeOf<PtrKeeper<T>>());
-        return ptr;
+        ulong* ptr = (ulong*)AddressOf(ref keeper);
+        return (void*)*ptr;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T GetObject<T>(void* ptr) where T : class
     {
         PtrKeeper<T> keeper = new PtrKeeper<T>();
-        MemCpy(AddressOf(ref keeper), &ptr, SizeOf<PtrKeeper<T>>());
+        ulong* keeperPtr = (ulong*)AddressOf(ref keeper);
+        *keeperPtr = (ulong)ptr;
         return keeper.value;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
