@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+﻿
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,9 +10,12 @@ using static Unity.Mathematics.math;
 using UnityEngine.Rendering;
 using System;
 using System.Linq;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 namespace MPipeline
 {
+#if UNITY_EDITOR
     public unsafe sealed class ProbeBaker : MonoBehaviour
     {
         public int3 probeCount = new int3(10, 10, 10);
@@ -286,6 +289,5 @@ namespace MPipeline
             Dispose();
         }
     }
-
-}
 #endif
+}

@@ -83,8 +83,6 @@ namespace UnityEngine.Rendering.PostProcessing
         {
             if (!settings.active) return;
             var cmd = context.command;
-            cmd.BeginSample("AutoExposureLookup");
-
             // Prepare autoExpo texture pool
             CheckTexture(context.xrActiveEye, 0);
             CheckTexture(context.xrActiveEye, 1);
@@ -143,9 +141,6 @@ namespace UnityEngine.Rendering.PostProcessing
                 m_AutoExposurePingPong[context.xrActiveEye] = ++pp % 2;
                 m_CurrentAutoExposure = dst;
             }
-
-            cmd.EndSample("AutoExposureLookup");
-
             context.autoExposureTexture = m_CurrentAutoExposure;
             context.autoExposure = settings;
             cmd.SetGlobalTexture(ShaderIDs.AutoExposureTex, m_CurrentAutoExposure);

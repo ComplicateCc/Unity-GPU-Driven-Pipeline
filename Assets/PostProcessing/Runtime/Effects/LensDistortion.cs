@@ -40,7 +40,11 @@ namespace UnityEngine.Rendering.PostProcessing
         public override void Render(PostProcessRenderContext context)
         {
             var sheet = context.uberSheet;
-            
+            if (!settings.active || Mathf.Abs(settings.intensity) < 1e-5f)
+            {
+                sheet.DisableKeyword("DISTORT", context.command);
+                return;
+            }
             float amount = 1.6f * Math.Max(Mathf.Abs(settings.intensity.value), 1f);
             float theta = Mathf.Deg2Rad * Math.Min(160f, amount);
             float sigma = 2f * Mathf.Tan(theta * 0.5f);

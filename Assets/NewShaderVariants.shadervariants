@@ -131,7 +131,18 @@ ShaderVariantCollection:
       variants:
       - keywords: COLOR_GRADING_HDR_3D
         passType: 0
+      - keywords: BLOOM COLOR_GRADING_HDR_3D
+        passType: 0
+      - keywords: BLOOM COLOR_GRADING_HDR_3D DISTORT
+        passType: 0
+      - keywords: BLOOM CHROMATIC_ABERRATION COLOR_GRADING_HDR_3D DISTORT
+        passType: 0
   - first: {fileID: 4800000, guid: 4117fce9491711c4094d33a048e36e73, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 4800000, guid: 5bb6ef6f3e1b20348b4fdb01e4c404e2, type: 3}
     second:
       variants:
       - keywords: 
@@ -141,7 +152,17 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+  - first: {fileID: 4800000, guid: c1e1d3119c6fd4646aea0b4b74cacc1a, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
   - first: {fileID: 4800000, guid: da83f09223ac06d438b6f527d4797397, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 4800000, guid: de7f3ac52268a194383c7d62c2a343c1, type: 3}
     second:
       variants:
       - keywords: 

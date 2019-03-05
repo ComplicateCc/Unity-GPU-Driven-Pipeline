@@ -25,6 +25,8 @@ namespace MPipeline
         protected override void Init(PipelineResources res)
         {
             allEvents = new Dictionary<Type, PostProcessEffectRenderer>(7);
+            AddEvents<LensDistortion, LensDistortionRenderer>();
+            AddEvents<ChromaticAberration, ChromaticAberrationRenderer>();
             AddEvents<Bloom, BloomRenderer>();
             AddEvents<AutoExposure, AutoExposureRenderer>();
             AddEvents<ColorGrading, ColorGradingRenderer>();

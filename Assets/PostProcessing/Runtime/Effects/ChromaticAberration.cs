@@ -30,6 +30,12 @@ namespace UnityEngine.Rendering.PostProcessing
 
         public override void Render(PostProcessRenderContext context)
         {
+            var sheet = context.uberSheet;
+            if (!settings.active)
+            {
+                sheet.DisableKeyword("CHROMATIC_ABERRATION", context.command);
+                return;
+            }
             var spectralLut = settings.spectralLut.value;
 
             if (spectralLut == null)
@@ -57,12 +63,8 @@ namespace UnityEngine.Rendering.PostProcessing
 
                 spectralLut = m_InternalSpectralLut;
             }
-            
-            var sheet = context.uberSheet;
-            sheet.EnableKeyword(settings.fastMode
-                ? "CHROMATIC_ABERRATION_LOW"
-                : "CHROMATIC_ABERRATION", context.command
-            );
+           
+            sheet.EnableKeyword("CHROMATIC_ABERRATION", context.command);
             sheet.properties.SetFloat(ShaderIDs.ChromaticAberration_Amount, settings.intensity * 0.05f);
             sheet.properties.SetTexture(ShaderIDs.ChromaticAberration_SpectralLut, spectralLut);
         }
