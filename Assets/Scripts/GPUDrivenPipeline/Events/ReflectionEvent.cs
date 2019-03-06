@@ -28,7 +28,6 @@ namespace MPipeline
         private LightingEvent lightingEvents;
         private ComputeBuffer reflectionIndices;
         private NativeList<int> reflectionCubemapIDs;
-        private AOEvents aoEvents;
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
         public override bool CheckProperty()
         {
@@ -36,7 +35,6 @@ namespace MPipeline
         }
         protected override void Init(PipelineResources resources)
         {
-            aoEvents = RenderPipeline.GetEvent<AOEvents>(renderingPath);
             probeBuffer = new ComputeBuffer(maximumProbe, sizeof(ReflectionData));
             lightingEvents = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
             reflectionIndices = new ComputeBuffer(CBDRSharedData.XRES * CBDRSharedData.YRES * CBDRSharedData.ZRES * (maximumProbe + 1), sizeof(int));
@@ -58,7 +56,21 @@ namespace MPipeline
                     }
                 }
             }
+        }
+        protected override void OnEnable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
+            {
+                buffer.EnableShaderKeyword("ENABLE_REFLECTION");
+            });
+        }
 
+        protected override void OnDisable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
+            {
+                buffer.DisableShaderKeyword("ENABLE_REFLECTION");
+            });
         }
         protected override void Dispose()
         {
@@ -87,14 +99,6 @@ namespace MPipeline
             if (!reflectionEnabled) return;
 
             CommandBuffer buffer = data.buffer;
-            if (aoEvents && aoEvents.Enabled)
-            {
-                buffer.EnableShaderKeyword("EnableGTAO");
-            }
-            else
-            {
-                buffer.DisableShaderKeyword("EnableGTAO");
-            }
             ComputeShader cullingShader = data.resources.shaders.reflectionCullingShader;
             ref CBDRSharedData cbdr = ref lightingEvents.cbdr;
             probeBuffer.SetData(reflectionData, 0, 0, count);

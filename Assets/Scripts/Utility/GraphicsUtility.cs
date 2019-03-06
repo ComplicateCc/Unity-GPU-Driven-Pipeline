@@ -122,6 +122,12 @@ new Vector3(1f, 0f, 0f)
         buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass);
     }
 
+    public static void BlitSRTWithDepth(this CommandBuffer buffer, RenderTargetIdentifier destination, RenderTargetIdentifier depth, Material mat, int pass)
+    {
+        buffer.SetRenderTarget(destination, depth);
+        buffer.DrawMesh(mesh, Matrix4x4.identity, mat, 0, pass);
+    }
+
     public static void BlitMRT(this CommandBuffer buffer, Texture source, RenderTargetIdentifier[] colorIdentifier, RenderTargetIdentifier depthIdentifier, Material mat, int pass)
     {
         buffer.SetRenderTarget(colorIdentifier, depthIdentifier);

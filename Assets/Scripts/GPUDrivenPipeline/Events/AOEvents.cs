@@ -150,6 +150,16 @@ namespace MPipeline
             return GTAOMaterial != null;
         }
 
+        protected override void OnEnable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((cb) => cb.EnableShaderKeyword("EnableGTAO"));
+        }
+
+        protected override void OnDisable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((cb) => cb.DisableShaderKeyword("EnableGTAO"));
+        }
+
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             AOHistoryData historyData = IPerCameraData.GetProperty(cam, (c) => new AOHistoryData(c.cam.pixelWidth, c.cam.pixelHeight));
@@ -237,15 +247,15 @@ namespace MPipeline
             //Spatial filter
             //------//XBlur
             buffer.GetTemporaryRT(_GTAO_Spatial_Texture_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Point, RenderTextureFormat.RGHalf);
-            buffer.BlitSRT(_GTAO_Spatial_Texture_ID, GTAOMaterial, 1);
+            buffer.BlitSRTWithDepth(_GTAO_Spatial_Texture_ID, cam.targets.depthBuffer, GTAOMaterial, 1);
             //------//YBlur
             buffer.CopyTexture(_GTAO_Spatial_Texture_ID, historyData.AO_BentNormal_RT[0]);
-            buffer.BlitSRT(_GTAO_Spatial_Texture_ID, GTAOMaterial, 2);
+            buffer.BlitSRTWithDepth(_GTAO_Spatial_Texture_ID, cam.targets.depthBuffer, GTAOMaterial, 2);
 
             //Temporal filter
             buffer.SetGlobalTexture(_PrevRT_ID, historyData.prev_Texture);
             buffer.GetTemporaryRT(_CurrRT_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Point, RenderTextureFormat.RGHalf);
-            buffer.BlitSRT(_CurrRT_ID, GTAOMaterial, 3);
+            buffer.BlitSRTWithDepth(_CurrRT_ID, cam.targets.depthBuffer, GTAOMaterial, 3);
             buffer.CopyTexture(_CurrRT_ID, historyData.prev_Texture);
 
             buffer.ReleaseTemporaryRT(_GTAO_Spatial_Texture_ID);
@@ -265,7 +275,7 @@ namespace MPipeline
             AO_BentNormal_RT = new RenderTexture[2];
             AO_BentNormal_ID = new RenderTargetIdentifier[2];
             prev_Texture = new RenderTexture(width, height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
-            prev_Texture.filterMode = FilterMode.Point;
+            prev_Texture.filterMode = FilterMode.Bilinear;
             prev_Texture.Create();
             AO_BentNormal_RT[0] = new RenderTexture(width, height, 0, RenderTextureFormat.RGHalf);
             AO_BentNormal_RT[1] = new RenderTexture(width, height, 0, RenderTextureFormat.ARGBHalf);

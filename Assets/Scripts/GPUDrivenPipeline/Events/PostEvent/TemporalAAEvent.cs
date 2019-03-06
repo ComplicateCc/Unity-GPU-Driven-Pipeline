@@ -62,9 +62,9 @@ namespace MPipeline
             buffer.SetGlobalVector(ShaderIDs._TemporalClipBounding, new Vector4(stationaryAABBScale, motionAABBScale, kMotionAmplification_Bounding, 0f));
             buffer.SetGlobalVector(ShaderIDs._FinalBlendParameters, new Vector4(stationaryBlending, motionBlending, kMotionAmplification_Blending, 0f));
             buffer.SetGlobalTexture(ShaderIDs._HistoryTex, historyTex);
-            int source, dest;
+            RenderTargetIdentifier source, dest;
             PipelineFunctions.RunPostProcess(ref cam.targets, out source, out dest);
-            buffer.BlitSRT(source, dest, cam.targets.depthIdentifier, taaMat, 0);
+            buffer.BlitSRT(source, dest, cam.targets.depthBuffer, taaMat, 0);
             buffer.CopyTexture(dest, historyTex);
         }
 

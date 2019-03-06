@@ -21,12 +21,9 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            data.buffer.GetTemporaryRT(ShaderIDs._CopyedDepthTexture, cam.cam.pixelWidth, cam.cam.pixelHeight, 32, FilterMode.Point, RenderTextureFormat.Depth, RenderTextureReadWrite.Linear, 1, false);
-            data.buffer.CopyTexture(cam.targets.depthIdentifier, ShaderIDs._CopyedDepthTexture);
-            data.buffer.SetRenderTarget(color: cam.targets.renderTargetIdentifier, depth: cam.targets.depthIdentifier);
+            data.buffer.SetRenderTarget(color: cam.targets.renderTargetIdentifier, depth: cam.targets.depthBuffer);
             data.buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, muberMaterial, 0, 0);
             data.buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, muberMaterial, 0, 1);
-            data.buffer.ReleaseTemporaryRT(ShaderIDs._CopyedDepthTexture);
         }
 
         public override bool CheckProperty()

@@ -90,8 +90,26 @@ namespace MPipeline
             outClipDistance[4] = sunlight.farestDistance;
             return staticFit;
         }
+        protected override void OnDisable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
+            {
+                buffer.DisableShaderKeyword("ENABLE_SUN");
+                buffer.DisableShaderKeyword("SPOTLIGHT");
+                buffer.DisableShaderKeyword("POINTLIGHT");
+            });
+        }
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
+            if (SunLight.current && SunLight.current.enabled && SunLight.current.gameObject.activeSelf)
+            {
+                data. buffer.EnableShaderKeyword("ENABLE_SUN");
+                data.buffer.SetKeyword("ENABLE_SUNSHADOW", SunLight.current.enableShadow);
+            }
+            else
+            {
+                data.buffer.DisableShaderKeyword("ENABLE_SUN");
+            }
             var visLights = data.cullResults.visibleLights;
             LightFilter.allVisibleLight = visLights.Ptr();
             allLights.Clear();

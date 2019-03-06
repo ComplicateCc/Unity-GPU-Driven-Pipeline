@@ -149,8 +149,10 @@ void frag_surf (v2f_surf IN,
     out half4 outGBuffer1 : SV_Target1,
     out half4 outGBuffer2 : SV_Target2,
     out half4 outEmission : SV_Target3,
-	out half2 outMotionVector : SV_Target4
+	out half2 outMotionVector : SV_Target4,
+  out half depth : SV_TARGET5
 ) {
+  depth = IN.pos.z;
   // prepare and unpack data
   float3 worldPos = float3(IN.worldTangent.w, IN.worldBinormal.w, IN.worldNormal.w);
   float3 worldViewDir = normalize(IN.worldViewDir);

@@ -64,7 +64,7 @@ namespace MPipeline
             var settings = profile.settings;
             postContext.autoExposureTexture = RuntimeUtilities.whiteTexture;
             postContext.bloomBufferNameID = -1;
-            int source, dest;
+            RenderTargetIdentifier source, dest;
             PipelineFunctions.RunPostProcess(ref cam.targets, out source, out dest);
             postContext.source = source;
             postContext.destination = dest;

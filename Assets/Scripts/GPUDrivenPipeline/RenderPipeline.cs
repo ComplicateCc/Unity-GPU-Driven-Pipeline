@@ -34,7 +34,7 @@ namespace MPipeline
             public RenderTexture tempTex;
             public CommandBuffer buffer;
         }
-        private static List<CommandBuffer> bufferAfterFrame = new List<CommandBuffer>(10);
+        private static List<Action<CommandBuffer>> bufferAfterFrame = new List<Action<CommandBuffer>>(10);
         private static List<EditorBakeCommand> bakeList = new List<EditorBakeCommand>();
         public static void AddRenderingMissionInEditor(NativeList<float4x4> worldToCameras, NativeList<float4x4> projections, PipelineCamera targetCameras, RenderTexture texArray, RenderTexture tempTexture, CommandBuffer buffer)
         {
@@ -85,16 +85,12 @@ namespace MPipeline
                 obj = arg
             });
         }
-#if UNITY_EDITOR
-        public static void ExecuteBufferAtFrameEnding(CommandBuffer buffer)
+
+        public static void ExecuteBufferAtFrameEnding(Action<CommandBuffer> buffer)
         {
             bufferAfterFrame.Add(buffer);
         }
-#else
-        public static void ExecuteBufferAtFrameEnding(CommandBuffer buffer){
-        //Shouldn't do anything in runtime
-        }
-#endif
+
         public static void AddCommandBeforeFrame(object arg, Action<object> func)
         {
             beforeRenderFrame.Add(new Command
@@ -201,15 +197,16 @@ namespace MPipeline
                 i.func(i.obj);
             }
             afterRenderFrame.Clear();
-#if UNITY_EDITOR
-            foreach (var i in bufferAfterFrame)
+            if (bufferAfterFrame.Count > 0)
             {
-                renderContext.ExecuteCommandBuffer(i);
-                i.Clear();
+                foreach (var i in bufferAfterFrame)
+                {
+                    i(data.buffer);
+                }
+                data.ExecuteCommandBuffer();
+                bufferAfterFrame.Clear();
+                renderContext.Submit();
             }
-            bufferAfterFrame.Clear();
-            renderContext.Submit();
-#endif
         }
 
         private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam, bool* pipelineChecked)

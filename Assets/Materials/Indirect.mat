@@ -82,7 +82,7 @@ Material:
     - _DstBlend: 0
     - _EmissionMultiplier: 1
     - _GlossMapScale: 1
-    - _Glossiness: 0.42
+    - _Glossiness: 0
     - _GlossyReflections: 1
     - _Metallic: 0
     - _MetallicIntensity: 0.1
@@ -93,7 +93,7 @@ Material:
     - _Parallax: 0.02
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
-    - _SpecularIntensity: 0.27
+    - _SpecularIntensity: 1
     - _SrcBlend: 1
     - _UVSec: 0
     - _ZWrite: 1

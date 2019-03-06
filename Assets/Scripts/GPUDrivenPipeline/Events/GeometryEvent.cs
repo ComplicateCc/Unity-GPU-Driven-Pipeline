@@ -30,7 +30,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthIdentifier);
+            buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthBuffer);
             buffer.ClearRenderTarget(true, true, Color.black);
             HizOcclusionData hizData = IPerCameraData.GetProperty(cam, () => new HizOcclusionData());
             RenderClusterOptions options = new RenderClusterOptions
@@ -50,7 +50,7 @@ namespace MPipeline
                     hizData = hizData,
                     hizDepth = hizDepth,
                     linearLODMaterial = linearMat,
-                    currentDepthTex = cam.targets.depthIdentifier
+                    currentDepthTex = cam.targets.depthTexture
                 };
                 SceneController.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
             }

@@ -6,7 +6,7 @@ Shader "Hidden/GroundTruthAmbientOcclusion"
 
 	SubShader
 	{
-		ZTest Always
+		ZTest Greater
 		Cull Off
 		ZWrite Off
 

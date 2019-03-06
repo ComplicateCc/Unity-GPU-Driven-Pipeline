@@ -20,7 +20,6 @@
 				#pragma fragment frag
 	#pragma target 5.0
 	#include "UnityCG.cginc"
-	#include "UnityDeferredLibrary.cginc"
 	#include "UnityPBSLighting.cginc"
 	#include "CGINC/VoxelLight.cginc"
 	#include "CGINC/Shader_Include/Common.hlsl"
@@ -98,7 +97,7 @@
 					#if ENABLE_REFLECTION
 					finalColor += CalculateReflection(linearEyeDepth, i.worldPos, viewDir, specular, normal, 1, screenUV);
 					#endif
-					finalColor += CalculateLocalLight(screenUV, float4(i.worldPos, 1), linearEyeDepth, standardData.diffuseColor, normal, specular, Roughness, viewDir);
+					finalColor += CalculateLocalLight(screenUV, float4(i.worldPos, 1), linearEyeDepth, standardData.diffuseColor, normal, specular, Roughness, -viewDir);
 					#if ENABLE_VOLUMETRIC
 					float4 fogColor = Fog(linear01Depth, screenUV);
 					finalColor = lerp(fogColor.rgb, finalColor, fogColor.a);

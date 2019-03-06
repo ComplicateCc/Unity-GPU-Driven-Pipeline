@@ -27,7 +27,7 @@ half2 SpatialGTAO_Y_frag(PixelInput IN) : SV_Target
 
 	//////Reflection Occlusion
 	half3 bentNormal = tex2D(_BentNormal_Texture, uv).rgb;
-	half3 worldNormal = tex2D(_CameraGBufferTexture2, uv).rgb * 2 - 1;
+	half3 worldNormal = normalize(tex2D(_CameraGBufferTexture2, uv).rgb * 2 - 1);
 	half4 Specular = tex2D(_CameraGBufferTexture1, uv);
 	half Roughness = 1 - Specular.a;
 

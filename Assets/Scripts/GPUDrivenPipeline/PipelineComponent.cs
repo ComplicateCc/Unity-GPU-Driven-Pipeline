@@ -91,8 +91,8 @@ namespace MPipeline
         public float3 minExtent;
         public float3 maxExtent;
         public float4 hdr;
-        public float  blendDistance;
-        public int    boxProjection;
+        public float blendDistance;
+        public int boxProjection;
     }
 
     public class PipelineBaseBuffer
@@ -307,9 +307,9 @@ namespace MPipeline
     }
     public struct RenderTargets
     {
-        public int renderTargetIdentifier;
-        public int backupIdentifier;
-        public int depthIdentifier;
+        public RenderTargetIdentifier renderTargetIdentifier;
+        public RenderTargetIdentifier backupIdentifier;
+        public RenderTargetIdentifier depthBuffer;
         public int[] gbufferIndex;
         public RenderTargetIdentifier[] gbufferIdentifier;
         public bool initialized;
@@ -323,23 +323,28 @@ namespace MPipeline
                 Shader.PropertyToID("_CameraGBufferTexture2"),
                 Shader.PropertyToID("_CameraGBufferTexture3"),
                 Shader.PropertyToID("_CameraMotionVectorsTexture"),
+                Shader.PropertyToID("_CameraDepthTexture"),
             };
-            rt.gbufferIdentifier = new RenderTargetIdentifier[5];
-            for (int i = 0; i < 5; ++i)
+            rt.gbufferIdentifier = new RenderTargetIdentifier[6];
+            for (int i = 0; i < 6; ++i)
             {
                 rt.gbufferIdentifier[i] = rt.gbufferIndex[i];
             }
             rt.backupIdentifier = default;
-            rt.depthIdentifier = Shader.PropertyToID("_CameraDepthTexture");
+            rt.depthBuffer = rt.gbufferIdentifier[0];
             rt.renderTargetIdentifier = default;
             rt.initialized = true;
             return rt;
         }
-        public int motionVectorTexture
+        public RenderTargetIdentifier depthTexture
+        {
+            get { return gbufferIndex[5]; }
+        }
+        public RenderTargetIdentifier motionVectorTexture
         {
             get { return gbufferIndex[4]; }
         }
-        public int normalIdentifier
+        public RenderTargetIdentifier normalIdentifier
         {
             get { return gbufferIndex[2]; }
         }

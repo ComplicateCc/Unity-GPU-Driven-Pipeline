@@ -187,3 +187,14 @@ ShaderVariantCollection:
       variants:
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
         passType: 13
+  - first: {fileID: 4800000, guid: b10a195e54d72984783eb1f2f49aa43f, type: 3}
+    second:
+      variants:
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          POINTLIGHT
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          SPOTLIGHT
+        passType: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AO
   m_EditorClassIdentifier: 
   enabled: 1
-  DirSampler: 2
+  DirSampler: 4
   SliceSampler: 2
   Radius: 2.5
   Intensity: 1

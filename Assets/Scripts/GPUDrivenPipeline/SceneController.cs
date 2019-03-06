@@ -477,7 +477,7 @@ options.frustumPlanes);
             //double check
             PipelineFunctions.OcclusionRecheck(baseBuffer, gpuFrustumShader, buffer, hizOpts.hizData);
             //double draw
-            buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthIdentifier);
+            buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthBuffer);
             PipelineFunctions.DrawRecheckCullResult(baseBuffer, commonData.clusterMaterial, buffer);
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);

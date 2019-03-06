@@ -240,14 +240,17 @@ namespace MPipeline
             texArrayDescriptor.dimension = TextureDimension.Tex2D;
             RenderTexture tempRT = RenderTexture.GetTemporary(texArrayDescriptor);
             ComputeShader shader = resources.shaders.probeCoeffShader;
-            cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
-            cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
-            cbuffer.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
-            cbuffer.SetComputeTextureParam(shader, 0, "_SourceCubemap", rt);
-            cbuffer.SetGlobalVector("_Tex3DSize", new Vector4(probeCount.x + 0.01f, probeCount.y + 0.01f, probeCount.z + 0.01f));
-            cbuffer.SetGlobalVector("_SHSize", transform.localScale);
-            cbuffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
-            RenderPipeline.ExecuteBufferAtFrameEnding(cbuffer);
+            Action<CommandBuffer> func = (cbuffer) =>
+            {
+                cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
+                cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
+                cbuffer.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
+                cbuffer.SetComputeTextureParam(shader, 0, "_SourceCubemap", rt);
+                cbuffer.SetGlobalVector("_Tex3DSize", new Vector4(probeCount.x + 0.01f, probeCount.y + 0.01f, probeCount.z + 0.01f));
+                cbuffer.SetGlobalVector("_SHSize", transform.localScale);
+                cbuffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
+            };
+            RenderPipeline.ExecuteBufferAtFrameEnding(func);
             yield return null;
             int target = probeCount.x * probeCount.y * probeCount.z;
             for (int x = 0; x < probeCount.x; ++x)

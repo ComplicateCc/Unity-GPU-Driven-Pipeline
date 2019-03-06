@@ -23,7 +23,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera camera, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            buffer.SetRenderTarget(color: camera.targets.renderTargetIdentifier, depth: camera.targets.depthIdentifier);
+            buffer.SetRenderTarget(color: camera.targets.renderTargetIdentifier, depth: camera.targets.depthBuffer);
             buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, skyboxMaterial, 0, 0);
         }
     }
