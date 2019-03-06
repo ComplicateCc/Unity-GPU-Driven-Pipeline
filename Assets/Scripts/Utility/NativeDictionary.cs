@@ -123,7 +123,6 @@ namespace MPipeline
                     currentPtr = next;
                 }
             }
-            Debug.Log("Not found " + key);
         }
 
         public bool Contains(K key)

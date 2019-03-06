@@ -179,14 +179,23 @@ namespace MPipeline
             }
             bakeList.Clear();
 #endif
+
+            if (!PipelineCamera.allCamera.isCreated) return;
+
             foreach (var cam in cameras)
             {
-                PipelineCamera pipelineCam = cam.GetComponent<PipelineCamera>();
-                if (!pipelineCam)
+                PipelineCamera pipelineCam;
+                UIntPtr pipelineCamPtr;
+                if(!PipelineCamera.allCamera.Get(cam.gameObject.GetInstanceID(), out pipelineCamPtr))
                 {
-                    pipelineCam = Camera.main.GetComponent<PipelineCamera>();
-                    if (!pipelineCam) continue;
+#if UNITY_EDITOR
+                    if (!PipelineCamera.allCamera.Get(Camera.main.gameObject.GetInstanceID(), out pipelineCamPtr))
+                        continue;
+#else
+                    continue;
+#endif
                 }
+                pipelineCam = MUnsafeUtility.GetObject<PipelineCamera>(pipelineCamPtr.ToPointer());
                 Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam, propertyCheckedFlags);
                 PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
                 data.ExecuteCommandBuffer();
