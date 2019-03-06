@@ -9,9 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2edaf796baa1d1c4ea03906cb7ccb00c, type: 3}
-  m_Name: Volumetric
+  m_Script: {fileID: 11500000, guid: db259d03ac2bb574b8e9c2d737637b93, type: 3}
+  m_Name: Uber
   m_EditorClassIdentifier: 
   enabled: 1
-  availableDistance: 32
-  indirectIntensity: 0.01

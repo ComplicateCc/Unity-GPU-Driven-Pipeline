@@ -26,7 +26,6 @@ CGINCLUDE
 				float2 uv : TEXCOORD0;
 				float4 vertex : SV_POSITION;
 			};
-			float2 _Jitter;
 			v2f vert (appdata v)
 			{
 				v2f o;

@@ -4,7 +4,6 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using System.Runtime.CompilerServices;
-using Random = Unity.Mathematics.Random;
 using static Unity.Mathematics.math;
 using System.Threading;
 using Unity.Collections.LowLevel.Unsafe;
@@ -14,7 +13,6 @@ namespace MPipeline
     [CreateAssetMenu(menuName = "GPURP Events/Volumetric Scattering")]
     public unsafe class VolumetricLightEvent : PipelineEvent
     {
-        private Material volumeMat;
         public float availableDistance = 64;
         [Range(0.01f, 100f)]
         public float indirectIntensity = 1;
@@ -23,7 +21,6 @@ namespace MPipeline
         const int calculateGI = 9;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
-        private Random rand;
         private JobHandle jobHandle;
         private NativeArray<FogVolume> resultVolume;
         private int fogCount = 0;
@@ -31,7 +28,7 @@ namespace MPipeline
         private LightingEvent lightingData;
         public override bool CheckProperty()
         {
-            return volumeMat != null;
+            return randomBuffer.IsValid();
         }
         protected override void Init(PipelineResources resources)
         {
@@ -39,14 +36,12 @@ namespace MPipeline
             randomBuffer = new ComputeBuffer(downSampledSize.x * downSampledSize.y * downSampledSize.z, sizeof(uint));
             NativeArray<uint> randomArray = new NativeArray<uint>(randomBuffer.count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             uint* randPtr = randomArray.Ptr();
-            rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
             for (int i = 0; i < randomArray.Length; ++i)
             {
                 randPtr[i] = (uint)(-System.Guid.NewGuid().GetHashCode());
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();
-            volumeMat = new Material(resources.shaders.volumetricShader);
         }
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
@@ -156,7 +151,6 @@ namespace MPipeline
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._DirShadowMap, cbdr.dirLightShadowmap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
-            buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
             /*
             if (ProbeBaker.allBakers.Count > 0)
             {
@@ -178,14 +172,11 @@ namespace MPipeline
             buffer.DispatchCompute(scatter, pass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
             buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);
             buffer.DispatchCompute(scatter, scatterPass, downSampledSize.x / 32, downSampledSize.y / 2, 1);
-            buffer.BlitSRT(cam.targets.renderTargetIdentifier, volumeMat, 0);
-            buffer.ReleaseTemporaryRT(ShaderIDs._VolumeTex);
             cbdr.lightFlag = 0;
         }
 
         protected override void Dispose()
         {
-            DestroyImmediate(volumeMat);
             randomBuffer.Dispose();
         }
         [Unity.Burst.BurstCompile]

@@ -9,7 +9,7 @@ using UnityEngine.Jobs;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using System.Collections.Concurrent;
-using Random = Unity.Mathematics.Random;
+
 using static Unity.Mathematics.math;
 namespace MPipeline
 {
@@ -17,9 +17,8 @@ namespace MPipeline
     [RequireEvent(typeof(PropertySetEvent))]
     public unsafe sealed class LightingEvent : PipelineEvent
     {
-        private Random rand;
+        
         #region DIR_LIGHT
-        private Material shadMaskMaterial;
         private static int[] _Count = new int[2];
         private Matrix4x4[] cascadeShadowMapVP = new Matrix4x4[4];
         private Vector4[] shadowFrustumVP = new Vector4[6];
@@ -28,7 +27,6 @@ namespace MPipeline
         private VolumetricLightEvent volumetricEvent;
         #endregion
         #region POINT_LIGHT
-        private Material pointLightMaterial;
         private Material cubeDepthMaterial;
         private RenderSpotShadowCommand spotBuffer;
         private NativeList<CubemapViewProjMatrix> cubemapVPMatrices;
@@ -55,20 +53,18 @@ namespace MPipeline
                 catch { }
                 return false;
             }
-            return pointLightMaterial != null && cubeDepthMaterial != null;
+            return cubeDepthMaterial != null;
         }
         #endregion
         protected override void Init(PipelineResources resources)
         {
-            rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
+            
             cbdr = new CBDRSharedData(resources);
             volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>(renderingPath);
-            shadMaskMaterial = new Material(resources.shaders.shadowMaskShader);
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
             {
                 cascadeShadowMapVP[i] = Matrix4x4.identity;
             }
-            pointLightMaterial = new Material(resources.shaders.pointLightShader);
             cubeDepthMaterial = new Material(resources.shaders.cubeDepthShader);
             spotBuffer = new RenderSpotShadowCommand();
             spotBuffer.Init(resources.shaders.spotLightDepthShader);
@@ -77,8 +73,6 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            DestroyImmediate(shadMaskMaterial);
-            DestroyImmediate(pointLightMaterial);
             DestroyImmediate(cubeDepthMaterial);
             spotBuffer.Dispose();
             cbdr.Dispose();
@@ -185,13 +179,10 @@ namespace MPipeline
             }
             buffer.SetGlobalVector(ShaderIDs._DirLightFinalColor, SunLight.current.light.color * SunLight.current.light.intensity);
             buffer.SetGlobalVector(ShaderIDs._DirLightPos, -(Vector3)SunLight.current.shadCam.forward);
-            buffer.SetRenderTarget(cam.targets.renderTargetIdentifier, cam.targets.depthIdentifier);
-            buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, shadMaskMaterial, 0, pass);
         }
         private void PointLight(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
             VoxelLightCommonData(buffer, cam.cam);
             ClearDispatch(buffer);
             lightingHandle.Complete();
@@ -297,7 +288,6 @@ namespace MPipeline
                 buffer.DisableShaderKeyword("SPOTLIGHT");
             }
             VoxelLightCalculate(buffer, cam.cam);
-            buffer.BlitSRT(cam.targets.renderTargetIdentifier, pointLightMaterial, 0);
         }
         private void VoxelLightCommonData(CommandBuffer buffer, Camera cam)
         {

@@ -98,7 +98,7 @@
 					#if ENABLE_REFLECTION
 					finalColor += CalculateReflection(linearEyeDepth, i.worldPos, viewDir, specular, normal, 1, screenUV);
 					#endif
-					finalColor += CalculateLocalLight(screenUV, float4(i.worldPos, 1), linearEyeDepth, standardData.diffuseColor, normal, specular, Roughness);
+					finalColor += CalculateLocalLight(screenUV, float4(i.worldPos, 1), linearEyeDepth, standardData.diffuseColor, normal, specular, Roughness, viewDir);
 					#if ENABLE_VOLUMETRIC
 					float4 fogColor = Fog(linear01Depth, screenUV);
 					finalColor = lerp(fogColor.rgb, finalColor, fogColor.a);

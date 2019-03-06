@@ -8,7 +8,15 @@ float2 _CameraClipDistance; //X: Near Y: Far - Near
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
 //UNITY_SAMPLE_SHADOW
 Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
-float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3 AlbedoColor, float3 WorldNormal, float4 SpecularColor, float Roughness)
+	static const float3 Offsets[20] = 
+	{
+	float3( 1.0,  1.0,  1.0), float3( 1.0, -1.0,  1.0), float3(-1.0, -1.0,  1.0), float3(-1.0,  1.0,  1.0), 
+	float3( 1.0,  1.0, -1.0), float3( 1.0, -1.0, -1.0), float3(-1.0, -1.0, -1.0), float3(-1.0,  1.0, -1.0),
+	float3( 1.0,  1.0,  0.0), float3( 1.0, -1.0,  0.0), float3(-1.0, -1.0,  0.0), float3(-1.0,  1.0,  0.0),
+	float3( 1.0,  0.0,  1.0), float3(-1.0,  0.0,  1.0), float3( 1.0,  0.0, -1.0), float3(-1.0,  0.0, -1.0),
+	float3( 0.0,  1.0,  1.0), float3( 0.0, -1.0,  1.0), float3( 0.0, -1.0, -1.0), float3( 0.0,  1.0, -1.0)
+	};
+float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3 AlbedoColor, float3 WorldNormal, float4 SpecularColor, float Roughness, float3 ViewDir)
 {
 	float ShadowTrem = 0;
 	float3 ShadingColor = 0;
@@ -17,16 +25,8 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 	uint sb = GetIndex(voxelValue, VOXELSIZE, (MAXLIGHTPERCLUSTER + 1));
 	uint2 LightIndex;// = uint2(sb + 1, _PointLightIndexBuffer[sb]);
 	uint c;
-	float3 ViewDir = normalize(_WorldSpaceCameraPos.rgb - WorldPos.rgb);
 
-	const float3 Offsets[20] = 
-	{
-	float3( 1.0,  1.0,  1.0), float3( 1.0, -1.0,  1.0), float3(-1.0, -1.0,  1.0), float3(-1.0,  1.0,  1.0), 
-	float3( 1.0,  1.0, -1.0), float3( 1.0, -1.0, -1.0), float3(-1.0, -1.0, -1.0), float3(-1.0,  1.0, -1.0),
-	float3( 1.0,  1.0,  0.0), float3( 1.0, -1.0,  0.0), float3(-1.0, -1.0,  0.0), float3(-1.0,  1.0,  0.0),
-	float3( 1.0,  0.0,  1.0), float3(-1.0,  0.0,  1.0), float3( 1.0,  0.0, -1.0), float3(-1.0,  0.0, -1.0),
-	float3( 0.0,  1.0,  1.0), float3( 0.0, -1.0,  1.0), float3( 0.0, -1.0, -1.0), float3( 0.0,  1.0, -1.0)
-	};
+
 
 #if SPOTLIGHT
 	float2 JitterSpot = uv;

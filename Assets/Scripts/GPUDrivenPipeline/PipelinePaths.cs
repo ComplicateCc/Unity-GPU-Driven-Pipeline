@@ -13,6 +13,7 @@ namespace MPipeline
         public ReflectionEvent reflection;
         public SkyboxEvent skybox;
         public VolumetricLightEvent volumetric;
+        public UberEvents uber;
         public TemporalAAEvent temporalAA;
         public TransEvent transparent;
         public FinalPostEvent postEffects;
@@ -45,6 +46,7 @@ namespace MPipeline
         public Shader terrainShader;
         public Shader spotLightDepthShader;
         public Shader gtaoShader;
+        public Shader uberShader;
         public Mesh occluderMesh;
         public Mesh sphereMesh;
     }
@@ -56,6 +58,7 @@ namespace MPipeline
         public GeometryEvent geometry;
         public LightingEvent lighting;
         public SkyboxEvent skybox;
+        public UberEvents uber;
     }
 
     [Serializable]

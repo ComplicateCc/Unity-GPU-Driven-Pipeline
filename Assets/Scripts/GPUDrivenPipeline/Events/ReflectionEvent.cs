@@ -27,18 +27,16 @@ namespace MPipeline
         private ComputeBuffer probeBuffer;
         private LightingEvent lightingEvents;
         private ComputeBuffer reflectionIndices;
-        private Material deferredReflectMat;
         private NativeList<int> reflectionCubemapIDs;
         private AOEvents aoEvents;
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
         public override bool CheckProperty()
         {
-            return deferredReflectMat != null;
+            return reflectionIndices.IsValid();
         }
         protected override void Init(PipelineResources resources)
         {
             aoEvents = RenderPipeline.GetEvent<AOEvents>(renderingPath);
-            deferredReflectMat = new Material(resources.shaders.reflectionShader);
             probeBuffer = new ComputeBuffer(maximumProbe, sizeof(ReflectionData));
             lightingEvents = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
             reflectionIndices = new ComputeBuffer(CBDRSharedData.XRES * CBDRSharedData.YRES * CBDRSharedData.ZRES * (maximumProbe + 1), sizeof(int));
@@ -112,7 +110,6 @@ namespace MPipeline
             {
                 buffer.SetGlobalTexture(reflectionCubemapIDs[i], reflectProbes[i].texture);
             }
-            buffer.BlitSRT(cam.targets.renderTargetIdentifier, deferredReflectMat, 0);
             //TODO
         }
         [Unity.Burst.BurstCompile]

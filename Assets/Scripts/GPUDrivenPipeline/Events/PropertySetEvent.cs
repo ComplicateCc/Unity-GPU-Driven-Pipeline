@@ -2,11 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Unity.Mathematics;
+using Random = Unity.Mathematics.Random;
 namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Property Set")]
     public class PropertySetEvent : PipelineEvent
     {
+        private Random rand;
+        private ReflectionEvent reflectionEvent;
+        private VolumetricLightEvent volumeEvent;
         public Matrix4x4 lastViewProjection { get; private set; }
         public Matrix4x4 nonJitterVP { get; private set; }
         public Matrix4x4 inverseNonJitterVP { get; private set; }
@@ -26,12 +31,25 @@ namespace MPipeline
             buffer.SetGlobalMatrix(ShaderIDs._InvNonJitterVP, inverseNonJitterVP);
             buffer.SetGlobalMatrix(ShaderIDs._InvVP, data.inverseVP);
             buffer.SetGlobalMatrix(ShaderIDs._VP, data.vp);
+            buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
             lastVp = nonJitterVP;
-            
+            if (SunLight.current && SunLight.current.enabled && SunLight.current.gameObject.activeSelf)
+            {
+                data.buffer.EnableShaderKeyword("ENABLE_SUN");
+                data.buffer.SetKeyword("ENABLE_SUNSHADOW", SunLight.current.enableShadow);
+            }
+            else
+            {
+                data.buffer.DisableShaderKeyword("ENABLE_SUN");
+            }
+            data.buffer.SetKeyword("ENABLE_REFLECTION", reflectionEvent != null && reflectionEvent.Enabled);
+            data.buffer.SetKeyword("ENABLE_VOLUMETRIC", volumeEvent != null && volumeEvent.Enabled);
         }
         protected override void Init(PipelineResources resources)
         {
-
+            rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
+            reflectionEvent = RenderPipeline.GetEvent<ReflectionEvent>(renderingPath);
+            volumeEvent = RenderPipeline.GetEvent<VolumetricLightEvent>(renderingPath);
         }
         protected override void Dispose()
         {
