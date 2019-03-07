@@ -24,8 +24,8 @@ CGINCLUDE
 	StructuredBuffer<PropertyValue> _PropertiesBuffer;
 
 
-	
-	void surf (float2 uv, float2 lightmapUV, int lightmapIndex, uint index, inout SurfaceOutputStandardSpecular o) {
+	//Return: 1: not using lightmap 0: using lightmap
+	float surf (float2 uv, float2 lightmapUV, int lightmapIndex, uint index, inout SurfaceOutputStandardSpecular o) {
 		PropertyValue prop = _PropertiesBuffer[index];
     float2 detailUV = uv * prop.detailScaleOffset.xy + prop.detailScaleOffset.zw;
     float4 detailAlbedo = 0;
@@ -53,8 +53,10 @@ CGINCLUDE
 		}else{
 			o.Normal =  float3(0,0,1);
 		}
+    float uselightmap = 1;
     if(lightmapIndex >= 0)
     {
+      uselightmap = 0;
       o.Emission.rgb = _LightMap.Sample(sampler_LightMap, float3(lightmapUV, lightmapIndex)) * c.rgb;
     }   
 		o.Albedo = c.rgb;
@@ -65,7 +67,7 @@ CGINCLUDE
     o.Occlusion = lerp(1, spec.b, prop._Occlusion);
 		o.Emission += prop._EmissionColor;
     o.Normal = lerp(detailNormal, o.Normal, c.a);
-    
+    return uselightmap;
 	}
 
 
@@ -159,13 +161,14 @@ void frag_surf (v2f_surf IN,
   SurfaceOutputStandardSpecular o;
   float3x3 wdMatrix= float3x3(normalize(IN.worldTangent.xyz), normalize(IN.worldBinormal.xyz), normalize(IN.worldNormal.xyz));
   // call surface function
-  surf (IN.pack0.xy, IN.pack0.zw, IN.lightmapIndex, IN.objectIndex, o);
+  float uselightmap = surf (IN.pack0.xy, IN.pack0.zw, IN.lightmapIndex, IN.objectIndex, o);
   o.Normal = normalize(mul(o.Normal, wdMatrix));
   outEmission = ProceduralStandardSpecular_Deferred (o, worldViewDir, outGBuffer0, outGBuffer1, outGBuffer2); //GI neccessary here!
   //Calculate Motion Vector
   float4 screenPos = mul(_NonJitterVP, float4(worldPos, 1));
   float2 screenUV = GetScreenPos(screenPos);
   outMotionVector = CalculateMotionVector(_LastVp, worldPos - _SceneOffset, screenUV);
+  outGBuffer2.a = uselightmap;
 }
 
 
