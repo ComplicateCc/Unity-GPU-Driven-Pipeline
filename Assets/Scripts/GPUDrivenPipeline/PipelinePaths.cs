@@ -1,24 +1,8 @@
 ﻿using System;
 using UnityEngine;
-
+using System.Collections.Generic;
 namespace MPipeline
 {
-    [Serializable]
-    public class GPUDeferred : EventsCollection
-    {
-        public PropertySetEvent propertySet;
-        public GeometryEvent geometry;
-        public AOEvents ambientOcclusion;
-        public LightingEvent lighting;
-        public ReflectionEvent reflection;
-        public SkyboxEvent skybox;
-        public VolumetricLightEvent volumetric;
-        public UberEvents uber;
-        public TemporalAAEvent temporalAA;
-        public TransEvent transparent;
-        public FinalPostEvent postEffects;
-    }
-
     [Serializable]
     public struct PipelineShaders
     {
@@ -51,22 +35,38 @@ namespace MPipeline
         public Mesh sphereMesh;
     }
 
-    [Serializable]
-    public class BakeInEditor : EventsCollection
+    public static class AllEvents
     {
-        public PropertySetEvent propertySet;
-        public GeometryEvent geometry;
-        public LightingEvent lighting;
-        public SkyboxEvent skybox;
-        public UberEvents uber;
-    }
+        public static readonly Type[] gpuDeferredType =
+        {
+       typeof(PropertySetEvent),
+       typeof(GeometryEvent),
+       typeof(AOEvents),
+       typeof(LightingEvent),
+       typeof(ReflectionEvent),
+       typeof(SkyboxEvent),
+       typeof(VolumetricLightEvent),
+       typeof(UberEvents),
+       typeof(TemporalAAEvent),
+       typeof(TransEvent),
+       typeof(FinalPostEvent)
+        };
 
-    [Serializable]
-    public class AllEvents
-    {
-        [TargetPath(PipelineResources.CameraRenderingPath.GPUDeferred)]
-        public GPUDeferred gpuDeferred;
-        [TargetPath(PipelineResources.CameraRenderingPath.Bake)]
-        public BakeInEditor baker;
+        public static readonly Type[] bakeType =
+        {
+        typeof(PropertySetEvent),
+        typeof(GeometryEvent),
+        typeof(LightingEvent),
+        typeof(SkyboxEvent),
+        typeof(UberEvents)
+        };
+
+        public static List<Pair<int, Type[]>> GetAllPath()
+        {
+            List<Pair<int, Type[]>> list = new List<Pair<int, Type[]>>();
+            list.Add(new Pair<int, Type[]>((int)PipelineResources.CameraRenderingPath.GPUDeferred, gpuDeferredType));
+            list.Add(new Pair<int, Type[]>((int)PipelineResources.CameraRenderingPath.Bake, bakeType));
+            return list;
+        }
     }
 }

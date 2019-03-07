@@ -60,7 +60,7 @@ namespace MPipeline
         {
             
             cbdr = new CBDRSharedData(resources);
-            volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>(renderingPath);
+            volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>();
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
             {
                 cascadeShadowMapVP[i] = Matrix4x4.identity;
@@ -168,7 +168,6 @@ namespace MPipeline
             if (SunLight.current.enableShadow)
                 cbdr.lightFlag |= 0b010;
             CommandBuffer buffer = data.buffer;
-            int pass;
             if (SunLight.current.enableShadow)
             {
                 RenderClusterOptions opts = new RenderClusterOptions
@@ -189,12 +188,8 @@ namespace MPipeline
                 buffer.SetGlobalTexture(ShaderIDs._DirShadowMap, SunLight.current.shadowmapTexture);
                 cbdr.dirLightShadowmap = SunLight.current.shadowmapTexture;
                 staticFit.frustumCorners.Dispose();
-                pass = 0;
             }
-            else
-            {
-                pass = 1;
-            }
+
             buffer.SetGlobalVector(ShaderIDs._DirLightFinalColor, SunLight.current.light.color * SunLight.current.light.intensity);
             buffer.SetGlobalVector(ShaderIDs._DirLightPos, -(Vector3)SunLight.current.shadCam.forward);
         }

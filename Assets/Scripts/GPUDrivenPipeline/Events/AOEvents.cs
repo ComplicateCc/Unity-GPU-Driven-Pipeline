@@ -11,15 +11,6 @@ namespace MPipeline
     public class AOEvents : PipelineEvent
     {
         private PropertySetEvent propertySetEvent;
-        //Enum Property//
-        public enum OutPass
-        {
-            Combine = 4,
-            AO = 5,
-            RO = 6,
-            BentNormal = 7
-        };
-
 
 
         //C# To Shader Property
@@ -69,15 +60,6 @@ namespace MPipeline
         [Range(0, 1)]
         [SerializeField]
         float TemporalResponse = 1;
-
-
-
-        [Header("DeBug")]
-
-        [SerializeField]
-        private OutPass AODeBug = OutPass.Combine;
-
-
 
 
         //BaseProperty
@@ -142,7 +124,7 @@ namespace MPipeline
         protected override void Init(PipelineResources resources)
         {
             GTAOMaterial = new Material(resources.shaders.gtaoShader);
-            propertySetEvent = RenderPipeline.GetEvent<PropertySetEvent>(renderingPath);
+            propertySetEvent = RenderPipeline.GetEvent<PropertySetEvent>();
         }
 
         public override bool CheckProperty()

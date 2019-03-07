@@ -21,9 +21,9 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            data.buffer.SetKeyword("GPURP_UBER", RenderPipeline.currentPath == PipelineResources.CameraRenderingPath.GPUDeferred);
             data.buffer.SetRenderTarget(color: cam.targets.renderTargetIdentifier, depth: cam.targets.depthBuffer);
-            data.buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, muberMaterial, 0, 0);
-            data.buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, muberMaterial, 0, 1);
+            data.buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, muberMaterial, 0, -1);
         }
 
         public override bool CheckProperty()

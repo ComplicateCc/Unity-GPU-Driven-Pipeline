@@ -36,7 +36,7 @@ namespace MPipeline
         protected override void Init(PipelineResources resources)
         {
             probeBuffer = new ComputeBuffer(maximumProbe, sizeof(ReflectionData));
-            lightingEvents = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
+            lightingEvents = RenderPipeline.GetEvent<LightingEvent>();
             reflectionIndices = new ComputeBuffer(CBDRSharedData.XRES * CBDRSharedData.YRES * CBDRSharedData.ZRES * (maximumProbe + 1), sizeof(int));
             string old = "_ReflectionCubeMap";
             string newStr = new string(' ', old.Length + 1);

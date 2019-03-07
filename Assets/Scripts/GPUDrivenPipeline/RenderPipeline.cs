@@ -36,6 +36,7 @@ namespace MPipeline
         }
         private static List<Action<CommandBuffer>> bufferAfterFrame = new List<Action<CommandBuffer>>(10);
         private static List<EditorBakeCommand> bakeList = new List<EditorBakeCommand>();
+        public static PipelineResources.CameraRenderingPath currentPath { get; private set; }
         public static void AddRenderingMissionInEditor(NativeList<float4x4> worldToCameras, NativeList<float4x4> projections, PipelineCamera targetCameras, RenderTexture texArray, RenderTexture tempTexture, CommandBuffer buffer)
         {
             bakeList.Add(new EditorBakeCommand
@@ -54,10 +55,9 @@ namespace MPipeline
         //Shouldn't do anything in runtime
         }
 #endif
-        public static T GetEvent<T>(PipelineResources.CameraRenderingPath path) where T : PipelineEvent
+        public static T GetEvent<T>() where T : PipelineEvent
         {
-            var allEvents = current.resources.allEvents;
-            PipelineEvent[] events = allEvents[(int)path];
+            var events = current.resources.availiableEvents;
             for (int i = 0; i < events.Length; ++i)
             {
                 PipelineEvent evt = events[i];
@@ -66,17 +66,17 @@ namespace MPipeline
             return null;
         }
 
-        public static PipelineEvent GetEvent(PipelineResources.CameraRenderingPath path, Type targetType)
+        public static PipelineEvent GetEvent(Type type)
         {
-            var allEvents = current.resources.allEvents;
-            PipelineEvent[] events = allEvents[(int)path];
+            var events = current.resources.availiableEvents;
             for (int i = 0; i < events.Length; ++i)
             {
                 PipelineEvent evt = events[i];
-                if (evt.GetType() == targetType) return evt;
+                if (evt.GetType() == type) return evt;
             }
             return null;
         }
+
         public static void AddCommandAfterFrame(object arg, Action<object> func)
         {
             afterRenderFrame.Add(new Command
@@ -117,7 +117,7 @@ namespace MPipeline
                 if (events == null) continue;
                 foreach (var j in events)
                 {
-                    j.Prepare((PipelineResources.CameraRenderingPath)i);
+                    j.Prepare();
                 }
                 foreach (var j in events)
                 {
@@ -221,6 +221,7 @@ namespace MPipeline
         private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam, bool* pipelineChecked)
         {
             PipelineResources.CameraRenderingPath path = pipelineCam.renderingPath;
+            currentPath = path;
             pipelineCam.cam = cam;
             pipelineCam.EnableThis();
             if (!cam.TryGetCullingParameters(out data.cullParams)) return;

@@ -23,6 +23,7 @@
 	#pragma multi_compile _ POINTLIGHT
 	#pragma multi_compile _ SPOTLIGHT
     #pragma multi_compile _ EnableGTAO
+#pragma multi_compile _ GPURP_UBER
 			float4x4 _InvNonJitterVP;
 			
 			Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
@@ -85,13 +86,13 @@
 					finalColor += CalculateSunLight_NoShadow(data, viewDir);
 				#endif
                 #endif
-                #if ENABLE_REFLECTION
+                #if ENABLE_REFLECTION && GPURP_UBER
 					finalColor += CalculateReflection(linearEyeDepth, wpos.xyz, viewDir, gbuffer1, data.normalWorld, aoro.y, i.uv);
 				#endif
                 #if SPOTLIGHT || POINTLIGHT
 				finalColor += CalculateLocalLight(i.uv, wpos, linearEyeDepth, data.diffuseColor, data.normalWorld, gbuffer1, roughness, -viewDir);
                 #endif
-                #if ENABLE_VOLUMETRIC
+                #if ENABLE_VOLUMETRIC && GPURP_UBER
 					float4 volumeFog = Fog(linear01Depth, i.uv);
                     finalColor = lerp(volumeFog.rgb, finalColor, volumeFog.a);
 				#endif
@@ -111,7 +112,7 @@
             float4 frag (v2f i) : SV_Target
             {
 				
-                #if ENABLE_VOLUMETRIC
+                #if ENABLE_VOLUMETRIC && GPURP_UBER
                 float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
                 float linear01Depth = Linear01Depth(depth);
 					float4 volumeFog = Fog(linear01Depth, i.uv);

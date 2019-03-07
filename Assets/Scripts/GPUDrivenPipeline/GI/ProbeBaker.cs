@@ -29,7 +29,7 @@ namespace MPipeline
         private CommandBuffer cbuffer;
         private ComputeBuffer coeffTemp;
         private ComputeBuffer coeff;
-        private NativeList<int> _CoeffIDs;
+        
         private RenderTexture[] coeffTextures;
         private bool isRendering = false;
         private int indexInList;
@@ -37,16 +37,10 @@ namespace MPipeline
         {
             isRendered = false;
             cbuffer = new CommandBuffer();
-            _CoeffIDs = new NativeList<int>(7, Allocator.Persistent);
+            
             coeffTextures = new RenderTexture[7];
-            string str = "_CoeffTexture0";
             for (int i = 0; i < 7; ++i)
             {
-                fixed (char* chr = str)
-                {
-                    chr[13] = (char)(i + 48);
-                }
-                _CoeffIDs.Add(Shader.PropertyToID(str));
                 coeffTextures[i] = new RenderTexture(new RenderTextureDescriptor
                 {
                     autoGenerateMips = false,
@@ -92,7 +86,6 @@ namespace MPipeline
             cbuffer.Dispose();
             coeff.Dispose();
             coeffTemp.Dispose();
-            _CoeffIDs.Dispose();
             foreach (var i in coeffTextures)
             {
                 Destroy(i);
@@ -190,8 +183,7 @@ namespace MPipeline
                 var a = saveTarget.allVolume[i];
                 if(a.volumeName == volumeName)
                 {
-                    string path = AssetDatabase.GUIDToAssetPath(a.guid);
-                    File.Delete(path);
+                    File.Delete("Assets/BinaryData/Irradiance/" + volumeName + ".mpipe");
                     alreadyContained = true;
                     indexInList = i;
                     break;
@@ -205,15 +197,6 @@ namespace MPipeline
             if (isRendering) return;
             isRendering = true;
             StartCoroutine(BakeLightmap());
-        }
-        public void SetCoeffTextures(CommandBuffer buffer, ComputeShader shader, int targetPass)
-        {
-            for (int i = 0; i < _CoeffIDs.Length; ++i)
-            {
-                buffer.SetComputeTextureParam(shader, targetPass, _CoeffIDs[i], coeffTextures[i]);
-            }
-            buffer.SetGlobalVector("_SHSize", transform.localScale);
-            buffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
         }
         public IEnumerator BakeLightmap()
         {
@@ -240,17 +223,18 @@ namespace MPipeline
             texArrayDescriptor.dimension = TextureDimension.Tex2D;
             RenderTexture tempRT = RenderTexture.GetTemporary(texArrayDescriptor);
             ComputeShader shader = resources.shaders.probeCoeffShader;
-            Action<CommandBuffer> func = (cbuffer) =>
+            Action<CommandBuffer> func = (cb) =>
             {
-                cbuffer.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
-                cbuffer.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
-                cbuffer.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
-                cbuffer.SetComputeTextureParam(shader, 0, "_SourceCubemap", rt);
-                cbuffer.SetGlobalVector("_Tex3DSize", new Vector4(probeCount.x + 0.01f, probeCount.y + 0.01f, probeCount.z + 0.01f));
-                cbuffer.SetGlobalVector("_SHSize", transform.localScale);
-                cbuffer.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
+                cb.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
+                cb.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
+                cb.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
+                cb.SetComputeTextureParam(shader, 0, "_SourceCubemap", rt);
+                cb.SetGlobalVector("_Tex3DSize", new Vector4(probeCount.x + 0.01f, probeCount.y + 0.01f, probeCount.z + 0.01f));
+                cb.SetGlobalVector("_SHSize", transform.localScale);
+                cb.SetGlobalVector("_LeftDownBack", transform.position - transform.localScale * 0.5f);
             };
             RenderPipeline.ExecuteBufferAtFrameEnding(func);
+            yield return null;
             yield return null;
             int target = probeCount.x * probeCount.y * probeCount.z;
             for (int x = 0; x < probeCount.x; ++x)
@@ -267,8 +251,6 @@ namespace MPipeline
                     }
                 }
             }
-            
-           
             isRendering = false;
             yield return null;
             isRendered = true;
@@ -278,17 +260,18 @@ namespace MPipeline
             File.WriteAllBytes(path, byteArray);
             IrradianceResources.Volume volume = new IrradianceResources.Volume
             {
-                guid = AssetDatabase.AssetPathToGUID(path),
                 position = transform.position,
                 size = transform.localScale,
                 resolution = (uint3)probeCount,
-                volumeName = volumeName
+                volumeName = volumeName,
+                path = path
             };
-            Debug.Log(volume.guid);
+            Debug.Log(volume.volumeName);
             saveTarget.allVolume[indexInList] = volume;
             EditorUtility.SetDirty(saveTarget);
             RenderTexture.ReleaseTemporary(rt);
             RenderTexture.ReleaseTemporary(tempRT);
+            yield return null;
             Dispose();
         }
     }

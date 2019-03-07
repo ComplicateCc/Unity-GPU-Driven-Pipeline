@@ -78,7 +78,6 @@ namespace MPipeline
 
         private List<PipelineEvent> dependedEvents = null;
         private List<PipelineEvent> dependingEvents = null;
-        public PipelineResources.CameraRenderingPath renderingPath { get; private set; }
         public void CheckInit(PipelineResources resources)
         {
             initialized = true;
@@ -124,17 +123,16 @@ namespace MPipeline
         {
 
         }
-        public void Prepare(PipelineResources.CameraRenderingPath renderingPath)
+        public void Prepare()
         {
             RequireEventAttribute requireEvt = GetType().GetCustomAttribute<RequireEventAttribute>(true);
-            this.renderingPath = renderingPath;
             if (requireEvt != null)
             {
                 if (dependingEvents == null)
                     dependingEvents = new List<PipelineEvent>(requireEvt.events.Length);
                 foreach (var t in requireEvt.events)
                 {
-                    PipelineEvent targetevt = RenderPipeline.GetEvent(renderingPath, t);
+                    PipelineEvent targetevt = RenderPipeline.GetEvent(t);
                     if (targetevt != null)
                     {
                         if (targetevt.dependedEvents == null)

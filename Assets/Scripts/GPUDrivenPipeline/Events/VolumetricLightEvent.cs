@@ -18,7 +18,8 @@ namespace MPipeline
         public float indirectIntensity = 1;
         const int marchStep = 64;
         const int scatterPass = 8;
-        const int calculateGI = 9;
+        const int clearPass = 9;
+        const int calculateGI = 10;
         static readonly int3 downSampledSize = new int3(160, 90, 256);
         private ComputeBuffer randomBuffer;
         private JobHandle jobHandle;
@@ -32,7 +33,7 @@ namespace MPipeline
         }
         protected override void Init(PipelineResources resources)
         {
-            lightingData = RenderPipeline.GetEvent<LightingEvent>(renderingPath);
+            lightingData = RenderPipeline.GetEvent<LightingEvent>();
             randomBuffer = new ComputeBuffer(downSampledSize.x * downSampledSize.y * downSampledSize.z, sizeof(uint));
             NativeArray<uint> randomArray = new NativeArray<uint>(randomBuffer.count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             uint* randPtr = randomArray.Ptr();
@@ -161,6 +162,7 @@ namespace MPipeline
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._RandomBuffer, randomBuffer);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
             buffer.SetComputeTextureParam(scatter, scatterPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
+            buffer.SetComputeTextureParam(scatter, clearPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._LastVolume, historyVolume.lastVolume);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._DirShadowMap, cbdr.dirLightShadowmap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
@@ -183,6 +185,7 @@ namespace MPipeline
             }*/
             cbdr.dirLightShadowmap = null;
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
+            buffer.DispatchCompute(scatter, clearPass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
             buffer.DispatchCompute(scatter, pass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
             buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);
             buffer.DispatchCompute(scatter, scatterPass, downSampledSize.x / 32, downSampledSize.y / 2, 1);

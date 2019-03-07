@@ -2,31 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
-using System.Reflection;
 using System;
 namespace MPipeline
 {
-    public abstract class EventsCollection
-    {
-        public PipelineEvent[] GetAllEvents()
-        {
-            FieldInfo[] infos = GetType().GetFields();
-            PipelineEvent[] events = new PipelineEvent[infos.Length];
-            for (int i = 0; i < events.Length; ++i)
-            {
-                events[i] = infos[i].GetValue(this) as PipelineEvent;
-            }
-            return events;
-        }
-    }
-    public class TargetPathAttribute : Attribute
-    {
-        public PipelineResources.CameraRenderingPath path { get; private set; }
-        public TargetPathAttribute(PipelineResources.CameraRenderingPath renderingPath)
-        {
-            path = renderingPath;
-        }
-    }
+
     public unsafe sealed class PipelineResources : RenderPipelineAsset
     {
         protected override UnityEngine.Rendering.RenderPipeline CreatePipeline()
@@ -37,24 +16,21 @@ namespace MPipeline
         {
             GPUDeferred, Bake
         }
+        public PipelineEvent[] availiableEvents;
         public PipelineShaders shaders = new PipelineShaders();
         public PipelineEvent[][] allEvents { get; private set; }
+        public static PipelineEvent[] GetAllEvents(Type[] types, Dictionary<Type, PipelineEvent> dict)
+        {
+            PipelineEvent[] events = new PipelineEvent[types.Length];
+            for (int i = 0; i < events.Length; ++i)
+            {
+                events[i] = dict[types[i]];
+            }
+            return events;
+        }
         public void SetRenderingPath()
         {
-            FieldInfo[] infos = events.GetType().GetFields();
-            List<Pair<int, EventsCollection>> allCollection = new List<Pair<int, EventsCollection>>();
-            foreach (var i in infos)
-            {
-                TargetPathAttribute target = i.GetCustomAttribute<TargetPathAttribute>();
-                if(target != null)
-                {
-                    EventsCollection collection = i.GetValue(events) as EventsCollection;
-                    if(collection != null)
-                    {
-                        allCollection.Add(new Pair<int, EventsCollection>((int)target.path, collection));
-                    }
-                }
-            }
+            List<Pair<int, Type[]>> allCollection = AllEvents.GetAllPath();
             int maximum = -1;
             foreach(var i in allCollection)
             {
@@ -62,11 +38,15 @@ namespace MPipeline
                     maximum = i.key;
             }
             allEvents = new PipelineEvent[maximum + 1][];
+            Dictionary<Type, PipelineEvent> evtDict = new Dictionary<Type, PipelineEvent>(availiableEvents.Length);
+            foreach(var i in availiableEvents)
+            {
+                evtDict.Add(i.GetType(), i);
+            }
             foreach(var i in allCollection)
             {
-                allEvents[i.key] = i.value.GetAllEvents();
+                allEvents[i.key] = GetAllEvents(i.value, evtDict);
             }
         }
-        public AllEvents events = new AllEvents();
     }
 }

@@ -12,6 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2dbd0823b00f58a4caf0bda5f81b5c91, type: 3}
   m_Name: DefaultResources
   m_EditorClassIdentifier: 
+  availiableEvents:
+  - {fileID: 11400000, guid: cfd7bbc3e9481ec458e874a8577ee260, type: 2}
+  - {fileID: 11400000, guid: 2b92438e0f21bc94abd6c4972ddb265a, type: 2}
+  - {fileID: 11400000, guid: b9e7b54c776eb18408cdafca469b13e0, type: 2}
+  - {fileID: 11400000, guid: bd3ad988b135ba44abd421986d3d7561, type: 2}
+  - {fileID: 11400000, guid: ec8cef056d08590479397b93336d090c, type: 2}
+  - {fileID: 11400000, guid: 4ba4d0b7b30f88a4d92a2fccd277f94c, type: 2}
+  - {fileID: 11400000, guid: eed54e1aa86953840809795e80367826, type: 2}
+  - {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
+  - {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}
+  - {fileID: 11400000, guid: 6fe05694a7e3c07469031a6ab5c74e0d, type: 2}
+  - {fileID: 11400000, guid: 8e5626ee74c9fe14c8e4b45900b584f7, type: 2}
+  - {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
   shaders:
     cbdrShader: {fileID: 7200000, guid: 32eda6600c320d948b7c69a6823d3bf9, type: 3}
     gpuFrustumCulling: {fileID: 7200000, guid: 27a4a69f28f2cb946a2de4928422fcd8, type: 3}
@@ -47,23 +60,3 @@ MonoBehaviour:
     uberShader: {fileID: 4800000, guid: b10a195e54d72984783eb1f2f49aa43f, type: 3}
     occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
-  events:
-    gpuDeferred:
-      propertySet: {fileID: 11400000, guid: 4ba4d0b7b30f88a4d92a2fccd277f94c, type: 2}
-      geometry: {fileID: 11400000, guid: b9e7b54c776eb18408cdafca469b13e0, type: 2}
-      ambientOcclusion: {fileID: 11400000, guid: cfd7bbc3e9481ec458e874a8577ee260,
-        type: 2}
-      lighting: {fileID: 11400000, guid: bd3ad988b135ba44abd421986d3d7561, type: 2}
-      reflection: {fileID: 11400000, guid: eed54e1aa86953840809795e80367826, type: 2}
-      skybox: {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
-      volumetric: {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
-      uber: {fileID: 11400000, guid: 8e5626ee74c9fe14c8e4b45900b584f7, type: 2}
-      temporalAA: {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}
-      transparent: {fileID: 11400000, guid: 6fe05694a7e3c07469031a6ab5c74e0d, type: 2}
-      postEffects: {fileID: 11400000, guid: ec8cef056d08590479397b93336d090c, type: 2}
-    baker:
-      propertySet: {fileID: 11400000, guid: 4ba4d0b7b30f88a4d92a2fccd277f94c, type: 2}
-      geometry: {fileID: 11400000, guid: b9e7b54c776eb18408cdafca469b13e0, type: 2}
-      lighting: {fileID: 11400000, guid: bd3ad988b135ba44abd421986d3d7561, type: 2}
-      skybox: {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
-      uber: {fileID: 11400000, guid: 8e5626ee74c9fe14c8e4b45900b584f7, type: 2}
