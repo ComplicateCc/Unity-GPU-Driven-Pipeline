@@ -64,7 +64,7 @@ public class SunLight : MonoBehaviour
         {
             width = resolution,
             height = resolution,
-            depthBufferBits = 32,
+            depthBufferBits = 16,
             colorFormat = RenderTextureFormat.RFloat,
             autoGenerateMips = false,
             bindMS = false,

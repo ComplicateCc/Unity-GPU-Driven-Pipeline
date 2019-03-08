@@ -116,5 +116,4 @@ public static partial class ShaderIDs
     public static readonly int _AOROTexture = Shader.PropertyToID("_AOROTexture");
     public static readonly int _Coeff = Shader.PropertyToID("_Coeff");
     public static readonly int _Tex3DSize = Shader.PropertyToID("_Tex3DSize");
-    public static readonly int _ShadowSampler = Shader.PropertyToID("_ShadowSampler");
 }

@@ -26,8 +26,6 @@ namespace MPipeline
         [System.NonSerialized]
         private VolumetricLightEvent volumetricEvent;
         #endregion
-        [Range(1, 20)]
-        public int shadowLength = 20;
         #region POINT_LIGHT
         private Material cubeDepthMaterial;
         private RenderSpotShadowCommand spotBuffer;
@@ -155,7 +153,6 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            data.buffer.SetGlobalInt(ShaderIDs._ShadowSampler, shadowLength);
             DirLight(cam, ref data);
             PointLight(cam, ref data);
             LightFilter.Clear();

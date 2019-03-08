@@ -8,7 +8,7 @@ float2 _CameraClipDistance; //X: Near Y: Far - Near
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
 //UNITY_SAMPLE_SHADOW
 Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
-int _ShadowSampler;
+static const int _ShadowSampler = 20;
 	static const float3 Offsets[20] = 
 	{
 	float3( 1.0,  1.0,  1.0), float3( 1.0, -1.0,  1.0), float3(-1.0, -1.0,  1.0), float3(-1.0,  1.0,  1.0), 
@@ -107,13 +107,11 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		if (Light.shadowIndex >= 0) {
 			
 			float DepthMap = (Length_LightDir - 0.25) / LightRange;
-			float ShadowDistance = _CubeShadowMapArray.Sample( sampler_CubeShadowMapArray, float4( LightDir, Light.shadowIndex ) );
-			float LightDistance = lerp(1, 3.2, DepthMap - ShadowDistance);
-			float offset = ShadowResolution / LightDistance;
+			ShadowTrem = 0;
 			for(int i = 0; i < _ShadowSampler; ++i)
 			{
 				JitterPoint = cellNoise(JitterPoint);
-				float ShadowMap = _CubeShadowMapArray.Sample( sampler_CubeShadowMapArray, float4( ( LightDir + ( JitterPoint /  offset) + ( (Offsets[i] * 2) / ShadowResolution ) ), Light.shadowIndex ) );
+				float ShadowMap = _CubeShadowMapArray.Sample( sampler_CubeShadowMapArray, float4( ( LightDir + ( JitterPoint /  ShadowResolution) + ( (Offsets[i] * 2) / ShadowResolution ) ), Light.shadowIndex ) );
 				ShadowTrem += DepthMap < ShadowMap;
 			}
 			ShadowTrem /= float(_ShadowSampler);
