@@ -14,8 +14,6 @@ namespace MPipeline
         public RenderTexture zPlaneTexture;
         public RenderTexture pointTileLightList;
         public RenderTexture spotTileLightList;
-        public RenderTexture froxelpointTileLightList;
-        public RenderTexture froxelSpotTileLightList;
         public ComputeBuffer allFogVolumeBuffer;
         public ComputeBuffer allPointLightBuffer;
         public ComputeBuffer allSpotLightBuffer;
@@ -27,9 +25,6 @@ namespace MPipeline
         public const int MAXLIGHTPERCLUSTER = 16;
         public const int MAXPOINTLIGHTPERTILE = 64;
         public const int MAXSPOTLIGHTPERTILE = 64;
-        public const int FROXELMAXPOINTLIGHTPERTILE = 32;
-        public const int FROXELMAXSPOTLIGHTPERTILE = 32;
-        public const int MAXFOGVOLUMEPERTILE = 16;
         public const int pointLightInitCapacity = 50;
         public const int spotLightInitCapacity = 50;
         public const int SetXYPlaneKernel = 0;
@@ -41,7 +36,6 @@ namespace MPipeline
         public float availiableDistance;
         public int spotShadowCount;
         public int pointshadowCount;
-        public bool useFroxel { get; private set; }
         public bool CheckAvailiable()
         {
             return spotArrayMap != null && cubeArrayMap != null;
@@ -49,7 +43,6 @@ namespace MPipeline
         public CBDRSharedData(PipelineResources res)
         {
             dirLightShadowmap = null;
-            useFroxel = false;
             availiableDistance = 0;
             spotShadowCount = 0;
             pointshadowCount = 0;
@@ -136,12 +129,6 @@ namespace MPipeline
             desc.volumeDepth = MAXSPOTLIGHTPERTILE;
             spotTileLightList = new RenderTexture(desc);
             spotTileLightList.Create();
-            desc.volumeDepth = FROXELMAXPOINTLIGHTPERTILE;
-            froxelpointTileLightList = new RenderTexture(desc);
-            froxelpointTileLightList.Create();
-            desc.volumeDepth = FROXELMAXSPOTLIGHTPERTILE;
-            froxelSpotTileLightList = new RenderTexture(desc);
-            froxelSpotTileLightList.Create();
             allFogVolumeBuffer = new ComputeBuffer(30, sizeof(FogVolume));
         }
         public static void ResizeBuffer(ref ComputeBuffer buffer, int newCapacity)
@@ -150,15 +137,11 @@ namespace MPipeline
             buffer.Dispose();
             buffer = new ComputeBuffer(newCapacity, buffer.stride);
         }
-        public void UpdateFroxel(bool froxelEnabled)
-        {
-            useFroxel = froxelEnabled;
-        }
         public int TBDRPointKernel
         {
             get
             {
-                return useFroxel ? 4 : 3;
+                return 3;
             }
         }
 
@@ -166,7 +149,7 @@ namespace MPipeline
         {
             get
             {
-                return useFroxel ? 6 : 5;
+                return 4;
             }
         }
 
@@ -174,7 +157,7 @@ namespace MPipeline
         {
             get
             {
-                return useFroxel ? 8 : 7;
+                return 5;
             }
         }
 
@@ -187,8 +170,6 @@ namespace MPipeline
             allSpotLightBuffer.Dispose();
             spotlightIndexBuffer.Dispose();
             allFogVolumeBuffer.Dispose();
-            Object.DestroyImmediate(froxelpointTileLightList);
-            Object.DestroyImmediate(froxelSpotTileLightList);
             Object.DestroyImmediate(pointTileLightList);
             Object.DestroyImmediate(spotTileLightList);
             Object.DestroyImmediate(cubeArrayMap);

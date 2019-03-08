@@ -26,6 +26,9 @@ float4x4 _LastVp;
 float4 _SceneOffset;
 float _TemporalWeight;
 
+StructuredBuffer<uint> _PointLightIndexBuffer;
+StructuredBuffer<uint> _SpotLightIndexBuffer;
+
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
 Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
 StructuredBuffer<PointLight> _AllPointLight;
@@ -34,10 +37,8 @@ StructuredBuffer<FogVolume> _AllFogVolume;
 Texture2DArray<float> _DirShadowMap; SamplerComparisonState sampler_DirShadowMap;
 RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
-Texture3D<int> _FroxelPointTileLightList;
-Texture3D<int> _FroxelSpotTileLightList;
 float3 _DirLightPos;
-uint _FogVolumeCount;
+uint _FogVolumeCount; 
 float _IndirectIntensity;
 
             inline float EyeDepthToProj(float lin)
@@ -62,6 +63,7 @@ float _IndirectIntensity;
 #define MieScattering(cosAngle, g) g.w * (g.x / (pow(g.y - g.z * cosAngle, 1.5)))
 // x: 1 - g^2, y: 1 + g^2, z: 2*g, w: 1/4pi   g = 0.36
 static const float4 _MieG = float4(0.8704, 1.1296,0.72,0.7853981633974483);
+float2 _CameraClipDistance; //X: Near Y: Far - Near
 float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
 {
     float4 color = 0;
@@ -75,13 +77,17 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
         #endif
     }
 
-    uint2 tileIndex = uv * uint2(XRES, YRES);
+    float rate = saturate((linearDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
+	uint3 voxelValue = uint3((uint2)(uv * float2(XRES, YRES)), (uint)(rate * ZRES));
+	uint sb = GetIndex(voxelValue, VOXELSIZE, (MAXLIGHTPERCLUSTER + 1));
+	uint2 LightIndex;// = uint2(sb + 1, _PointLightIndexBuffer[sb]);
+    uint c;
     if(_LightFlag & 1){
-        uint len = min(_FroxelPointTileLightList[uint3(tileIndex, 0)], FROXELMAXPOINTLIGHTPERTILE + 1);
+        LightIndex = uint2(sb + 1, _PointLightIndexBuffer[sb]);
         [loop]
-        for(uint c = 1; c < len; c++)
+        for (c = LightIndex.x; c < LightIndex.y; c++)
         {
-            PointLight pt = _AllPointLight[_FroxelPointTileLightList[uint3(tileIndex, c)]];
+            PointLight pt = _AllPointLight[_PointLightIndexBuffer[c]];
             float3 lightDir = pt.sphere.xyz - targetWorldPos;
             float lenOfLightDir = length(lightDir);
             //Cull Light
@@ -101,11 +107,11 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
     }
     if(_LightFlag & 8)
     {
-        uint len = min(_FroxelSpotTileLightList[uint3(tileIndex, 0)], FROXELMAXSPOTLIGHTPERTILE + 1);
+        LightIndex = uint2(sb + 1, _SpotLightIndexBuffer[sb]);
         [loop]
-        for(uint c = 1; c < len; c++)
-        {
-            SpotLight Light = _AllSpotLight[_FroxelSpotTileLightList[uint3(tileIndex, c)]];
+        for (c = LightIndex.x; c < LightIndex.y; c++)
+	    {
+            SpotLight Light = _AllSpotLight[_SpotLightIndexBuffer[c]];
             Cone SpotCone = Light.lightCone;
             float LightRange = SpotCone.radius;
             float3 LightPos = SpotCone.vertex;

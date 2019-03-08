@@ -157,8 +157,6 @@ namespace MPipeline
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
             buffer.SetComputeIntParam(scatter, ShaderIDs._FogVolumeCount, fogCount);
-            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelPointTileLightList, cbdr.froxelpointTileLightList);
-            buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._FroxelSpotTileLightList, cbdr.froxelSpotTileLightList);
             buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._RandomBuffer, randomBuffer);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
             buffer.SetComputeTextureParam(scatter, scatterPass, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
