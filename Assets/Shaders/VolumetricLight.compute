@@ -34,7 +34,7 @@ Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
 StructuredBuffer<FogVolume> _AllFogVolume;
-Texture2DArray<float> _DirShadowMap; SamplerComparisonState sampler_DirShadowMap;
+Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
 RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 float3 _DirLightPos;
@@ -56,8 +56,11 @@ float _IndirectIntensity;
 				shadowUV = shadowUV * 0.5 + 0.5;
 
 				float dist = shadowPos.z;
-
-				float atten = _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV, zAxisUV), dist);
+                #if UNITY_REVERSED_Z
+                float atten = _DirShadowMap.SampleLevel(sampler_DirShadowMap, float3(shadowUV, zAxisUV), 0) < dist;
+                #else
+				float atten = _DirShadowMap.SampleLevel(sampler_DirShadowMap, float3(shadowUV, zAxisUV), 0) > dist;
+                #endif
 				return atten;
 			}
 #define MieScattering(cosAngle, g) g.w * (g.x / (pow(g.y - g.z * cosAngle, 1.5)))

@@ -18,6 +18,11 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+  - first: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: SHADOWS_DEPTH
+        passType: 8
   - first: {fileID: 74, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
@@ -28,6 +33,8 @@ ShaderVariantCollection:
   - first: {fileID: 69, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
+      - keywords: 
+        passType: 0
       - keywords: SPOT UNITY_HDR_ON
         passType: 0
   - first: {fileID: 106, guid: 0000000000000000f000000000000000, type: 0}
@@ -191,9 +198,6 @@ ShaderVariantCollection:
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
           SPOTLIGHT
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          POINTLIGHT
-        passType: 0
       - keywords: ENABLE_SUN ENABLE_SUNSHADOW GPURP_UBER
         passType: 0
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
@@ -206,6 +210,9 @@ ShaderVariantCollection:
         passType: 0
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
           EnableGTAO GPURP_UBER SPOTLIGHT
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          POINTLIGHT
         passType: 0
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
           POINTLIGHT

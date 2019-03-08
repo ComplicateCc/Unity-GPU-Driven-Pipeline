@@ -215,8 +215,9 @@ ENDCG
 			}
 
 			
-			void frag (v2f i) 
+			float frag (v2f i)  : SV_TARGET
 			{
+				return i.vertex.z;
 			}
 
 			ENDCG
@@ -291,8 +292,9 @@ ENDCG
 				o.worldPos = worldPos.xyz;
 				return o;
 			}
-			void frag (v2f i)
+			float frag (v2f i) : SV_TARGET
 			{
+				return 0;
 			}
 
 			ENDCG

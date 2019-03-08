@@ -30,9 +30,9 @@
 				return o;
 			}
 			
-			void frag (v2f i)
+			float frag (v2f i) : SV_Target
 			{
-				
+				return i.vertex.z;
 			}
 			ENDCG
 		}
@@ -65,11 +65,7 @@
 			
 			float frag (v2f i) : SV_Target
 			{
-				#if UNITY_REVERSED_Z
-				return 1 - i.vertex.z;
-				#else
 				return i.vertex.z;
-				#endif
 			}
 			ENDCG
 		}
