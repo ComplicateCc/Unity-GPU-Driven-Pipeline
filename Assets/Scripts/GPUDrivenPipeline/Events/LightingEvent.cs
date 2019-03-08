@@ -26,6 +26,8 @@ namespace MPipeline
         [System.NonSerialized]
         private VolumetricLightEvent volumetricEvent;
         #endregion
+        [Range(1, 20)]
+        public int shadowLength = 20;
         #region POINT_LIGHT
         private Material cubeDepthMaterial;
         private RenderSpotShadowCommand spotBuffer;
@@ -153,6 +155,7 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            data.buffer.SetGlobalInt(ShaderIDs._ShadowSampler, shadowLength);
             DirLight(cam, ref data);
             PointLight(cam, ref data);
             LightFilter.Clear();
@@ -203,16 +206,18 @@ namespace MPipeline
                 MLight.AddMLight(i);
             }
             addMLightCommandList.Clear();
-            cbdr.pointshadowCount = cubemapVPMatrices.Length;
+            int count = Mathf.Min(cubemapVPMatrices.Length, CBDRSharedData.MAXIMUMPOINTLIGHTCOUNT);
+            cbdr.pointshadowCount = count;
             if (LightFilter.pointLightCount > 0)
             {
-                if (cubemapVPMatrices.Length > 0)
+                if (count > 0)
                 {
                     var cullShader = data.resources.shaders.gpuFrustumCulling;
                     buffer.SetGlobalTexture(ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
                     NativeArray<VisibleLight> allLights = data.cullResults.visibleLights;
                     PointLightStruct* pointLightPtr = pointLightArray.Ptr();
-                    for (int i = 0; i < cubemapVPMatrices.Length; ++i)
+
+                    for (int i = 0; i < count; ++i)
                     {
                         ref CubemapViewProjMatrix vpMatrices = ref cubemapVPMatrices[i];
                         int2 lightIndex = vpMatrices.index;
@@ -253,17 +258,18 @@ namespace MPipeline
             {
                 buffer.DisableShaderKeyword("POINTLIGHT");
             }
-            cbdr.spotShadowCount = spotLightMatrices.Length;
+            count = Mathf.Min(spotLightMatrices.Length, CBDRSharedData.MAXIMUMSPOTLIGHTCOUNT);
+            cbdr.spotShadowCount = count;
             if (LightFilter.spotLightCount > 0)
             {
-                if (spotLightMatrices.Length > 0)
+                if (count > 0)
                 {
                     SpotLight* allSpotLightPtr = spotLightArray.Ptr();
                     buffer.SetGlobalTexture(ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
                     spotBuffer.renderTarget = cbdr.spotArrayMap;
                     spotBuffer.shadowMatrices = spotLightMatrices.unsafePtr;
                     NativeArray<VisibleLight> allLights = data.cullResults.visibleLights;
-                    for (int i = 0; i < spotLightMatrices.Length; ++i)
+                    for (int i = 0; i < count; ++i)
                     {
                         ref SpotLightMatrix vpMatrices = ref spotLightMatrices[i];
                         int2 index = vpMatrices.index;

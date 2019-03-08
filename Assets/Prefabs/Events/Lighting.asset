@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: Lighting
   m_EditorClassIdentifier: 
   enabled: 1
+  shadowLength: 20

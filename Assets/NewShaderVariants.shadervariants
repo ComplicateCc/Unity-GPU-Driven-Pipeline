@@ -25,6 +25,11 @@ ShaderVariantCollection:
         passType: 0
       - keywords: UNITY_HDR_ON
         passType: 0
+  - first: {fileID: 69, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: SPOT UNITY_HDR_ON
+        passType: 0
   - first: {fileID: 106, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
@@ -96,15 +101,6 @@ ShaderVariantCollection:
     second:
       variants:
       - keywords: 
-        passType: 0
-  - first: {fileID: 4800000, guid: 63808577f167c0f48965284bec7283ab, type: 3}
-    second:
-      variants:
-      - keywords: 
-        passType: 0
-      - keywords: POINTLIGHT
-        passType: 0
-      - keywords: SPOTLIGHT
         passType: 0
   - first: {fileID: 4800000, guid: b33fc3a2454d9ca46b31777fb5e46e00, type: 3}
     second:
@@ -193,8 +189,33 @@ ShaderVariantCollection:
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
         passType: 0
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          SPOTLIGHT
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          POINTLIGHT
+        passType: 0
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW GPURP_UBER
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          EnableGTAO GPURP_UBER
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
+          SPOTLIGHT
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          EnableGTAO GPURP_UBER SPOTLIGHT
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
           POINTLIGHT
         passType: 0
       - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          SPOTLIGHT
+          EnableGTAO GPURP_UBER POINTLIGHT
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
+          POINTLIGHT SPOTLIGHT
+        passType: 0
+      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+          EnableGTAO GPURP_UBER POINTLIGHT SPOTLIGHT
         passType: 0

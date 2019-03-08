@@ -879,7 +879,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bc98792b41dcad4b862fea31c3c7022, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_useShadow: 1
+  m_useShadow: 0
   updateShadowCache: 1
   m_useShadowCache: 0
   smallSpotAngle: 30

@@ -102,13 +102,10 @@ public static partial class ShaderIDs
     public static readonly int _NearFarClip = Shader.PropertyToID("_NearFarClip");
     public static readonly int _CameraClipDistance = Shader.PropertyToID("_CameraClipDistance");
     public static readonly int _Screen_TexelSize = Shader.PropertyToID("_Screen_TexelSize");
-    public static readonly int _FroxelPlane = Shader.PropertyToID("_FroxelPlane");
     public static readonly int _TilePointLightList = Shader.PropertyToID("_TilePointLightList");
     public static readonly int _TileSpotLightList = Shader.PropertyToID("_TileSpotLightList");
     public static readonly int _AllFogVolume = Shader.PropertyToID("_AllFogVolume");
     public static readonly int _FogVolumeCount = Shader.PropertyToID("_FogVolumeCount");
-    public static readonly int _FroxelPointTileLightList = Shader.PropertyToID("_FroxelPointTileLightList");
-    public static readonly int _FroxelSpotTileLightList = Shader.PropertyToID("_FroxelSpotTileLightList");
     public static readonly int _SceneOffset = Shader.PropertyToID("_SceneOffset");
     public static readonly int _BackupMap = Shader.PropertyToID("_BackupMap");
     public static readonly int _LightMap = Shader.PropertyToID("_LightMap");
@@ -119,4 +116,5 @@ public static partial class ShaderIDs
     public static readonly int _AOROTexture = Shader.PropertyToID("_AOROTexture");
     public static readonly int _Coeff = Shader.PropertyToID("_Coeff");
     public static readonly int _Tex3DSize = Shader.PropertyToID("_Tex3DSize");
+    public static readonly int _ShadowSampler = Shader.PropertyToID("_ShadowSampler");
 }

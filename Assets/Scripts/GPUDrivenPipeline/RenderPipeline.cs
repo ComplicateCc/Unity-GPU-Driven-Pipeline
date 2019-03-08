@@ -23,7 +23,8 @@ namespace MPipeline
         public PipelineResources resources;
         private static List<Command> afterRenderFrame = new List<Command>(10);
         private static List<Command> beforeRenderFrame = new List<Command>(10);
-
+        public static PipelineResources.CameraRenderingPath currentPath { get; private set; }
+        private static List<Action<CommandBuffer>> bufferAfterFrame = new List<Action<CommandBuffer>>(10);
 #if UNITY_EDITOR
         private struct EditorBakeCommand
         {
@@ -34,9 +35,7 @@ namespace MPipeline
             public RenderTexture tempTex;
             public CommandBuffer buffer;
         }
-        private static List<Action<CommandBuffer>> bufferAfterFrame = new List<Action<CommandBuffer>>(10);
         private static List<EditorBakeCommand> bakeList = new List<EditorBakeCommand>();
-        public static PipelineResources.CameraRenderingPath currentPath { get; private set; }
         public static void AddRenderingMissionInEditor(NativeList<float4x4> worldToCameras, NativeList<float4x4> projections, PipelineCamera targetCameras, RenderTexture texArray, RenderTexture tempTexture, CommandBuffer buffer)
         {
             bakeList.Add(new EditorBakeCommand

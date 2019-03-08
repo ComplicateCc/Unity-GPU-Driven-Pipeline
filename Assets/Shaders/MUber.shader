@@ -92,10 +92,6 @@
                 #if SPOTLIGHT || POINTLIGHT
 				finalColor += CalculateLocalLight(i.uv, wpos, linearEyeDepth, data.diffuseColor, data.normalWorld, gbuffer1, roughness, -viewDir);
                 #endif
-                #if ENABLE_VOLUMETRIC && GPURP_UBER
-					float4 volumeFog = Fog(linear01Depth, i.uv);
-                    finalColor = lerp(volumeFog.rgb, finalColor, volumeFog.a);
-				#endif
                 return finalColor;
             }
             ENDCG
@@ -103,7 +99,7 @@
 
             Pass
             {
-            Cull Off ZWrite Off ZTest Equal
+            Cull Off ZWrite Off ZTest Always
             Blend oneMinusSrcAlpha srcAlpha
             CGPROGRAM
             #pragma vertex vert
