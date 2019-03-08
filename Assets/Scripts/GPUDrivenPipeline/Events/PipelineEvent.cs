@@ -34,6 +34,7 @@ namespace MPipeline
         [SerializeField]
         private bool enabled = false;
         private bool initialized = false;
+        public int EventPosition { get; private set; }
         public bool Enabled
         {
             get
@@ -80,11 +81,13 @@ namespace MPipeline
         private List<PipelineEvent> dependingEvents = null;
         public void CheckInit(PipelineResources resources)
         {
+            
             initialized = true;
             Init(resources);
         }
-        public void InitEvent(PipelineResources resources)
+        public void InitEvent(PipelineResources resources, int position)
         {
+            EventPosition = position;
             if (initialized) return;
             initialized = true;
             Init(resources);

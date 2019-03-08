@@ -51,7 +51,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            HistoryTexture texComponent = IPerCameraData.GetProperty(cam, (c) => new HistoryTexture(c.cam));
+            HistoryTexture texComponent = IPerCameraData.GetProperty(cam, (c) => new HistoryTexture(c.cam), this);
             texComponent.UpdateProperty(cam);
             SetHistory(cam.cam, buffer, ref texComponent.historyTex, cam.targets.renderTargetIdentifier);
             historyTex = texComponent.historyTex;

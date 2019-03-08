@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Unity.Collections;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
     [ExecuteInEditMode]
@@ -15,13 +17,17 @@ namespace MPipeline
         [System.NonSerialized]
         public RenderTargets targets;
         public PipelineResources.CameraRenderingPath renderingPath = PipelineResources.CameraRenderingPath.GPUDeferred;
-        public Dictionary<Type, IPerCameraData> postDatas = new Dictionary<Type, IPerCameraData>(47);
+        public IPerCameraData[] allDatas;
         public bool inverseRender = false;
         public static NativeDictionary<int, UIntPtr> allCamera;
-        public void EnableThis()
+        public void EnableThis(PipelineResources res)
         {
             if (!targets.initialized)
                 targets = RenderTargets.Init();
+            if(allDatas == null || allDatas.Length < res.availiableEvents.Length)
+            {
+                allDatas = new IPerCameraData[res.availiableEvents.Length];
+            }
         }
 
         private void OnEnable()
@@ -40,20 +46,22 @@ namespace MPipeline
             {
                 allCamera.Dispose();
             }
+            
         }
 
         private void OnDestroy()
         {
-            DisableThis();
-        }
-
-        public void DisableThis()
-        {
-            foreach (var i in postDatas.Values)
+            if (allDatas == null) return;
+            for (int i = 0; i < allDatas.Length; ++i)
             {
-                i.DisposeProperty();
+                ref IPerCameraData cam = ref allDatas[i];
+                if (cam  != null)
+                {
+                    cam.DisposeProperty();
+                }
+                cam = null;
             }
-            postDatas.Clear();
+            allDatas = null;
         }
     }
 }

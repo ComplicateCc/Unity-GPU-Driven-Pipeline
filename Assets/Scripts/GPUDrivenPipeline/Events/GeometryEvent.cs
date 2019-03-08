@@ -32,7 +32,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthBuffer);
             buffer.ClearRenderTarget(true, true, Color.black);
-            HizOcclusionData hizData = IPerCameraData.GetProperty(cam, () => new HizOcclusionData());
+            HizOcclusionData hizData = IPerCameraData.GetProperty(cam, () => new HizOcclusionData(), this);
             RenderClusterOptions options = new RenderClusterOptions
             {
                 command = buffer,

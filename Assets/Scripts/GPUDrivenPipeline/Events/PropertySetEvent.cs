@@ -16,7 +16,7 @@ namespace MPipeline
         private System.Func<PipelineCamera, LastVPData> getLastVP = (c) => new LastVPData(GL.GetGPUProjectionMatrix(c.cam.projectionMatrix, false) * c.cam.worldToCameraMatrix);
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            LastVPData lastData = IPerCameraData.GetProperty(cam, getLastVP);
+            LastVPData lastData = IPerCameraData.GetProperty(cam, getLastVP, this);
             //Calculate Last VP for motion vector and Temporal AA
             nonJitterVP = GL.GetGPUProjectionMatrix(cam.cam.nonJitteredProjectionMatrix, false) * cam.cam.worldToCameraMatrix;
             ref Matrix4x4 lastVp = ref lastData.lastVP;

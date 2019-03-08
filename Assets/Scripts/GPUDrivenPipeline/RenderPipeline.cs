@@ -109,19 +109,13 @@ namespace MPipeline
             current = this;
             data.buffer = new CommandBuffer();
             data.frustumPlanes = new Vector4[6];
-
-            for (int i = 0; i < allEvents.Length; ++i)
+            for (int i = 0; i < resources.availiableEvents.Length; ++i)
             {
-                PipelineEvent[] events = allEvents[i];
-                if (events == null) continue;
-                foreach (var j in events)
-                {
-                    j.Prepare();
-                }
-                foreach (var j in events)
-                {
-                    j.InitEvent(resources);
-                }
+                resources.availiableEvents[i].Prepare();
+            }
+            for (int i = 0; i < resources.availiableEvents.Length; ++i)
+            {
+                resources.availiableEvents[i].InitEvent(resources, i);
             }
         }
 
@@ -222,7 +216,7 @@ namespace MPipeline
             PipelineResources.CameraRenderingPath path = pipelineCam.renderingPath;
             currentPath = path;
             pipelineCam.cam = cam;
-            pipelineCam.EnableThis();
+            pipelineCam.EnableThis(resources);
             if (!cam.TryGetCullingParameters(out data.cullParams)) return;
             context.SetupCameraProperties(cam);
             //Set Global Data

@@ -144,7 +144,7 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            AOHistoryData historyData = IPerCameraData.GetProperty(cam, (c) => new AOHistoryData(c.cam.pixelWidth, c.cam.pixelHeight));
+            AOHistoryData historyData = IPerCameraData.GetProperty(cam, (c) => new AOHistoryData(c.cam.pixelWidth, c.cam.pixelHeight), this);
             UpdateVariable_SSAO(historyData, cam, ref data);
             RenderSSAO(historyData, cam, ref data);
         }

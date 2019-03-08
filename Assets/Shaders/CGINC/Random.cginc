@@ -26,13 +26,13 @@ inline float3 frand(int3 n)
 
 inline float2 cellNoise(float2 p)
 {
-	int seed = dot(p, float2(641338.4168541, 963955.16871685));
+	int seed = dot(p, float2(214748364.68716524, 214748367.765168716));
 	return sin(float2(frand(int2(seed, seed - 53))) * _RandomSeed.xy + _RandomSeed.zw);
 }
 
 inline float3 cellNoise(float3 p)
 {
-	int seed = dot(p, float3(641738.4168541, 9646285.16871685, 3186964.168734));
+	int seed = dot(p, float3(214748347.46871357, 214743647.95167742, 247483647.63879163));
 	return sin(float3(frand(int3(seed, seed - 12, seed - 57))) * _RandomSeed.xyz + _RandomSeed.w);
 }
 #endif
