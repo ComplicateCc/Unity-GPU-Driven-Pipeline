@@ -76,7 +76,6 @@ namespace MPipeline
         private Vector4 UVToView;
         private Vector4 oneOverSize_Size;
         private Vector4 Target_TexelSize;
-        private PropertySetEvent propertySetEvents;
 
         private uint m_sampleStep = 0;
         private static readonly float[] m_temporalRotations = { 60, 300, 180, 240, 120, 0 };
@@ -159,7 +158,7 @@ namespace MPipeline
             {
                 DestroyImmediate(GTAOMaterial);
             }
-
+            propertySetEvent = null;
         }
 
 

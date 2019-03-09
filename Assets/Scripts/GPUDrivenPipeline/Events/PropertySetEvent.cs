@@ -12,7 +12,7 @@ namespace MPipeline
         private Random rand;
         public Matrix4x4 lastViewProjection { get; private set; }
         public Matrix4x4 nonJitterVP { get; private set; }
-        public Matrix4x4 inverseNonJitterVP { get; private set; }
+       // public Matrix4x4 inverseNonJitterVP { get; private set; }
         private System.Func<PipelineCamera, LastVPData> getLastVP = (c) => new LastVPData(GL.GetGPUProjectionMatrix(c.cam.projectionMatrix, false) * c.cam.worldToCameraMatrix);
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
@@ -25,8 +25,6 @@ namespace MPipeline
             buffer.SetGlobalMatrix(ShaderIDs._LastVp, lastVp);
             buffer.SetGlobalMatrix(ShaderIDs._NonJitterVP, nonJitterVP);
             buffer.SetGlobalMatrix(ShaderIDs._NonJitterTextureVP, GL.GetGPUProjectionMatrix(cam.cam.nonJitteredProjectionMatrix, true) * cam.cam.worldToCameraMatrix);
-            inverseNonJitterVP = nonJitterVP.inverse;
-            buffer.SetGlobalMatrix(ShaderIDs._InvNonJitterVP, inverseNonJitterVP);
             buffer.SetGlobalMatrix(ShaderIDs._InvVP, data.inverseVP);
             buffer.SetGlobalMatrix(ShaderIDs._VP, data.vp);
             buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));

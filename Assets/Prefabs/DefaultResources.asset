@@ -48,7 +48,6 @@ MonoBehaviour:
     shadowMaskShader: {fileID: 4800000, guid: 59587a2c9dce614429a67657b3058d89, type: 3}
     reflectionShader: {fileID: 4800000, guid: 570f61f4159173a449116b777a6d5480, type: 3}
     linearDepthShader: {fileID: 4800000, guid: 77485821d74bdd841b30cd6723eff35e, type: 3}
-    pointLightShader: {fileID: 4800000, guid: 63808577f167c0f48965284bec7283ab, type: 3}
     cubeDepthShader: {fileID: 4800000, guid: b33fc3a2454d9ca46b31777fb5e46e00, type: 3}
     clusterRenderShader: {fileID: 4800000, guid: 538f1aea21e411247a28ba6f5befa4c1,
       type: 3}
@@ -58,5 +57,7 @@ MonoBehaviour:
       type: 3}
     gtaoShader: {fileID: 4800000, guid: 2dbab40b5193e7640a8d53163872d2f7, type: 3}
     uberShader: {fileID: 4800000, guid: b10a195e54d72984783eb1f2f49aa43f, type: 3}
+    irradianceVolumeShader: {fileID: 4800000, guid: a4b6cd62c2a13814d993be22ee50d68d,
+      type: 3}
     occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}

@@ -24,7 +24,7 @@
 	#pragma multi_compile _ SPOTLIGHT
     #pragma multi_compile _ EnableGTAO
 #pragma multi_compile _ GPURP_UBER
-			float4x4 _InvNonJitterVP;
+			float4x4 _InvVP;
 			
 			Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
 			Texture2D<float4> _CameraGBufferTexture1; SamplerState sampler_CameraGBufferTexture1;
@@ -67,7 +67,7 @@
     			float4 gbuffer2 = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv);
 				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
                 
-				float4 wpos = mul(_InvNonJitterVP, float4(i.uv * 2 - 1, depth, 1));
+				float4 wpos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
                 wpos /= wpos.w;
                 float2 aoro = gbuffer0.a;
 				#if EnableGTAO

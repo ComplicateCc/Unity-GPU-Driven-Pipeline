@@ -10,7 +10,7 @@ public class IrradianceResources : ScriptableObject
     public struct Volume
     {
         public uint3 resolution;
-        public float3 size;
+        public float3x3 localToWorld;
         public float3 position;
         public string volumeName;
         public string path;

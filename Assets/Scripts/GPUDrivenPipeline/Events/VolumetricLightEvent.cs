@@ -25,7 +25,6 @@ namespace MPipeline
         private JobHandle jobHandle;
         private NativeArray<FogVolume> resultVolume;
         private int fogCount = 0;
-        [System.NonSerialized]
         private LightingEvent lightingData;
         public override bool CheckProperty()
         {
@@ -39,7 +38,7 @@ namespace MPipeline
             uint* randPtr = randomArray.Ptr();
             for (int i = 0; i < randomArray.Length; ++i)
             {
-                randPtr[i] = (uint)(-System.Guid.NewGuid().GetHashCode());
+                randPtr[i] = (uint)-System.Guid.NewGuid().GetHashCode();
             }
             randomBuffer.SetData(randomArray);
             randomArray.Dispose();
@@ -49,6 +48,7 @@ namespace MPipeline
             ref CBDRSharedData cbdr = ref lightingData.cbdr;
             cbdr.availiableDistance = availableDistance;
             fogCount = 0;
+
             if (FogVolumeComponent.allVolumes.isCreated && FogVolumeComponent.allVolumes.Length > 0)
             {
                 resultVolume = new NativeArray<FogVolume>(FogVolumeComponent.allVolumes.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
@@ -88,7 +88,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             ComputeShader scatter = data.resources.shaders.volumetricScattering;
             ref CBDRSharedData cbdr = ref lightingData.cbdr;
-            if (cbdr.lightFlag == 0)
+            if (cbdr.lightFlag == 0 && lightingData.culler.cullingResult.Length == 0)
             {
                 cbdr.dirLightShadowmap = null;
                 return;

@@ -258,10 +258,11 @@ namespace MPipeline
             coeff.GetData(byteArray);
             string path = "Assets/BinaryData/Irradiance/" + volumeName + ".mpipe";
             File.WriteAllBytes(path, byteArray);
+            float4x4 localToWorld = transform.localToWorldMatrix;
             IrradianceResources.Volume volume = new IrradianceResources.Volume
             {
                 position = transform.position,
-                size = transform.localScale,
+                localToWorld = float3x3(localToWorld.c0.xyz, localToWorld.c1.xyz, localToWorld.c2.xyz),
                 resolution = (uint3)probeCount,
                 volumeName = volumeName,
                 path = path

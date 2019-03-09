@@ -162,7 +162,7 @@ public unsafe static class PipelineFunctions
     public static void UpdateCascadeState(SunLight comp, ref float4x4 projection, ref float4x4 worldToCamera, CommandBuffer buffer, int pass, out Matrix4x4 rtVp)
     {
         buffer.SetRenderTarget(comp.shadowmapTexture, 0, CubemapFace.Unknown, depthSlice: pass);
-        buffer.ClearRenderTarget(true, true, Color.white);
+        buffer.ClearRenderTarget(true, true, SystemInfo.usesReversedZBuffer ? Color.black : Color.white);
         rtVp = mul(GraphicsUtility.GetGPUProjectionMatrix(projection, true), worldToCamera);
         buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, rtVp);
     }

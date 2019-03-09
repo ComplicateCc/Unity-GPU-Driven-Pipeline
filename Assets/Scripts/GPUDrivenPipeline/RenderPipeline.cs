@@ -115,7 +115,7 @@ namespace MPipeline
             }
             for (int i = 0; i < resources.availiableEvents.Length; ++i)
             {
-                resources.availiableEvents[i].InitEvent(resources, i);
+                resources.availiableEvents[i].InitEvent(resources);
             }
         }
 

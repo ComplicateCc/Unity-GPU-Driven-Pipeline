@@ -96,13 +96,13 @@ float3 DirFromCube(uint face, float2 uv){
 
     int DownDimension(int3 coord, int2 xysize)
     {
-        int3 multi = (xysize.y * xysize.x, xysize.x, 1);
+        int3 multi = int3(xysize.y * xysize.x, xysize.x, 1);
         return dot(coord.zyx, multi);
     }
 
     int3 UpDimension(int coord, int2 xysize)
     {
-        int xy = (xysize.x * xysize.y);
+        int xy = xysize.x * xysize.y;
         return int3(coord % xysize.x, (coord % xy) / xysize.x, coord / xy);
     }
 

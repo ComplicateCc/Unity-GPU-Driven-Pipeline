@@ -27,7 +27,7 @@
                 float4 vertex : SV_POSITION;
                 float2 uv : TEXCOORD0;
             };
-            float4x4 _InvNonJitterVP;
+            float4x4 _InvVP;
             v2f vert (appdata v)
             {
                 v2f o;
@@ -39,7 +39,7 @@
 
             half4 frag (v2f i) : SV_TARGET
             {
-                float4 worldPos = mul(_InvNonJitterVP, float4(i.uv, 0.5, 1));
+                float4 worldPos = mul(_InvVP, float4(i.uv, 0.5, 1));
                 worldPos /= worldPos.w;
                 float3 viewDir = normalize(worldPos.xyz - _WorldSpaceCameraPos);
                 return  texCUBE(_MainTex, viewDir);

@@ -6,18 +6,18 @@ namespace MPipeline
     {
         public static T GetProperty<T>(PipelineCamera camera, Func<T> initFunc, PipelineEvent evt) where T : IPerCameraData
         {
-            IPerCameraData data = camera.allDatas[evt.EventPosition];
-            if (data == null)
+            IPerCameraData data;
+            if(!camera.allDatas.TryGetValue(evt, out data))
             {
                 data = initFunc();
-                camera.allDatas[evt.EventPosition] = data;
+                camera.allDatas.Add(evt, data);
             }
             return (T)data;
         }
 
         public static void RemoveProperty<T>(PipelineCamera camera, PipelineEvent evt)
         {
-            ref IPerCameraData data = ref camera.allDatas[evt.EventPosition];
+            IPerCameraData data = camera.allDatas[evt];
             if (data != null)
             {
                 data.DisposeProperty();
@@ -27,32 +27,32 @@ namespace MPipeline
 
         public static T GetProperty<T>(PipelineCamera camera, Func<PipelineCamera, T> initFunc, PipelineEvent evt) where T : IPerCameraData
         {
-            IPerCameraData data = camera.allDatas[evt.EventPosition];
-            if (data == null)
+            IPerCameraData data;
+            if (!camera.allDatas.TryGetValue(evt, out data))
             {
                 data = initFunc(camera);
-                camera.allDatas[evt.EventPosition] = data;
+                camera.allDatas.Add(evt, data);
             }
             return (T)data;
         }
 
         public static T GetProperty<T>(PipelineCamera camera, PipelineResources resource, Func<PipelineCamera, PipelineResources, T> initFunc, PipelineEvent evt) where T : IPerCameraData
         {
-            IPerCameraData data = camera.allDatas[evt.EventPosition];
-            if (data == null)
+            IPerCameraData data;
+            if (!camera.allDatas.TryGetValue(evt, out data))
             {
                 data = initFunc(camera,resource);
-                camera.allDatas[evt.EventPosition] = data;
+                camera.allDatas.Add(evt, data);
             }
             return (T)data;
         }
         public static T GetProperty<T>(PipelineCamera camera, PipelineResources resource, Func<PipelineResources, T> initFunc, PipelineEvent evt) where T : IPerCameraData
         {
-            IPerCameraData data = camera.allDatas[evt.EventPosition];
-            if (data == null)
+            IPerCameraData data;
+            if (!camera.allDatas.TryGetValue(evt, out data))
             {
                 data = initFunc(resource);
-                camera.allDatas[evt.EventPosition] = data;
+                camera.allDatas.Add(evt, data);
             }
             return (T)data;
         }

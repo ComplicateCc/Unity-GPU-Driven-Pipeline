@@ -26,6 +26,8 @@ namespace MPipeline
         protected override void Dispose()
         {
             hizDepth.DisposeHiZ();
+            DestroyImmediate(linearMat);
+            linearMat = null;
         }
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
@@ -75,7 +77,7 @@ namespace MPipeline
         public override void DisposeProperty()
         {
             historyDepth.Release();
-            Object.Destroy(historyDepth);
+            Object.DestroyImmediate(historyDepth);
         }
     }
 }

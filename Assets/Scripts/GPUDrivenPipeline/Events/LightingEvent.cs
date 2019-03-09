@@ -42,6 +42,9 @@ namespace MPipeline
         private float* clipDistances;
         private float4x4* cascadeWorldToCamera;
         private float4x4* cascadeProjection;
+        private Material irradianceVolumeMat;
+        [SerializeField]
+        public IrradianceCuller culler;
         public override bool CheckProperty()
         {
             if (!cbdr.CheckAvailiable())
@@ -53,12 +56,11 @@ namespace MPipeline
                 catch { }
                 return false;
             }
-            return cubeDepthMaterial != null;
+            return cubeDepthMaterial != null && irradianceVolumeMat != null;
         }
         #endregion
         protected override void Init(PipelineResources resources)
         {
-            
             cbdr = new CBDRSharedData(resources);
             volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>();
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
@@ -68,12 +70,13 @@ namespace MPipeline
             cubeDepthMaterial = new Material(resources.shaders.cubeDepthShader);
             spotBuffer = new RenderSpotShadowCommand();
             spotBuffer.Init(resources.shaders.spotLightDepthShader);
-
+            irradianceVolumeMat = new Material(resources.shaders.irradianceVolumeShader);
         }
 
         protected override void Dispose()
         {
             DestroyImmediate(cubeDepthMaterial);
+            DestroyImmediate(irradianceVolumeMat);
             spotBuffer.Dispose();
             cbdr.Dispose();
         }
@@ -101,6 +104,7 @@ namespace MPipeline
         }
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
+            culler.PreRenderFrame(ref data);
             if (SunLight.current && SunLight.current.enabled && SunLight.current.gameObject.activeSelf)
             {
                 data. buffer.EnableShaderKeyword("ENABLE_SUN");
@@ -153,6 +157,17 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            culler.FrameUpdate();
+            if(culler.cullingResult.isCreated && culler.cullingResult.Length > 0)
+            {
+                data.buffer.SetRenderTarget(color: cam.targets.renderTargetIdentifier, depth: cam.targets.depthBuffer);
+                foreach(var i in culler.cullingResult)
+                {
+                    ref LoadedIrradiance irr = ref IrradianceVolumeController.current.loadedIrradiance[i];
+                    CoeffTexture coefTex = IrradianceVolumeController.current.coeffTextures[irr.renderTextureIndex];
+                    DrawGI(data.buffer, ref coefTex, new Matrix4x4(float4(irr.localToWorld.c0, 0), float4(irr.localToWorld.c1, 0), float4(irr.localToWorld.c2, 0), float4(irr.position, 1)));
+                }
+            }
             DirLight(cam, ref data);
             PointLight(cam, ref data);
             LightFilter.Clear();
@@ -316,6 +331,19 @@ namespace MPipeline
             buffer.SetGlobalVector(ShaderIDs._CameraClipDistance, new Vector4(cam.nearClipPlane, cam.farClipPlane - cam.nearClipPlane));
             buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetXYPlaneKernel, 1, 1, 1);
             buffer.DispatchCompute(cbdrShader, CBDRSharedData.SetZPlaneKernel, 1, 1, 1);
+        }
+
+        private void DrawGI(CommandBuffer buffer, ref CoeffTexture currentTexture, Matrix4x4 localToWorld)
+        {
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[0], currentTexture.coeff0);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[1], currentTexture.coeff1);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[2], currentTexture.coeff2);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[3], currentTexture.coeff3);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[4], currentTexture.coeff4);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[5], currentTexture.coeff5);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[6], currentTexture.coeff6);
+            buffer.SetGlobalMatrix(ShaderIDs._WorldToLocalMatrix, localToWorld.inverse);
+            buffer.DrawMesh(GraphicsUtility.cubeMesh, localToWorld, irradianceVolumeMat, 0, 0);
         }
 
         private void SetPointLightBuffer(NativeArray<PointLightStruct> pointLightArray, int pointLightLength, CommandBuffer buffer)

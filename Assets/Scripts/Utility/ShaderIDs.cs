@@ -55,7 +55,6 @@ public static partial class ShaderIDs
     public static readonly int _LastDepth = Shader.PropertyToID("_LastDepth");
     public static readonly int _NonJitterVP = Shader.PropertyToID("_NonJitterVP");
     public static readonly int _NonJitterTextureVP = Shader.PropertyToID("_NonJitterTextureVP");
-    public static readonly int _InvNonJitterVP = Shader.PropertyToID("_InvNonJitterVP");
     public static readonly int _Lut3D = Shader.PropertyToID("_Lut3D");
     public static readonly int _Lut3D_Params = Shader.PropertyToID("_Lut3D_Params");
     public static readonly int _PostExposure = Shader.PropertyToID("_PostExposure");
@@ -116,4 +115,5 @@ public static partial class ShaderIDs
     public static readonly int _AOROTexture = Shader.PropertyToID("_AOROTexture");
     public static readonly int _Coeff = Shader.PropertyToID("_Coeff");
     public static readonly int _Tex3DSize = Shader.PropertyToID("_Tex3DSize");
+    public static readonly int _WorldToLocalMatrix = Shader.PropertyToID("_WorldToLocalMatrix");
 }

@@ -29,7 +29,7 @@ public static class MatrixUtility
     }
 }
 
-public static class VectorUtility
+public static unsafe class VectorUtility
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float4 GetPlane(float3 normal, float3 inPoint)
@@ -47,6 +47,17 @@ public static class VectorUtility
     public static float GetDistanceToPlane(float4 plane, float3 inPoint)
     {
         return dot(plane.xyz, inPoint) + plane.w;
+    }
+
+    public static bool BoxIntersect(float3x3 boxLocalToWorld, float3 position, float4* planes, int len)
+    {
+        for (uint i = 0; i < len; ++i)
+        {
+            float4 plane = planes[i];
+            float3 absNormal = abs(mul(plane.xyz, boxLocalToWorld));
+            if ((dot(position, plane.xyz) - dot(absNormal, float3(0.5f, 0.5f, 0.5f))) > -plane.w) return false;
+        }
+        return true;
     }
 
 }

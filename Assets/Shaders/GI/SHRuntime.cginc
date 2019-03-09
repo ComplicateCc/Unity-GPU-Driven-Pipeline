@@ -8,14 +8,21 @@
             Texture3D<float4> _CoeffTexture4; SamplerState sampler_CoeffTexture4;
             Texture3D<float4> _CoeffTexture5; SamplerState sampler_CoeffTexture5;
             Texture3D<float4> _CoeffTexture6; SamplerState sampler_CoeffTexture6;
-            float3 _SHSize;
-            float3 _LeftDownBack;
+            float4x4 _WorldToLocalMatrix;
+            
+            float3 GetSHUV(float3 worldPos)
+            {
+                 float4 localPos = mul(_WorldToLocalMatrix, float4(worldPos, 1));
+                 localPos /= localPos.w;
+                 return localPos.xyz + 0.5;
+                 
+            }
             float3 GetSHColor(float3 worldNormal, float3 worldPos)
             {
                 const float A0 = 3.1415927;
 				const float A1 = 2.094395;
 				const float A2 = 0.785398;
-                float3 uv = (worldPos - _LeftDownBack) / (_SHSize);
+                float3 uv = GetSHUV(worldPos);
                 GETCOEFF(worldNormal);
                 float3 color[9];
                 float4 first = _CoeffTexture0.SampleLevel(sampler_CoeffTexture0, uv, 0);
@@ -48,10 +55,6 @@
                 return irradiance;
             }
 
-            float3 GetSHUV(float3 worldPos)
-            {
-                return (worldPos - _LeftDownBack) / (_SHSize);
-            }
 
             SHColor GetSHFromTex(float3 uv)
             {

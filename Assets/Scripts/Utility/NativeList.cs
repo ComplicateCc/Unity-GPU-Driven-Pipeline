@@ -105,7 +105,15 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
         data->count -= 1;
         data->count = Mathf.Max(0, data->count);
     }
-
+    public void RemoveAt(int index)
+    {
+        int last = Length - 1;
+        for(int i = index; i < last; ++i)
+        {
+            this[i] = this[i + 1];
+        }
+        data->count--;
+    }
 
     public int Length
     {

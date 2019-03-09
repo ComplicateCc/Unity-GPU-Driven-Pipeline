@@ -149,8 +149,9 @@ namespace MPipeline
             if (historyTex.width != camWidth || historyTex.height != camHeight)
             {
                 historyTex.Release();
-                Object.DestroyImmediate(historyTex);
-                historyTex = new RenderTexture(camWidth, camHeight, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+                historyTex.width = camWidth;
+                historyTex.height = camHeight;
+                historyTex.Create();
             }
         }
     }

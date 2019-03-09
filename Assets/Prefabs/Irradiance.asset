@@ -14,16 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   allVolume:
   - resolution:
-      x: 10
-      y: 10
-      z: 10
-    size:
-      x: 12.4827385
-      y: 6.40653
-      z: 19.28491
+      x: 15
+      y: 8
+      z: 20
+    localToWorld:
+      c0:
+        x: 12.801049
+        y: 0
+        z: 0
+      c1:
+        x: 0
+        y: 6.726856
+        z: 0
+      c2:
+        x: 0
+        y: 0
+        z: 20.310867
     position:
-      x: 13.638
-      y: 3.2139997
-      z: -28.640001
+      x: 13.91
+      y: 3.37
+      z: -28.86
     volumeName: TestIrr
     path: Assets/BinaryData/Irradiance/TestIrr.mpipe

@@ -17,17 +17,13 @@ namespace MPipeline
         [System.NonSerialized]
         public RenderTargets targets;
         public PipelineResources.CameraRenderingPath renderingPath = PipelineResources.CameraRenderingPath.GPUDeferred;
-        public IPerCameraData[] allDatas;
+        public Dictionary<PipelineEvent, IPerCameraData> allDatas = new Dictionary<PipelineEvent, IPerCameraData>(17);
         public bool inverseRender = false;
         public static NativeDictionary<int, UIntPtr> allCamera;
         public void EnableThis(PipelineResources res)
         {
             if (!targets.initialized)
                 targets = RenderTargets.Init();
-            if(allDatas == null || allDatas.Length < res.availiableEvents.Length)
-            {
-                allDatas = new IPerCameraData[res.availiableEvents.Length];
-            }
         }
 
         private void OnEnable()
@@ -46,22 +42,14 @@ namespace MPipeline
             {
                 allCamera.Dispose();
             }
-            
         }
 
         private void OnDestroy()
         {
-            if (allDatas == null) return;
-            for (int i = 0; i < allDatas.Length; ++i)
-            {
-                ref IPerCameraData cam = ref allDatas[i];
-                if (cam  != null)
-                {
-                    cam.DisposeProperty();
-                }
-                cam = null;
-            }
+            foreach (var i in allDatas.Values)
+                i.DisposeProperty();
             allDatas = null;
+            cam = null;
         }
     }
 }

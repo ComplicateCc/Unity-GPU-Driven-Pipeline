@@ -13,7 +13,7 @@ namespace MPipeline
     public struct LoadedIrradiance
     {
         public uint3 resolution;
-        public float3 size;
+        public float3x3 localToWorld;
         public float3 position;
         public int renderTextureIndex;
     }
@@ -34,14 +34,14 @@ namespace MPipeline
                 bindMS = false,
                 colorFormat = RenderTextureFormat.ARGBHalf,
                 depthBufferBits = 0,
-                dimension = UnityEngine.Rendering.TextureDimension.Tex3D,
+                dimension = TextureDimension.Tex3D,
                 enableRandomWrite = true,
                 width = (int)size.x,
                 height = (int)size.y,
                 volumeDepth = (int)size.z,
                 memoryless = RenderTextureMemoryless.None,
                 msaaSamples = 1,
-                shadowSamplingMode = UnityEngine.Rendering.ShadowSamplingMode.None,
+                shadowSamplingMode = ShadowSamplingMode.None,
                 sRGB = false,
                 useDynamicScale = false,
                 useMipMap = false,
@@ -117,22 +117,21 @@ namespace MPipeline
             cubeToCoeff = CoeffToRenderTexture;
         }
 
-        private void LoadVolume(int index)
+        public bool LoadVolume(int index)
         {
+            if (isLoading) return false;
+            if (index < 0 || index >= resources.allVolume.Count) return false;
             isLoading = true;
             IrradianceResources.Volume data = resources.allVolume[index];
-            LoadedIrradiance irr = new LoadedIrradiance
+            currentIrr = new LoadedIrradiance
             {
                 resolution = data.resolution,
                 position = data.position,
-                size = data.size,
+                localToWorld = data.localToWorld,
                 renderTextureIndex = loadedIrradiance.Length
             };
-            resolution = data.resolution;
             targetPath = data.path;
-            loadedIrradiance.Add(irr);
             currentTexture = new CoeffTexture(data.resolution);
-            coeffTextures.Add(currentTexture);
             len = (int)(data.resolution.x * data.resolution.y * data.resolution.z * 9);
             if (coeff != null && coeff.count < len)
             {
@@ -148,19 +147,21 @@ namespace MPipeline
                 var controller = (IrradianceVolumeController)obj;
                 controller.LoadVolumeAsync();
             }, this);
+            return true;
         }
         private int len;
-        private uint3 resolution;
+        private LoadedIrradiance currentIrr;
         private CoeffTexture currentTexture;
         private string targetPath;
         private byte[] bytes;
 
         public void LoadVolumeAsync()
         {
-            if (bytes == null || bytes.Length < len) bytes = new byte[len];
+            
             using (FileStream reader = new FileStream(targetPath, FileMode.Open, FileAccess.Read))
             {
                 int length = (int)reader.Length;
+                if (bytes == null || bytes.Length < length) bytes = new byte[length];
                 reader.Read(bytes, 0, length);
             }
             lock (SceneController.commandQueue)
@@ -176,6 +177,8 @@ namespace MPipeline
             RenderPipeline.ExecuteBufferAtFrameEnding(cubeToCoeff);
             yield return null;
             yield return null;
+            coeffTextures.Add(currentTexture);
+            loadedIrradiance.Add(currentIrr);
             isLoading = false;
         }
 
@@ -183,13 +186,25 @@ namespace MPipeline
         {
             ComputeShader shader = pipelineRes.shaders.probeCoeffShader;
             buffer.SetComputeBufferParam(shader, coeffToTex3DKernel, ShaderIDs._Coeff, coeff);
-            UIntPtr rtPtr = new UIntPtr(MUnsafeUtility.GetManagedPtr(currentTexture.coeff0));
-            for(int i = 0; i < 7; ++i)
-            {
-                buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[i], MUnsafeUtility.GetObject<RenderTexture>((rtPtr + sizeof(UIntPtr) * i).ToPointer()));
-            }
-            buffer.SetComputeVectorParam(shader, ShaderIDs._Tex3DSize, new float4(resolution.x, resolution.y, resolution.z, 1));
+            buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[0], currentTexture.coeff0);
+            buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[1], currentTexture.coeff1);
+            buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[2], currentTexture.coeff2);
+            buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[3], currentTexture.coeff3);
+            buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[4], currentTexture.coeff4);
+            buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[5], currentTexture.coeff5);
+            buffer.SetComputeTextureParam(shader, coeffToTex3DKernel, _CoeffIDs[6], currentTexture.coeff6);
+            buffer.SetComputeVectorParam(shader, ShaderIDs._Tex3DSize, new float4(currentIrr.resolution.x, currentIrr.resolution.y, currentIrr.resolution.z, 1));
             ComputeShaderUtility.Dispatch(shader, buffer, coeffToTex3DKernel, len / 9, 64);
+        }
+
+        public bool RemoveVolume(int index)
+        {
+            if (index < 0 || index >= loadedIrradiance.Length)
+                return false;
+            coeffTextures[index].Dispose();
+            coeffTextures.RemoveAt(index);
+            loadedIrradiance.RemoveAt(index);
+            return true;
         }
 
         public void Dispose()

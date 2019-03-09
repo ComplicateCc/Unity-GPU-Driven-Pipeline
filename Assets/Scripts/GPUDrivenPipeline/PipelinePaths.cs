@@ -23,7 +23,6 @@ namespace MPipeline
         public Shader shadowMaskShader;
         public Shader reflectionShader;
         public Shader linearDepthShader;
-        public Shader pointLightShader;
         public Shader cubeDepthShader;
         public Shader clusterRenderShader;
         public Shader volumetricShader;
@@ -31,6 +30,7 @@ namespace MPipeline
         public Shader spotLightDepthShader;
         public Shader gtaoShader;
         public Shader uberShader;
+        public Shader irradianceVolumeShader;
         public Mesh occluderMesh;
         public Mesh sphereMesh;
     }
