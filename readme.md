@@ -1,4 +1,4 @@
-# GPU Driven Rendering Pipeline(Still working on)
+# GPU Driven Rendering Pipeline(Working in progress)
 
 ![demo](demo.png)
 
