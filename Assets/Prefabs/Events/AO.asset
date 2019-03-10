@@ -14,12 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enabled: 1
   DirSampler: 4
-  SliceSampler: 2
+  SliceSampler: 8
   Radius: 2.5
-  Intensity: 1
+  Intensity: 0.54
   Power: 2.5
   MultiBounce: 1
   Sharpeness: 0.25
   TemporalScale: 1
   TemporalResponse: 1
-  AODeBug: 4

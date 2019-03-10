@@ -72,6 +72,7 @@
                 float2 aoro = gbuffer0.a;
 				#if EnableGTAO
 				aoro = min(aoro, _AOROTexture.Sample(sampler_AOROTexture, i.uv));
+                aoro.y = min(aoro.x, aoro.y);
                 #endif
 				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
 				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
