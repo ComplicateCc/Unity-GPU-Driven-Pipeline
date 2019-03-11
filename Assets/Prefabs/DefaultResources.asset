@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2dbd0823b00f58a4caf0bda5f81b5c91, type: 3}
   m_Name: DefaultResources
   m_EditorClassIdentifier: 
+  useSRPBatcher: 1
   availiableEvents:
   - {fileID: 11400000, guid: cfd7bbc3e9481ec458e874a8577ee260, type: 2}
   - {fileID: 11400000, guid: 2b92438e0f21bc94abd6c4972ddb265a, type: 2}
@@ -23,7 +24,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a87fe8bf9e8887d43a76c168c3f6949e, type: 2}
   - {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}
   - {fileID: 11400000, guid: 6fe05694a7e3c07469031a6ab5c74e0d, type: 2}
-  - {fileID: 11400000, guid: 8e5626ee74c9fe14c8e4b45900b584f7, type: 2}
   - {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
   shaders:
     cbdrShader: {fileID: 7200000, guid: 32eda6600c320d948b7c69a6823d3bf9, type: 3}
@@ -57,7 +57,7 @@ MonoBehaviour:
     spotLightDepthShader: {fileID: 4800000, guid: bed89509ad0b6d844a4a9086fbabac3c,
       type: 3}
     gtaoShader: {fileID: 4800000, guid: 2dbab40b5193e7640a8d53163872d2f7, type: 3}
-    uberShader: {fileID: 4800000, guid: b10a195e54d72984783eb1f2f49aa43f, type: 3}
+    lightingShader: {fileID: 4800000, guid: b10a195e54d72984783eb1f2f49aa43f, type: 3}
     irradianceVolumeShader: {fileID: 4800000, guid: a4b6cd62c2a13814d993be22ee50d68d,
       type: 3}
     occluderMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}

@@ -12,4 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db259d03ac2bb574b8e9c2d737637b93, type: 3}
   m_Name: Uber
   m_EditorClassIdentifier: 
-  enabled: 1
+  enabled: 0
+  initialized: 0
+  dependedEvents: []
+  dependingEvents:
+  - {fileID: 11400000, guid: 4ba4d0b7b30f88a4d92a2fccd277f94c, type: 2}
+  muberMaterial: {fileID: 0}

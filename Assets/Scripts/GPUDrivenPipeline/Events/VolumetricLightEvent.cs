@@ -68,21 +68,6 @@ namespace MPipeline
                 }).Schedule(FogVolumeComponent.allVolumes.Length, 1);
             }
         }
-        protected override void OnEnable()
-        {
-            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
-            {
-                buffer.EnableShaderKeyword("ENABLE_VOLUMETRIC");
-            });
-        }
-
-        protected override void OnDisable()
-        {
-            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
-            {
-                buffer.DisableShaderKeyword("ENABLE_VOLUMETRIC");
-            });
-        }
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
@@ -196,6 +181,7 @@ namespace MPipeline
             buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);
             buffer.DispatchCompute(scatter, scatterPass, downSampledSize.x / 32, downSampledSize.y / 2, 1);
             cbdr.lightFlag = 0;
+            buffer.BlitSRT(cam.targets.renderTargetIdentifier, lightingData.lightingMat, 1);
         }
 
         protected override void Dispose()

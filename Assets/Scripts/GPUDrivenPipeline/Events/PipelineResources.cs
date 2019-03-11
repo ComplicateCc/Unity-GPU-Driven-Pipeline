@@ -8,6 +8,7 @@ namespace MPipeline
 
     public unsafe sealed class PipelineResources : RenderPipelineAsset
     {
+        public bool useSRPBatcher = true;
         protected override UnityEngine.Rendering.RenderPipeline CreatePipeline()
         {
             return new RenderPipeline(this);

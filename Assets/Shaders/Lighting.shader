@@ -1,4 +1,4 @@
-﻿Shader "Hidden/MUber"
+﻿Shader "Hidden/Lighting"
 {
     SubShader
     {
@@ -13,17 +13,13 @@
 	#include "CGINC/Shader_Include/BSDF_Library.hlsl"
 	#include "CGINC/Shader_Include/AreaLight.hlsl"
 	#include "CGINC/Lighting.cginc"
-	#include "CGINC/VolumetricLight.cginc"
 	#include "CGINC/Sunlight.cginc"
-    #include "CGINC/Reflection.cginc"
+    #include "CGINC/VolumetricLight.cginc"
 	#pragma multi_compile _ ENABLE_SUN
 	#pragma multi_compile _ ENABLE_SUNSHADOW
-	#pragma multi_compile _ ENABLE_VOLUMETRIC
 	#pragma multi_compile _ POINTLIGHT
 	#pragma multi_compile _ SPOTLIGHT
     #pragma multi_compile _ EnableGTAO
-    #pragma multi_compile _ ENABLE_REFLECTION
-    #pragma multi_compile _ GPURP_UBER
 			float4x4 _InvVP;
 			
 			Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
@@ -72,13 +68,11 @@
                 float2 aoro = gbuffer0.a;
 				#if EnableGTAO
 				aoro = min(aoro, _AOROTexture.Sample(sampler_AOROTexture, i.uv));
-                aoro.y = min(aoro.x, aoro.y);
                 #endif
 				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
 				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
                 float roughness = clamp(1 - data.smoothness, 0.02, 1);
                 float linearEyeDepth = LinearEyeDepth(depth);
-				float linear01Depth = Linear01Depth(depth);
                 float3 finalColor = 0;
                 #if ENABLE_SUN
 				#if ENABLE_SUNSHADOW
@@ -87,35 +81,29 @@
 					finalColor += CalculateSunLight_NoShadow(data, viewDir);
 				#endif
                 #endif
-                #if ENABLE_REFLECTION && GPURP_UBER
-					finalColor += CalculateReflection(linearEyeDepth, wpos.xyz, viewDir, gbuffer1, data.normalWorld, aoro.y, i.uv);
-				#endif
                 #if SPOTLIGHT || POINTLIGHT
 				finalColor += CalculateLocalLight(i.uv, wpos, linearEyeDepth, data.diffuseColor, data.normalWorld, gbuffer1, roughness, -viewDir);
                 #endif
+                
                 return finalColor;
             }
             ENDCG
         }
 
-            Pass
-            {
+        Pass
+        {
             Cull Off ZWrite Off ZTest Always
-            Blend oneMinusSrcAlpha srcAlpha
+            Blend oneminusSrcalpha srcAlpha
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
 	
             float4 frag (v2f i) : SV_Target
             {
-				
-                #if ENABLE_VOLUMETRIC && GPURP_UBER
-                float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
+             
+				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
                 float linear01Depth = Linear01Depth(depth);
-					float4 volumeFog = Fog(linear01Depth, i.uv);
-                    return volumeFog;
-				#endif
-                return 1;
+				return Fog(linear01Depth, i.uv);
             }
             ENDCG
         }

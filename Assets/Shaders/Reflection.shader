@@ -72,9 +72,7 @@ ENDCG
 
 #if EnableGTAO
 				float2 aoro = _AOROTexture.Sample(sampler_AOROTexture, i.uv);
-                aoro.x = min(aoro.x, aoro.y);
-				occlusion = min(occlusion, aoro.x);
-                
+				occlusion = min(occlusion, aoro.y);
 #endif
                 float3 viewDir = normalize(worldPos.xyz - _WorldSpaceCameraPos);
                 //float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, float4 specular, float3 normal, float occlusion)

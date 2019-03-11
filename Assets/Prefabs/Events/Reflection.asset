@@ -15,13 +15,14 @@ MonoBehaviour:
   enabled: 0
   unitedResolution: 512
   ssrEvents:
+    enabled: 1
     TraceMethod: 0
     RayCastingResolution: 1
     Denoise: 1
     RayNums: 1
-    BRDFBias: 0.7
-    Thickness: 0.1
-    ScreenFade: 0.1
+    BRDFBias: 1
+    Thickness: 0.2
+    ScreenFade: 0
     HiZ_RaySteps: 64
     HiZ_MaxLevel: 4
     HiZ_StartLevel: 1
@@ -30,11 +31,11 @@ MonoBehaviour:
     Linear_TraceBehind: 0
     Linear_RayDistance: 128
     Linear_RaySteps: 256
-    Linear_StepSize: 10
-    BlueNoise_LUT: {fileID: 0}
-    PreintegratedGF_LUT: {fileID: 0}
+    Linear_StepSize: 5
+    BlueNoise_LUT: {fileID: 2800000, guid: e166910e7efe86f4aaa1a416f2eb5025, type: 3}
+    preint: {fileID: 2800000, guid: 1cf45a723dd676540a2f9bc683dc003b, type: 2}
     SpatioSampler: 4
     TemporalWeight: 0.98
     TemporalScale: 1.25
     RunTimeDebugMod: 1
-    DeBugPass: 10
+    DeBugPass: 9

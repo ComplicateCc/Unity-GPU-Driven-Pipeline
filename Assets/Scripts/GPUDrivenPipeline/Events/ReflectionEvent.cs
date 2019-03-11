@@ -61,21 +61,6 @@ namespace MPipeline
             propertySetEvent = RenderPipeline.GetEvent<PropertySetEvent>();
             ssrEvents.Init(resources);
         }
-        protected override void OnEnable()
-        {
-            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
-            {
-                buffer.EnableShaderKeyword("ENABLE_REFLECTION");
-            });
-        }
-
-        protected override void OnDisable()
-        {
-            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
-            {
-                buffer.DisableShaderKeyword("ENABLE_REFLECTION");
-            });
-        }
         protected override void Dispose()
         {
             probeBuffer.Dispose();
@@ -119,7 +104,16 @@ namespace MPipeline
             {
                 buffer.SetGlobalTexture(reflectionCubemapIDs[i], reflectProbes[i].texture);
             }
-            ssrEvents.Render(ref data, cam, propertySetEvent, this);
+            if(ssrEvents.enabled)
+            {
+                var rt = ssrEvents.Render(ref data, cam, propertySetEvent, this);
+                buffer.Blit(rt, cam.targets.renderTargetIdentifier);
+                buffer.EnableShaderKeyword("ENABLE_SSR");
+            }else
+            {
+                buffer.DisableShaderKeyword("ENABLE_SSR");
+            }
+
             //TODO
         }
         [Unity.Burst.BurstCompile]

@@ -360,6 +360,5 @@ namespace MPipeline
         public CullingResults cullResults;
         public ScriptableCullingParameters cullParams;
         public PipelineResources resources;
-        public DrawingSettings defaultDrawSettings;
     }
 }

@@ -2,7 +2,7 @@
 #include "SSRLibrary.cginc"
 
 sampler2D _SSR_SceneColor_RT, _SSR_Noise, _SSR_PreintegratedGF_LUT, _SSR_RayCastRT, _SSR_RayMask_RT, _SSR_Spatial_RT, _SSR_TemporalPrev_RT, _SSR_TemporalCurr_RT, _SSR_CombienReflection_RT, _SSAO_GTOTexture2SSR_RT,
-		  _CameraDepthTexture, _CameraMotionVectorsTexture, _CameraGBufferTexture0, _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraReflectionsTexture;
+		  _CameraDepthTexture, _CameraMotionVectorsTexture, _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraReflectionsTexture;
 
 Texture2D _SSR_HierarchicalDepth_RT; SamplerState sampler_SSR_HierarchicalDepth_RT;
 
@@ -231,20 +231,18 @@ void Hierarchical_ZTrace_SingleSPP(PixelInput i, out half4 RayHit_PDF : SV_Targe
 	half Roughness = clamp(1 - tex2D(_CameraGBufferTexture1, UV).a, 0.02, 1);
 	float3 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
 	float3 ViewNormal = mul((float3x3)(_SSR_WorldToCameraMatrix), WorldNormal);
-
-	float3 ScreenPos = GetScreenPos(UV, ScneDepth);
-	float3 WorldPos = GetWorlPos(ScreenPos, _SSR_InverseViewProjectionMatrix);
-	float3 ViewPos = GetViewPos(ScreenPos, _SSR_InverseProjectionMatrix);
-	float3 ViewDir = GetViewDir(WorldPos, ViewPos);
+	float3 ScreenPos = float3(UV * 2 - 1, ScneDepth);
+	float4 ViewPos = mul(_SSR_InverseProjectionMatrix, float4(ScreenPos, 1));
+	ViewPos /= ViewPos.w;
 
 	half2 BlueNoise = tex2Dlod(_SSR_Noise, half4((UV + _SSR_Jitter.zw) * _SSR_RayCastSize.xy / _SSR_NoiseSize.xy, 0, 0)).xy;
 	float2 E = BlueNoise;
 	E.y = lerp(E.y, 0.0, _SSR_BRDFBias);
 	float4 H = TangentToWorld( ImportanceSampleGGX(E, Roughness), half4(ViewNormal, 1.0) );
-	float3 ReflectionDir = reflect(normalize(ViewPos), H.xyz);
+	float3 ReflectionDir = reflect(normalize(ViewPos.xyz), H.xyz);
 
 	float3 rayStart = float3(UV, ScreenPos.z);
-	float4 rayProj = mul ( _SSR_ProjectionMatrix, float4(ViewPos + ReflectionDir, 1.0) );
+	float4 rayProj = mul ( _SSR_ProjectionMatrix, float4(ViewPos.xyz + ReflectionDir, 1.0) );
 	float3 rayDir = normalize( (rayProj.xyz / rayProj.w) - ScreenPos);
 	rayDir.xy *= 0.5;
 
@@ -320,20 +318,21 @@ float4 Spatiofilter_SingleSPP(PixelInput i) : SV_Target
 {
 	half2 UV = i.uv.xy;
 	half Roughness = clamp(1 - tex2D(_CameraGBufferTexture1, UV).a, 0.02, 1);
-	half SceneDepth = GetDepth(_CameraDepthTexture, UV);
+	half SceneDepth = tex2D(_CameraDepthTexture, UV);
 	half4 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
 	half3 ViewNormal = GetViewNormal(WorldNormal, _SSR_WorldToCameraMatrix);
-	half3 ScreenPos = GetScreenPos(UV, SceneDepth);
-	half3 WorldPos = GetWorlPos(ScreenPos, _SSR_InverseViewProjectionMatrix);
-	half3 ViewPos = GetViewPos(ScreenPos, _SSR_InverseProjectionMatrix);
+	float3 ScreenPos = float3(UV * 2 - 1, SceneDepth);
+	half4 ViewPos = mul(_SSR_InverseProjectionMatrix, float4(ScreenPos, 1));
+	ViewPos /= ViewPos.w;
 
 	half2 BlueNoise = tex2D(_SSR_Noise, (UV + _SSR_Jitter.zw) * _SSR_ScreenSize.xy / _SSR_NoiseSize.xy) * 2 - 1;
+	
 	half2x2 OffsetRotationMatrix = half2x2(BlueNoise.x, BlueNoise.y, -BlueNoise.y, -BlueNoise.x);
 
 	half NumWeight, Weight;
 	half2 Offset_UV, Neighbor_UV;
 	half4 SampleColor, ReflecttionColor;
-
+	[loop]
 	for (int i = 0; i < _SSR_NumResolver; i++)
 	{
 		Offset_UV = mul(OffsetRotationMatrix, offset[i] * (1 / _SSR_ScreenSize.xy));
@@ -343,18 +342,16 @@ float4 Spatiofilter_SingleSPP(PixelInput i) : SV_Target
 		half3 Hit_ViewPos = GetViewPos(GetScreenPos(HitUV_PDF.rg, HitUV_PDF.b), _SSR_InverseProjectionMatrix);
 
 		///SpatioSampler
-		Weight = SSR_BRDF(normalize(-ViewPos), normalize(Hit_ViewPos - ViewPos), ViewNormal, Roughness) / max(1e-5, HitUV_PDF.a);
+		Weight = SSR_BRDF(normalize(-ViewPos.xyz), normalize(Hit_ViewPos - ViewPos.xyz), ViewNormal, Roughness) / max(1e-5, HitUV_PDF.a);
 		SampleColor.rgb = tex2Dlod(_SSR_SceneColor_RT, half4(HitUV_PDF.rg, 0, 0)).rgb;
 		SampleColor.rgb /= 1 + Luminance(SampleColor.rgb);
 		ReflecttionColor += SampleColor * Weight;
 		NumWeight += Weight;
 	}
-
 	ReflecttionColor /= NumWeight;
 	ReflecttionColor.rgb /= 1 - Luminance(ReflecttionColor.rgb);
 	ReflecttionColor = max(1e-5, ReflecttionColor);
 	ReflecttionColor.a = tex2D(_SSR_RayMask_RT, UV).r;
-
 	return ReflecttionColor;
 }
 

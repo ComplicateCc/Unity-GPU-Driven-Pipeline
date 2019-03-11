@@ -31,21 +31,24 @@ CGINCLUDE
 		struct Input {
 			float2 uv_MainTex;
 		};
-
+cbuffer UnityPerMaterial
+{
     float _SpecularIntensity;
 	float _MetallicIntensity;
     float4 _EmissionColor;
 		float _Occlusion;
 		float _VertexScale;
 		float _VertexOffset;
-		sampler2D _BumpMap;
-		sampler2D _SpecularMap;
-		sampler2D _MainTex; float4 _MainTex_ST;
-		sampler2D _DetailAlbedo; float4 _DetailAlbedo_ST;
-		sampler2D _DetailNormal;
-
+float4 _MainTex_ST;
+float4 _DetailAlbedo_ST;
 		float _Glossiness;
 		float4 _Color;
+}
+		sampler2D _BumpMap;
+		sampler2D _SpecularMap;
+		sampler2D _MainTex; 
+		sampler2D _DetailAlbedo; 
+		sampler2D _DetailNormal;
 
 
 		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
@@ -180,8 +183,7 @@ CGPROGRAM
 #pragma fragment frag_surf
 ENDCG
 }
-
-		Pass
+	Pass
 		{
 			ZTest less
 			Cull back
@@ -298,6 +300,7 @@ ENDCG
 
 			ENDCG
 		}
+	
 }
 	CustomEditor "ShouShouEditor"
 }

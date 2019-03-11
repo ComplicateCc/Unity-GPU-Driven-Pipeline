@@ -30,7 +30,7 @@ namespace MPipeline
         public Shader terrainShader;
         public Shader spotLightDepthShader;
         public Shader gtaoShader;
-        public Shader uberShader;
+        public Shader lightingShader;
         public Shader irradianceVolumeShader;
         public Mesh occluderMesh;
         public Mesh sphereMesh;
@@ -44,10 +44,9 @@ namespace MPipeline
        typeof(GeometryEvent),
        typeof(AOEvents),
        typeof(LightingEvent),
-       typeof(ReflectionEvent),
        typeof(SkyboxEvent),
+       typeof(ReflectionEvent),
        typeof(VolumetricLightEvent),
-       typeof(UberEvents),
        typeof(TemporalAAEvent),
        typeof(TransEvent),
        typeof(FinalPostEvent)
@@ -58,8 +57,7 @@ namespace MPipeline
         typeof(PropertySetEvent),
         typeof(GeometryEvent),
         typeof(LightingEvent),
-        typeof(SkyboxEvent),
-        typeof(UberEvents)
+        typeof(SkyboxEvent)
         };
 
         public static List<Pair<int, Type[]>> GetAllPath()

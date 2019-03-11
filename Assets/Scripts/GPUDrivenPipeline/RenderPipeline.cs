@@ -145,6 +145,7 @@ namespace MPipeline
                 false,
                 false
             };
+            GraphicsSettings.useScriptableRenderPipelineBatching = resources.useSRPBatcher;
             foreach (var i in beforeRenderFrame)
             {
                 i.func(i.obj);

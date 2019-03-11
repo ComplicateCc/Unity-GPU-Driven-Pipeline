@@ -24,7 +24,7 @@ namespace MPipeline
         private Vector4[] shadowFrustumVP = new Vector4[6];
         public CBDRSharedData cbdr;
         [System.NonSerialized]
-        private VolumetricLightEvent volumetricEvent;
+        public Material lightingMat;
         #endregion
         #region POINT_LIGHT
         private Material cubeDepthMaterial;
@@ -62,7 +62,6 @@ namespace MPipeline
         protected override void Init(PipelineResources resources)
         {
             cbdr = new CBDRSharedData(resources);
-            volumetricEvent = RenderPipeline.GetEvent<VolumetricLightEvent>();
             for (int i = 0; i < cascadeShadowMapVP.Length; ++i)
             {
                 cascadeShadowMapVP[i] = Matrix4x4.identity;
@@ -71,12 +70,14 @@ namespace MPipeline
             spotBuffer = new RenderSpotShadowCommand();
             spotBuffer.Init(resources.shaders.spotLightDepthShader);
             irradianceVolumeMat = new Material(resources.shaders.irradianceVolumeShader);
+            lightingMat = new Material(resources.shaders.lightingShader);
         }
 
         protected override void Dispose()
         {
             DestroyImmediate(cubeDepthMaterial);
             DestroyImmediate(irradianceVolumeMat);
+            DestroyImmediate(lightingMat);
             spotBuffer.Dispose();
             cbdr.Dispose();
         }
@@ -171,6 +172,7 @@ namespace MPipeline
             DirLight(cam, ref data);
             PointLight(cam, ref data);
             LightFilter.Clear();
+            data.buffer.BlitSRTWithDepth(cam.targets.renderTargetIdentifier, cam.targets.depthBuffer, lightingMat, 0);
         }
         private void DirLight(PipelineCamera cam, ref PipelineCommandData data)
         {
