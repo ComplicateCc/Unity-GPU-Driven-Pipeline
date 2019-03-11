@@ -375,6 +375,11 @@ inline half ComputeDepth(half4 clippos)
 #endif
 }
 
+inline half3 GetScreenPos(half2 uv, half depth)
+{
+    return half3(uv.xy * 2 - 1, depth.r);
+}
+
 inline half3 GetViewNormal(half3 normal, half4x4 _WToCMatrix)
 {
     const half3 viewNormal = mul((half3x3)_WToCMatrix, normal.rgb);

@@ -16,7 +16,7 @@ MonoBehaviour:
   DirSampler: 4
   SliceSampler: 8
   Radius: 2.5
-  Intensity: 0.54
+  Intensity: 0.7
   Power: 2.5
   MultiBounce: 1
   Sharpeness: 0.25

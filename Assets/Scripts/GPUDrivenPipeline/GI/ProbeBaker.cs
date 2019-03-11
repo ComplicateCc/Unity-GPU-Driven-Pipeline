@@ -29,7 +29,7 @@ namespace MPipeline
         private CommandBuffer cbuffer;
         private ComputeBuffer coeffTemp;
         private ComputeBuffer coeff;
-        
+
         private RenderTexture[] coeffTextures;
         private bool isRendering = false;
         private int indexInList;
@@ -37,7 +37,7 @@ namespace MPipeline
         {
             isRendered = false;
             cbuffer = new CommandBuffer();
-            
+
             coeffTextures = new RenderTexture[7];
             for (int i = 0; i < 7; ++i)
             {
@@ -63,10 +63,10 @@ namespace MPipeline
             }
             coeffTemp = new ComputeBuffer(9, 12);
             coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
-            if(!targetCamera)
+            if (!targetCamera)
             {
                 targetCamera = transform.GetComponentInChildren<PipelineCamera>();
-                if(!targetCamera)
+                if (!targetCamera)
                 {
                     GameObject go = new GameObject("Bake Camera", typeof(Camera), typeof(PipelineCamera));
                     targetCamera = go.GetComponent<PipelineCamera>();
@@ -76,7 +76,7 @@ namespace MPipeline
                 targetCamera.cam.enabled = false;
                 targetCamera.enabled = false;
             }
-            targetCamera.inverseRender = true;
+            targetCamera.inverseRender = false;
             targetCamera.renderingPath = PipelineResources.CameraRenderingPath.Bake;
         }
         private void Dispose()
@@ -140,7 +140,7 @@ namespace MPipeline
         }
         private void BakeMap(int3 index, RenderTexture texArray, RenderTexture tempTex)
         {
-            
+
             float3 left = transform.position - transform.lossyScale * 0.5f;
             float3 right = transform.position + transform.lossyScale * 0.5f;
             float3 position = lerp(left, right, ((float3)index + 0.5f) / probeCount);
@@ -153,7 +153,7 @@ namespace MPipeline
             NativeList<float4x4> projection = new NativeList<float4x4>(6, 6, Allocator.TempJob);
             GetMatrix(worldToCameras.unsafePtr, ref persp, position);
             persp.UpdateProjectionMatrix();
-            for(int i = 0; i < 6; ++i)
+            for (int i = 0; i < 6; ++i)
             {
                 projection[i] = persp.projectionMatrix;
             }
@@ -161,7 +161,69 @@ namespace MPipeline
         }
         static readonly int _ShadowmapForCubemap = Shader.PropertyToID("_ShadowmapForCubemap");
         private OrthoCam shadowCam;
+        [EasyButtons.Button]
+        public void Cubemap()
+        {
+            StartCoroutine(RunCubemap());
+        }
+        private void BakeCubemap()
+        {
 
+            PerspCam persp = new PerspCam();
+            persp.aspect = 1;
+            persp.farClipPlane = considerRange;
+            persp.nearClipPlane = 0.1f;
+            persp.fov = 90f;
+            NativeList<float4x4> worldToCameras = new NativeList<float4x4>(6, 6, Allocator.TempJob);
+            NativeList<float4x4> projection = new NativeList<float4x4>(6, 6, Allocator.TempJob);
+            GetMatrix(worldToCameras.unsafePtr, ref persp, transform.position);
+            persp.UpdateProjectionMatrix();
+            for (int i = 0; i < 6; ++i)
+            {
+                projection[i] = persp.projectionMatrix;
+            }
+            RenderTexture rt = new RenderTexture(new RenderTextureDescriptor
+            {
+                autoGenerateMips = false,
+                bindMS = false,
+                colorFormat = RenderTextureFormat.ARGBHalf,
+                depthBufferBits = 16,
+                dimension = TextureDimension.Tex2DArray,
+                enableRandomWrite = false,
+                height = 128,
+                width = 128,
+                volumeDepth = 6,
+                msaaSamples = 1,
+                useMipMap = true
+            });
+            rt.filterMode = FilterMode.Trilinear;
+            rt.Create();
+            RenderTexture tempRT = new RenderTexture(new RenderTextureDescriptor
+            {
+                autoGenerateMips = false,
+                bindMS = false,
+                colorFormat = RenderTextureFormat.ARGBHalf,
+                depthBufferBits = 16,
+                dimension = TextureDimension.Tex2D,
+                enableRandomWrite = false,
+                height = 128,
+                width = 128,
+                volumeDepth = 1,
+                msaaSamples = 1
+            });
+            cbuffer.Clear();
+            cbuffer.SetGlobalTexture("_Cubemap", rt);
+            cbuffer.GenerateMips(rt);
+            RenderPipeline.AddRenderingMissionInEditor(worldToCameras, projection, targetCamera, rt, tempRT, cbuffer);
+        }
+        private IEnumerator RunCubemap()
+        {
+            Init();
+            BakeCubemap();
+            yield return null;
+            yield return null;
+            Dispose();
+        }
 
         [EasyButtons.Button]
         public void BakeProbe()
@@ -172,16 +234,16 @@ namespace MPipeline
                 Debug.LogError("Has to be baked in runtime!");
                 return;
             }
-            if(!saveTarget)
+            if (!saveTarget)
             {
                 Debug.LogError("Save Target is empty!");
                 return;
             }
             bool alreadyContained = false;
-            for(int i = 0; i < saveTarget.allVolume.Count; ++i)
+            for (int i = 0; i < saveTarget.allVolume.Count; ++i)
             {
                 var a = saveTarget.allVolume[i];
-                if(a.volumeName == volumeName)
+                if (a.volumeName == volumeName)
                 {
                     File.Delete("Assets/BinaryData/Irradiance/" + volumeName + ".mpipe");
                     alreadyContained = true;
@@ -189,7 +251,7 @@ namespace MPipeline
                     break;
                 }
             }
-            if(!alreadyContained)
+            if (!alreadyContained)
             {
                 indexInList = saveTarget.allVolume.Count;
                 saveTarget.allVolume.Add(new IrradianceResources.Volume());
@@ -214,14 +276,17 @@ namespace MPipeline
                 msaaSamples = 1,
                 shadowSamplingMode = ShadowSamplingMode.None,
                 sRGB = false,
-                useMipMap = false,
+                useMipMap = true,
                 volumeDepth = 6,
                 vrUsage = VRTextureUsage.None
             };
-            RenderTexture rt = RenderTexture.GetTemporary(texArrayDescriptor);
+
+            RenderTexture rt = RenderTexture.GetTemporary(texArrayDescriptor); rt.filterMode = FilterMode.Trilinear;
+            rt.Create();
             texArrayDescriptor.volumeDepth = 1;
             texArrayDescriptor.dimension = TextureDimension.Tex2D;
             RenderTexture tempRT = RenderTexture.GetTemporary(texArrayDescriptor);
+            tempRT.Create();
             ComputeShader shader = resources.shaders.probeCoeffShader;
             Action<CommandBuffer> func = (cb) =>
             {
@@ -244,6 +309,7 @@ namespace MPipeline
                     for (int z = 0; z < probeCount.z; ++z)
                     {
                         BakeMap(int3(x, y, z), rt, tempRT);
+                        cbuffer.GenerateMips(rt);
                         cbuffer.SetComputeIntParam(shader, "_OffsetIndex", PipelineFunctions.DownDimension(int3(x, y, z), probeCount.xy));
                         cbuffer.DispatchCompute(shader, 0, RESOLUTION / 32, RESOLUTION / 32, 6);
                         cbuffer.DispatchCompute(shader, 1, 1, 1, 1);

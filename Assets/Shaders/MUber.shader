@@ -13,17 +13,17 @@
 	#include "CGINC/Shader_Include/BSDF_Library.hlsl"
 	#include "CGINC/Shader_Include/AreaLight.hlsl"
 	#include "CGINC/Lighting.cginc"
-	#include "CGINC/Reflection.cginc"
 	#include "CGINC/VolumetricLight.cginc"
 	#include "CGINC/Sunlight.cginc"
-	#pragma multi_compile __ ENABLE_SUN
-	#pragma multi_compile __ ENABLE_SUNSHADOW
-	#pragma multi_compile __ ENABLE_VOLUMETRIC
-	#pragma multi_compile __ ENABLE_REFLECTION
+    #include "CGINC/Reflection.cginc"
+	#pragma multi_compile _ ENABLE_SUN
+	#pragma multi_compile _ ENABLE_SUNSHADOW
+	#pragma multi_compile _ ENABLE_VOLUMETRIC
 	#pragma multi_compile _ POINTLIGHT
 	#pragma multi_compile _ SPOTLIGHT
     #pragma multi_compile _ EnableGTAO
-#pragma multi_compile _ GPURP_UBER
+    #pragma multi_compile _ ENABLE_REFLECTION
+    #pragma multi_compile _ GPURP_UBER
 			float4x4 _InvVP;
 			
 			Texture2D<float4> _CameraGBufferTexture0; SamplerState sampler_CameraGBufferTexture0;
@@ -82,7 +82,7 @@
                 float3 finalColor = 0;
                 #if ENABLE_SUN
 				#if ENABLE_SUNSHADOW
-					finalColor += CalculateSunLight(data, depth, wpos, viewDir, i.uv);
+					finalColor += CalculateSunLight(data, depth, wpos, viewDir);
 				#else
 					finalColor += CalculateSunLight_NoShadow(data, viewDir);
 				#endif

@@ -61,7 +61,7 @@ ENDCG
 				wpos /= wpos.w;
 				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
 				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
-				return CalculateSunLight(data, depth, wpos, viewDir, i.uv);
+				return CalculateSunLight(data, depth, wpos, viewDir);
 			}
 			ENDCG
 		}

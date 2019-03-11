@@ -89,7 +89,7 @@
 					float3 finalColor = 0;
 					#if ENABLE_SUN
 					#if ENABLE_SUNSHADOW
-					finalColor += CalculateSunLight(standardData, i.pos.z, float4(i.worldPos, 1), viewDir, screenUV);
+					finalColor += CalculateSunLight(standardData, i.pos.z, float4(i.worldPos, 1), viewDir);
 					#else
 					finalColor += CalculateSunLight_NoShadow(standardData, viewDir);
 					#endif

@@ -161,8 +161,9 @@ namespace MPipeline
                     pipelineCam.cam.projectionMatrix = pair.projection[i];
                     Render(pipelineCam, new RenderTargetIdentifier(pair.tempTex), ref renderContext, pipelineCam.cam, propertyCheckedFlags);
                     PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
-                    data.buffer.CopyTexture(pair.tempTex, 0, pair.texArray, i);
+                    data.buffer.CopyTexture(pair.tempTex, 0, 0, pair.texArray, i, 0);
                     data.ExecuteCommandBuffer();
+                    renderContext.Submit();
                 }
                 pair.worldToCamera.Dispose();
                 pair.projection.Dispose();
@@ -234,12 +235,12 @@ namespace MPipeline
                 data.frustumPlanes[i] = new Vector4(-p.normal.x, -p.normal.y, -p.normal.z, -p.distance);
             }
             var allEvents = resources.allEvents;
-            var collect = allEvents[(int)pipelineCam.renderingPath];
+            var collect = allEvents[(int)path];
 #if UNITY_EDITOR
             //Need only check for Unity Editor's bug!
-            if (!pipelineChecked[(int)pipelineCam.renderingPath])
+            if (!pipelineChecked[(int)path])
             {
-                pipelineChecked[(int)pipelineCam.renderingPath] = true;
+                pipelineChecked[(int)path] = true;
                 foreach (var e in collect)
                 {
                     if (!e.CheckProperty())

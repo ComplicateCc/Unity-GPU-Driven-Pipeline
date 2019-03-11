@@ -27,9 +27,6 @@ uint Encode(half4 value)
     return result;
 }
 static const float Pi = 3.141592654;
-static const float CosineA0 = Pi;
-static const float CosineA1 = (2.0 * Pi) / 3.0;
-static const float CosineA2 = Pi * 0.25;
 
 struct SH9
 {
@@ -43,16 +40,18 @@ struct SHColor
 
 SH9 SHCosineLobe(float3 normal)
 {
+    float x = normal.x; float y = normal.y; float z = normal.z;
+	float x2 = x * x; float y2 = y * y; float z2 = z * z;
     SH9 sh;
-    sh.c[0] = 0.282095;
-    sh.c[1] = 0.488603 * normal.x;
-    sh.c[2] = 0.488603 * normal.z;
-    sh.c[3] = 0.488603 * normal.y;
-    sh.c[4] = 1.092548 * normal.x*normal.z;
-    sh.c[5] = 1.092548 * normal.y*normal.z;
-    sh.c[6] = 0.315392 * normal.y*normal.x;
-    sh.c[7] = 1.092548 * normal.z * normal.z - 0.315392;
-    sh.c[8] = 0.546274 * (normal.x*normal.x - normal.y*normal.y);
+				sh.c[0] = 1.0 / 2.0 * sqrt(1.0 / Pi);
+				sh.c[1] = sqrt( 3.0 / (4.0 * Pi) ) * y;
+				sh.c[2] = sqrt( 3.0 / (4.0 * Pi) ) * z;
+				sh.c[3] = sqrt( 3.0 / (4.0 * Pi) ) * x;
+				sh.c[4] = 1.0 / 2.0 * sqrt(15.0 / Pi) * x * y;
+				sh.c[5] = 1.0 / 2.0 * sqrt(15.0 / Pi) * y * z;
+				sh.c[6] = 1.0 / 4.0 * sqrt(5.0 / Pi) * (-x2 - y2 + 2.0 * z2);
+				sh.c[7] = 1.0 / 2.0 * sqrt(15.0 / Pi) * z * x;
+				sh.c[8] = 1.0 / 4.0 * sqrt(15.0 / Pi) * (x2 - y2);
 
     return sh;
 }
@@ -69,27 +68,31 @@ float Y20     = 0.946176 * normal.z * normal.z - 0.315392;\
 float Y22     = 0.546274 * (normal.x*normal.x - normal.y*normal.y);
 
 float3 DirFromCube(uint face, float2 uv){
-    float3 dir = float3(1, uv * 2 - 1);
-    switch(face){
-        case 1:
-        dir = dir.xzy * float3(1, -1, -1);
-        break;
+    float3 targetDir[4];
+    switch(face)
+    {
         case 0:
-        dir = dir.xzy * float3(-1, -1, 1);
+        targetDir[0] = float3(-1, -1, -1);  targetDir[1] = float3(-1, 1, -1);  targetDir[2] = float3(-1, 1, 1);  targetDir[3] = float3(-1, -1, 1);
+        break;
+        case 1:
+        targetDir[0] = float3(1, -1, 1);  targetDir[1] = float3(1, 1, 1);  targetDir[2] = float3(1, 1, -1);  targetDir[3] = float3(1, -1, -1);
         break;
         case 2:
-        dir = dir.yxz;
+        targetDir[0] = float3(1, 1, -1);  targetDir[1] = float3(1, 1, 1);  targetDir[2] = float3(-1, 1, 1);  targetDir[3] = float3(-1, 1, -1);
         break;
         case 3:
-        dir = dir.yxz * float3(1, -1, -1);
-        break;
-        case 5:
-        dir = dir.yzx * float3(1, -1, 1);
+        targetDir[0] = float3(1, -1, 1);  targetDir[1] = float3(1, -1, -1);  targetDir[2] = float3(-1, -1, -1);  targetDir[3] = float3(-1, -1, 1);
         break;
         case 4:
-        dir = dir.yzx * -1;
+        targetDir[0] = float3(1, -1, -1);  targetDir[1] = float3(1, 1, -1);  targetDir[2] = float3(-1, 1, -1);  targetDir[3] = float3(-1, -1, -1);
+        break;
+        case 5:
+        targetDir[0] = float3(-1, -1, 1);  targetDir[1] = float3(-1, 1, 1);  targetDir[2] = float3(1, 1, 1);  targetDir[3] = float3(1, -1, 1);
         break;
     }
+    float3 down = lerp(targetDir[0], targetDir[1], uv.x);
+    float3 up = lerp(targetDir[3], targetDir[2], uv.x);
+    float3 dir = lerp(down, up, uv.y);
     return normalize(dir);
 }
 

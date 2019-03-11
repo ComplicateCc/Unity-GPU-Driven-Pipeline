@@ -32,7 +32,7 @@ MonoBehaviour:
         z: 20.310867
     position:
       x: 13.91
-      y: 3.37
+      y: 3.46
       z: -28.86
     volumeName: TestIrr
     path: Assets/BinaryData/Irradiance/TestIrr.mpipe

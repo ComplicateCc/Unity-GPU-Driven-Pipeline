@@ -15,9 +15,9 @@ float3 _DirLightPos;
 Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
 float3 _DirLightFinalColor;
 float _ShadowOffset;
-float GetShadow(float4 worldPos, float depth, float2 seed)
+float GetShadow(float4 worldPos, float depth)
 {
-
+	float3 seed = normalize(worldPos);
 	float eyeDistance = LinearEyeDepth(depth);
 	float4 eyeRange = eyeDistance < _ShadowDisableDistance;
 	eyeRange.yzw -= eyeRange.xyz;
@@ -31,11 +31,12 @@ float GetShadow(float4 worldPos, float depth, float2 seed)
 	float atten = 0;
 	for (int i = 0; i < SAMPLECOUNT; ++i)
 	{
-		seed = cellNoise(seed.yx);
+		seed = cellNoise(seed);
+		seed.xy = normalize(seed.xy);
 		#if UNITY_REVERSED_Z
-		atten += _DirShadowMap.Sample(sampler_DirShadowMap, float3(shadowUV + seed * softValue, zAxisUV + 0.01)) < dist;
+		atten += _DirShadowMap.Sample(sampler_DirShadowMap, float3(shadowUV + seed.xy * seed.z * softValue, zAxisUV + 0.01)) < dist;
 		#else
-		atten += _DirShadowMap.Sample(sampler_DirShadowMap, float3(shadowUV + seed * softValue, zAxisUV + 0.01)) > dist;
+		atten += _DirShadowMap.Sample(sampler_DirShadowMap, float3(shadowUV + seed.xy * seed.z * softValue, zAxisUV + 0.01)) > dist;
 		#endif
 	}
 	atten /= SAMPLECOUNT;
@@ -44,9 +45,9 @@ float GetShadow(float4 worldPos, float depth, float2 seed)
 	return atten;
 }
 
-float4 CalculateSunLight(UnityStandardData data, float depth, float4 wpos, float3 viewDir, float2 screenUV)
+float4 CalculateSunLight(UnityStandardData data, float depth, float4 wpos, float3 viewDir)
 {
-	float atten = GetShadow(wpos, depth, screenUV);
+	float atten = GetShadow(wpos, depth);
 	float oneMinusReflectivity = 1 - SpecularStrength(data.specularColor.rgb);
 	UnityIndirect ind;
 	UNITY_INITIALIZE_OUTPUT(UnityIndirect, ind);

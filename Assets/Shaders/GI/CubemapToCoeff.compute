@@ -2,7 +2,7 @@
 #pragma kernel Scatter
 #pragma kernel SetToTex3D
 #include "GlobalIllumination.cginc"
-Texture2DArray<float3> _SourceCubemap;
+Texture2DArray<float3> _SourceCubemap; SamplerState sampler_SourceCubemap;
 RWStructuredBuffer<uint3> _CoeffTemp;
 RWStructuredBuffer<float3> _Coeff;
 uint _OffsetIndex;
@@ -11,7 +11,7 @@ void Collect (uint3 id : SV_DispatchThreadID)
 {
     float2 uv = (float2)id.xy / RESOLUTION;
     float3 dir = DirFromCube(id.z, uv);
-    float3 radians = _SourceCubemap[id];
+    float3 radians = _SourceCubemap.SampleLevel(sampler_SourceCubemap, float3(uv, id.z), 5);
     SH9 sh = SHCosineLobe(dir);
     [unroll]
     for(uint i = 0; i < 9; ++i)

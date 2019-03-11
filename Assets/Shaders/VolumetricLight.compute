@@ -223,7 +223,7 @@ void CalculateGI(uint3 id : SV_DISPATCHTHREADID)
     float3 shUV = GetSHUV(targetWorldPos.xyz);
     shUV = shUV;
     float offset = dot(abs(shUV - saturate(shUV)), 1);
-    if(offset > 0.01) return;
+    if(offset > 1e-6) return;
     SHColor sh = GetSHFromTex(shUV);
     _VolumeTex[id] += float4((GetSHColor(sh.c, _CameraForward) + GetSHColor(sh.c, -_CameraForward)) * _IndirectIntensity, 0);
 }

@@ -165,26 +165,34 @@ namespace MPipeline
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._DirShadowMap, cbdr.dirLightShadowmap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
-            /*
-            if (ProbeBaker.allBakers.Count > 0)
+
+            cbdr.dirLightShadowmap = null;
+            buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
+            int3 dispatchCount = int3(downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
+            buffer.DispatchCompute(scatter, clearPass, dispatchCount.x, dispatchCount.y, dispatchCount.z);
+            NativeList<int> cullingResult = lightingData.culler.cullingResult;
+            if (cullingResult.isCreated && cullingResult.Length > 0)
             {
                 buffer.SetComputeBufferParam(scatter, calculateGI, ShaderIDs._RandomBuffer, randomBuffer);
                 buffer.SetComputeTextureParam(scatter, calculateGI, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
                 buffer.SetComputeFloatParam(scatter, ShaderIDs._IndirectIntensity, indirectIntensity);
-                for (int i = 0; i < ProbeBaker.allBakers.Count; ++i)
+                foreach (var i in cullingResult)
                 {
-                    ProbeBaker baker = ProbeBaker.allBakers[i];
-                    if (baker.isRendered)
-                    {
-                        baker.SetCoeffTextures(buffer, scatter, calculateGI);
-                        buffer.DispatchCompute(scatter, calculateGI, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
-                    }
+                    ref LoadedIrradiance irr = ref IrradianceVolumeController.current.loadedIrradiance[i];
+                    Matrix4x4 localToWorld = new Matrix4x4(float4(irr.localToWorld.c0, 0), float4(irr.localToWorld.c1, 0), float4(irr.localToWorld.c2, 0), float4(irr.position, 1));
+                    CoeffTexture currentTexture = IrradianceVolumeController.current.coeffTextures[irr.renderTextureIndex];
+                    buffer.SetComputeTextureParam(scatter, calculateGI, IrradianceVolumeController.current._CoeffIDs[0], currentTexture.coeff0);
+                    buffer.SetComputeTextureParam(scatter, calculateGI, IrradianceVolumeController.current._CoeffIDs[1], currentTexture.coeff1);
+                    buffer.SetComputeTextureParam(scatter, calculateGI, IrradianceVolumeController.current._CoeffIDs[2], currentTexture.coeff2);
+                    buffer.SetComputeTextureParam(scatter, calculateGI, IrradianceVolumeController.current._CoeffIDs[3], currentTexture.coeff3);
+                    buffer.SetComputeTextureParam(scatter, calculateGI, IrradianceVolumeController.current._CoeffIDs[4], currentTexture.coeff4);
+                    buffer.SetComputeTextureParam(scatter, calculateGI, IrradianceVolumeController.current._CoeffIDs[5], currentTexture.coeff5);
+                    buffer.SetComputeTextureParam(scatter, calculateGI, IrradianceVolumeController.current._CoeffIDs[6], currentTexture.coeff6);
+                    buffer.SetComputeMatrixParam(scatter, ShaderIDs._WorldToLocalMatrix, localToWorld.inverse);
+                    buffer.DispatchCompute(scatter, calculateGI, dispatchCount.x, dispatchCount.y, dispatchCount.z);
                 }
-            }*/
-            cbdr.dirLightShadowmap = null;
-            buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
-            buffer.DispatchCompute(scatter, clearPass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
-            buffer.DispatchCompute(scatter, pass, downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
+            }
+            buffer.DispatchCompute(scatter, pass, dispatchCount.x, dispatchCount.y, dispatchCount.z);
             buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);
             buffer.DispatchCompute(scatter, scatterPass, downSampledSize.x / 32, downSampledSize.y / 2, 1);
             cbdr.lightFlag = 0;

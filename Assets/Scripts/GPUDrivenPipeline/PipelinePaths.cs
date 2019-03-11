@@ -17,6 +17,7 @@ namespace MPipeline
         public ComputeShader texCopyShader;
         public ComputeShader reflectionCullingShader;
         public Shader taaShader;
+        public Shader ssrShader;
         public Shader indirectDepthShader;
         public Shader HizLodShader;
         public Shader motionVectorShader;

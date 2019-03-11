@@ -6,7 +6,6 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using UnityEngine.Rendering;
-using static Unity.Mathematics.math;
 using Unity.Mathematics;
 namespace MPipeline
 {
@@ -28,6 +27,9 @@ namespace MPipeline
         private LightingEvent lightingEvents;
         private ComputeBuffer reflectionIndices;
         private NativeList<int> reflectionCubemapIDs;
+        private PropertySetEvent propertySetEvent;
+        [SerializeField]
+        private StochasticScreenSpaceReflection ssrEvents;
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
         public override bool CheckProperty()
         {
@@ -56,6 +58,8 @@ namespace MPipeline
                     }
                 }
             }
+            propertySetEvent = RenderPipeline.GetEvent<PropertySetEvent>();
+            ssrEvents.Init(resources);
         }
         protected override void OnEnable()
         {
@@ -77,6 +81,7 @@ namespace MPipeline
             probeBuffer.Dispose();
             reflectionIndices.Dispose();
             reflectionCubemapIDs.Dispose();
+            ssrEvents.Dispose();
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
@@ -114,6 +119,7 @@ namespace MPipeline
             {
                 buffer.SetGlobalTexture(reflectionCubemapIDs[i], reflectProbes[i].texture);
             }
+            ssrEvents.Render(ref data, cam, propertySetEvent, this);
             //TODO
         }
         [Unity.Burst.BurstCompile]

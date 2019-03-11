@@ -156,7 +156,6 @@ void frag_surf (v2f_surf IN,
   surf (surfIN, o);
   
   o.Normal = normalize(mul(o.Normal, wdMatrix));
-  float3 n = o.Normal;
   outEmission = ProceduralStandardSpecular_Deferred (o, worldViewDir, outGBuffer0, outGBuffer1, outGBuffer2); //GI neccessary here!
   float4 screenPos = mul(_NonJitterVP, float4(worldPos, 1));
   float2 screenUV = GetScreenPos(screenPos);
