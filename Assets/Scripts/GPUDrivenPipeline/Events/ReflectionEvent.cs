@@ -34,6 +34,22 @@ namespace MPipeline
         {
             return reflectionIndices.IsValid() && ssrEvents.MaterialEnabled();
         }
+        protected override void OnEnable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
+            {
+                buffer.EnableShaderKeyword("ENABLE_REFLECTION");
+            });
+        }
+
+        protected override void OnDisable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
+            {
+                buffer.DisableShaderKeyword("ENABLE_REFLECTION");
+            });
+        }
+
         protected override void Init(PipelineResources resources)
         {
             probeBuffer = new ComputeBuffer(maximumProbe, sizeof(ReflectionData));

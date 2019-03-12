@@ -7,7 +7,7 @@ StructuredBuffer<uint> _SpotLightIndexBuffer;
 float2 _CameraClipDistance; //X: Near Y: Far - Near
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
 //UNITY_SAMPLE_SHADOW
-Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
+Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
 static const int _ShadowSampler = 20;
 	static const float3 Offsets[20] = 
 	{
@@ -68,11 +68,8 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 			for(int i = 0; i < _ShadowSampler; ++i)
 			{
 				JitterSpot = cellNoise(JitterSpot);
-				#if UNITY_REVERSED_Z
-				ShadowTrem += _SpotMapArray.Sample( sampler_SpotMapArray, float3( (clipPos.xy * 0.5 + 0.5) + ( JitterSpot / (ShadowResolution / 3) ) + ( (Offsets[i]) / ShadowResolution ), Light.shadowIndex )) < clipPos.z;
-				#else
-				ShadowTrem += _SpotMapArray.Sample( sampler_SpotMapArray, float3( (clipPos.xy * 0.5 + 0.5) + ( JitterSpot / (ShadowResolution / 3) ) + ( (Offsets[i]) / ShadowResolution ), Light.shadowIndex )) > clipPos.z;
-				#endif
+				ShadowTrem += _SpotMapArray.SampleCmpLevelZero( sampler_SpotMapArray, float3( (clipPos.xy * 0.5 + 0.5) + ( JitterSpot / (ShadowResolution / 3) ) + ( (Offsets[i]) / ShadowResolution ), Light.shadowIndex), clipPos.z);
+
 			}
 			ShadowTrem /= float(_ShadowSampler);
 		}else

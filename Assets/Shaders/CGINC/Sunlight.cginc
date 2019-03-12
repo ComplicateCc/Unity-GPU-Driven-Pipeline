@@ -12,7 +12,7 @@ float4 _SoftParam;
 float4x4 _ShadowMapVPs[4];
 float4 _ShadowDisableDistance;
 float3 _DirLightPos;
-Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
+Texture2DArray<float> _DirShadowMap; SamplerComparisonState sampler_DirShadowMap;
 float3 _DirLightFinalColor;
 float _ShadowOffset;
 float GetShadow(float4 worldPos, float depth)
@@ -37,11 +37,7 @@ float GetShadow(float4 worldPos, float depth)
 	{
 		seed = cellNoise(seed);
 		seed.xy = normalize(seed.xy);
-		#if UNITY_REVERSED_Z
-		atten += _DirShadowMap.Sample(sampler_DirShadowMap, float3(shadowUV + seed.xy * seed.z * softValue, zAxisUV + 0.01)) < dist;
-		#else
-		atten += _DirShadowMap.Sample(sampler_DirShadowMap, float3(shadowUV + seed.xy * seed.z * softValue, zAxisUV + 0.01)) > dist;
-		#endif
+		atten += _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV + seed.xy * seed.z * softValue, zAxisUV + 0.01), dist);
 	}
 	atten /= SAMPLECOUNT;
 	float fadeDistance = saturate((_ShadowDisableDistance.w - eyeDistance) / (_ShadowDisableDistance.w * 0.05));

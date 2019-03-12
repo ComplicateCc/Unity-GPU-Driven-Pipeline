@@ -184,6 +184,22 @@ namespace MPipeline
             buffer.BlitSRT(cam.targets.renderTargetIdentifier, lightingData.lightingMat, 1);
         }
 
+        protected override void OnEnable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
+            {
+                buffer.EnableShaderKeyword("ENABLE_VOLUMETRIC");
+            });
+        }
+
+        protected override void OnDisable()
+        {
+            RenderPipeline.ExecuteBufferAtFrameEnding((buffer) =>
+            {
+                buffer.DisableShaderKeyword("ENABLE_VOLUMETRIC");
+            });
+        }
+
         protected override void Dispose()
         {
             randomBuffer.Dispose();

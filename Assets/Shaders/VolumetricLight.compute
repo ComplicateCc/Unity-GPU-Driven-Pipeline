@@ -30,11 +30,11 @@ StructuredBuffer<uint> _PointLightIndexBuffer;
 StructuredBuffer<uint> _SpotLightIndexBuffer;
 
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
-Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
+Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
 StructuredBuffer<FogVolume> _AllFogVolume;
-Texture2DArray<float> _DirShadowMap; SamplerState sampler_DirShadowMap;
+Texture2DArray<float> _DirShadowMap; SamplerComparisonState sampler_DirShadowMap;
 RWTexture3D<float4> _VolumeTex;
 Texture3D<float4> _LastVolume; SamplerState sampler_LastVolume;
 float3 _DirLightPos;
@@ -56,11 +56,7 @@ float _IndirectIntensity;
 				shadowUV = shadowUV * 0.5 + 0.5;
 
 				float dist = shadowPos.z;
-                #if UNITY_REVERSED_Z
-                float atten = _DirShadowMap.SampleLevel(sampler_DirShadowMap, float3(shadowUV, zAxisUV), 0) < dist;
-                #else
-				float atten = _DirShadowMap.SampleLevel(sampler_DirShadowMap, float3(shadowUV, zAxisUV), 0) > dist;
-                #endif
+                float atten = _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV, zAxisUV), dist);
 				return atten;
 			}
 #define MieScattering(cosAngle, g) g.w * (g.x / (pow(g.y - g.z * cosAngle, 1.5)))
@@ -139,11 +135,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         float4 clipPos = mul(Light.vpMatrix, float4(targetWorldPos, 1));
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
-                        #if UNITY_REVERSED_Z
-                        ShadowTrem = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0) < clipPos.z;
-                        #else
-                        ShadowTrem = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0) > clipPos.z;
-                        #endif
+                        ShadowTrem = _SpotMapArray.SampleCmpLevelZero(sampler_SpotMapArray, float3(uv, Light.shadowIndex), clipPos.z);
             }
             #endif
             color.rgb += ShadowTrem * spotColor;

@@ -165,8 +165,8 @@ public unsafe class MLight : MonoBehaviour
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                colorFormat = RenderTextureFormat.RHalf,
-                depthBufferBits = 0,
+                colorFormat = RenderTextureFormat.Shadowmap,
+                depthBufferBits = 16,
                 dimension = TextureDimension.Tex2D,
                 volumeDepth = 1,
                 enableRandomWrite = false,
@@ -174,7 +174,7 @@ public unsafe class MLight : MonoBehaviour
                 width = perspShadowResolution,
                 memoryless = RenderTextureMemoryless.None,
                 msaaSamples = 1,
-                shadowSamplingMode = ShadowSamplingMode.None,
+                shadowSamplingMode = ShadowSamplingMode.RawDepth,
                 sRGB = false,
                 useMipMap = false,
                 vrUsage = VRTextureUsage.None
