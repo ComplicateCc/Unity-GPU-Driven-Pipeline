@@ -21,8 +21,21 @@ ShaderVariantCollection:
   - first: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
+      - keywords: DIRECTIONAL LIGHTPROBE_SH
+        passType: 4
+      - keywords: DIRECTIONAL LIGHTPROBE_SH _EMISSION
+        passType: 4
+      - keywords: DIRECTIONAL
+        passType: 5
       - keywords: SHADOWS_DEPTH
         passType: 8
+      - keywords: LIGHTPROBE_SH UNITY_HDR_ON
+        passType: 10
+  - first: {fileID: 64, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: SHADOWS_SPLIT_SPHERES
+        passType: 0
   - first: {fileID: 74, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
@@ -35,7 +48,13 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+      - keywords: POINT
+        passType: 0
       - keywords: SPOT UNITY_HDR_ON
+        passType: 0
+      - keywords: DIRECTIONAL UNITY_HDR_ON
+        passType: 0
+      - keywords: DIRECTIONAL SHADOWS_SCREEN UNITY_HDR_ON
         passType: 0
   - first: {fileID: 106, guid: 0000000000000000f000000000000000, type: 0}
     second:
@@ -63,6 +82,11 @@ ShaderVariantCollection:
       - keywords: 
         passType: 0
   - first: {fileID: 9004, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 10770, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
       - keywords: 
@@ -160,6 +184,11 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
+  - first: {fileID: 4800000, guid: d3ffd86cfd293de4b8d56dc637c0ecc3, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
   - first: {fileID: 4800000, guid: da83f09223ac06d438b6f527d4797397, type: 3}
     second:
       variants:
@@ -175,6 +204,11 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 13
+  - first: {fileID: 4800000, guid: f997a3dc9254c44459323cced085150c, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
   - first: {fileID: 9006, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
@@ -193,36 +227,41 @@ ShaderVariantCollection:
   - first: {fileID: 4800000, guid: b10a195e54d72984783eb1f2f49aa43f, type: 3}
     second:
       variants:
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
+      - keywords: ENABLE_SUN
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          SPOTLIGHT
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW
         passType: 0
-      - keywords: ENABLE_SUN ENABLE_SUNSHADOW GPURP_UBER
+      - keywords: ENABLE_SUN EnableGTAO
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          EnableGTAO GPURP_UBER
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW SPOTLIGHT
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
-          SPOTLIGHT
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO SPOTLIGHT
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          EnableGTAO GPURP_UBER SPOTLIGHT
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW POINTLIGHT
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          POINTLIGHT
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO POINTLIGHT
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
-          POINTLIGHT
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO POINTLIGHT SPOTLIGHT
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          EnableGTAO GPURP_UBER POINTLIGHT
+  - first: {fileID: 4800000, guid: a4b6cd62c2a13814d993be22ee50d68d, type: 3}
+    second:
+      variants:
+      - keywords: EnableGTAO
         passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO GPURP_UBER
-          POINTLIGHT SPOTLIGHT
-        passType: 0
-      - keywords: ENABLE_REFLECTION ENABLE_SUN ENABLE_SUNSHADOW ENABLE_VOLUMETRIC
-          EnableGTAO GPURP_UBER POINTLIGHT SPOTLIGHT
+  - first: {fileID: 4800000, guid: cbaa9fe6466c82840b218b6e5a550dd9, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: f7ae24b37f5306e458fbace9d2262044, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: 18704a45733ea43459834cc74c454ac8, type: 3}
+    second:
+      variants:
+      - keywords: 
         passType: 0

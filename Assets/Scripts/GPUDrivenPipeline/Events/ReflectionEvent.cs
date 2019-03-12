@@ -32,7 +32,7 @@ namespace MPipeline
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
         public override bool CheckProperty()
         {
-            return reflectionIndices.IsValid();
+            return reflectionIndices.IsValid() && ssrEvents.MaterialEnabled();
         }
         protected override void Init(PipelineResources resources)
         {

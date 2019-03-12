@@ -56,7 +56,7 @@ namespace MPipeline
                 catch { }
                 return false;
             }
-            return cubeDepthMaterial != null && irradianceVolumeMat != null;
+            return cubeDepthMaterial && irradianceVolumeMat && lightingMat;
         }
         #endregion
         protected override void Init(PipelineResources resources)

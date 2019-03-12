@@ -295,7 +295,7 @@ ENDCG
 			}
 			float frag (v2f i) : SV_TARGET
 			{
-				return 0;
+				return i.vertex.z;
 			}
 
 			ENDCG

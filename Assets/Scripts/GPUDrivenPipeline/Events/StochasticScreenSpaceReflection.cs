@@ -119,8 +119,6 @@ namespace MPipeline
         [SerializeField]
         Texture2D BlueNoise_LUT = null;
 
-        [SerializeField]
-        Texture2D preint;
 
         [Range(1, 4)]
         [SerializeField]
@@ -193,7 +191,6 @@ namespace MPipeline
 
 
         private static int SSR_Noise_ID = Shader.PropertyToID("_SSR_Noise");
-        private static int SSR_PreintegratedGF_LUT_ID = Shader.PropertyToID("_SSR_PreintegratedGF_LUT");
 
         private static int SSR_HierarchicalDepth_ID = Shader.PropertyToID("_SSR_HierarchicalDepth_RT");
         private static int SSR_SceneColor_ID = Shader.PropertyToID("_SSR_SceneColor_RT");
@@ -259,11 +256,13 @@ namespace MPipeline
             return offset;
         }
 
-
+        public bool MaterialEnabled()
+        {
+            return StochasticScreenSpaceReflectionMaterial;
+        }
 
         private void SSR_UpdateUniformVariable(CommandBuffer buffer)
         {
-            buffer.SetGlobalTexture(SSR_PreintegratedGF_LUT_ID, preint);
             buffer.SetGlobalTexture(SSR_Noise_ID, BlueNoise_LUT);
             buffer.SetGlobalVector(SSR_NoiseSize_ID, new Vector2(1024, 1024));
             buffer.SetGlobalFloat(SSR_BRDFBias_ID, BRDFBias);
@@ -298,17 +297,9 @@ namespace MPipeline
         {
             Vector2Int CameraSize = new Vector2Int(RenderCamera.pixelWidth, RenderCamera.pixelHeight);
             CommandBuffer buffer = data.buffer;
-            if (cameraData.UpdateCameraSize(CameraSize, (int)RayCastingResolution))
-            {
-                SSR_UpdateUniformVariable(data.buffer);
-            }
-            ////////////Set Matrix
-#if UNITY_EDITOR
-            else if (RunTimeDebugMod)
-            {
-                SSR_UpdateUniformVariable(data.buffer);
-            }
-#endif
+            cameraData.UpdateCameraSize(CameraSize, (int)RayCastingResolution);
+            SSR_UpdateUniformVariable(data.buffer);
+ 
             buffer.SetGlobalVector(SSR_ScreenSize_ID, new Vector2(CameraSize.x, CameraSize.y));
             buffer.SetGlobalVector(SSR_RayCastSize_ID, new Vector2(CameraSize.x, CameraSize.y) / (int)RayCastingResolution);
 

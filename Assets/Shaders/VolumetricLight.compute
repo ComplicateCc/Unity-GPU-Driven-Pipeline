@@ -30,7 +30,7 @@ StructuredBuffer<uint> _PointLightIndexBuffer;
 StructuredBuffer<uint> _SpotLightIndexBuffer;
 
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
-Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
+Texture2DArray<float> _SpotMapArray; SamplerState sampler_SpotMapArray;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
 StructuredBuffer<FogVolume> _AllFogVolume;
@@ -139,7 +139,11 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
                         float4 clipPos = mul(Light.vpMatrix, float4(targetWorldPos, 1));
                         clipPos /= clipPos.w;
                         float2 uv = clipPos.xy * 0.5 + 0.5;
-                        ShadowTrem = _SpotMapArray.SampleCmpLevelZero(sampler_SpotMapArray, float3(uv, Light.shadowIndex), clipPos.z);
+                        #if UNITY_REVERSED_Z
+                        ShadowTrem = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0) < clipPos.z;
+                        #else
+                        ShadowTrem = _SpotMapArray.SampleLevel(sampler_SpotMapArray, float3(uv, Light.shadowIndex), 0) > clipPos.z;
+                        #endif
             }
             #endif
             color.rgb += ShadowTrem * spotColor;
