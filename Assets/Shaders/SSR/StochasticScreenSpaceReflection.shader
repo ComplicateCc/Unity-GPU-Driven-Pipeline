@@ -5,9 +5,9 @@
 	ENDCG
 
 	SubShader {
-		ZTest Always
+		ZTest Always 
 		ZWrite Off
-		Cull off
+		Cull Off
 
 		Pass 
 		{

@@ -1392,9 +1392,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b404c01670a841439f40cbf2b2282c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enableShadow: 1
+  enableShadow: 0
   resolution: 2048
-  farestZ: 406
+  farestZ: 300
   firstLevelDistance: 8
   secondLevelDistance: 15
   thirdLevelDistance: 30

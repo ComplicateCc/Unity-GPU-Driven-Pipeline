@@ -27,7 +27,6 @@ namespace MPipeline
         private LightingEvent lightingEvents;
         private ComputeBuffer reflectionIndices;
         private NativeList<int> reflectionCubemapIDs;
-        private PropertySetEvent propertySetEvent;
         [SerializeField]
         private StochasticScreenSpaceReflection ssrEvents;
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
@@ -58,7 +57,6 @@ namespace MPipeline
                     }
                 }
             }
-            propertySetEvent = RenderPipeline.GetEvent<PropertySetEvent>();
             ssrEvents.Init(resources);
         }
         protected override void Dispose()
@@ -104,12 +102,13 @@ namespace MPipeline
             {
                 buffer.SetGlobalTexture(reflectionCubemapIDs[i], reflectProbes[i].texture);
             }
-            if(ssrEvents.enabled)
+            if (ssrEvents.enabled)
             {
-                var rt = ssrEvents.Render(ref data, cam, propertySetEvent, this);
+                var rt = ssrEvents.Render(ref data, cam, this);
                 buffer.Blit(rt, cam.targets.renderTargetIdentifier);
                 buffer.EnableShaderKeyword("ENABLE_SSR");
-            }else
+            }
+            else
             {
                 buffer.DisableShaderKeyword("ENABLE_SSR");
             }

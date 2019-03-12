@@ -1,5 +1,4 @@
 #include "UnityStandardBRDF.cginc"
-#include "CGINC/Shader_Include/Include_HLSL.hlsl"
 
 inline half GetScreenFadeBord(half2 pos, half value)
 {
@@ -9,33 +8,23 @@ inline half GetScreenFadeBord(half2 pos, half value)
 
 
 /////////////////////////////////////LInear3DTrace/////////////////////////////////////
-float4 LinearTraceRay3DSpace(float4x4 CameraProjacted, sampler2D _forntDepthTexture, int NumSteps, float2 screenUV, float2 jitter, float3 reflectionDir, float3 ray, float3 ndcUV) {
-	float3 dirProject = float3(
-		abs(CameraProjacted._m00), 
-		abs(CameraProjacted._m11), 
-		((_ProjectionParams.z * _ProjectionParams.y) / (_ProjectionParams.y - _ProjectionParams.z)));
+float4 LinearTraceRay3DSpace(Texture2D _DepthTexture, SamplerState sampler_DepthTexture, int NumSteps, float2 BlueNoise, float3 rayPos, float3 rayDir) {
+	float mask = 0.0, endDepth = 0.0;
+    float rayDepth = rayPos.z;
 
-	ray = ray / ray.z;
-	float3 rayPos = float3(ndcUV.xy * 0.5 + 0.5, ndcUV.z);
-	float rayDepth = rayPos.z;
-	float eyeDepth = LinearEyeDepth(tex2D(_forntDepthTexture, screenUV));
-	float3 rayDir = normalize(float3(reflectionDir.xy - ray.xy * reflectionDir.z, reflectionDir.z / eyeDepth) * dirProject);
-	rayDir.xy *= 0.5;
+	float2 jitter = BlueNoise + 0.5;
+	float StepSize = 1 / (float)NumSteps;
+	StepSize = StepSize * (jitter.x + jitter.y) + StepSize;
 
-	jitter += 0.5;
-	float stepSize = 1 / (float)NumSteps;
-	stepSize = stepSize * (jitter.x + jitter.y) + stepSize; 
-
-	float mask, forntDepth, backDepth;
-	UNITY_LOOP
+    UNITY_LOOP
 	for (int i = 0;  i < NumSteps; i++) {
-		forntDepth = tex2Dlod(_forntDepthTexture, float4(rayPos.xy, 0, 0));
-		if (rayDepth > forntDepth) {
+		endDepth = Texture2DSampleLevel(_DepthTexture, sampler_DepthTexture, rayPos.xy, 0.0);
+		if (rayDepth > endDepth) {
 			mask = 1;
 			break;
 		}
-		rayPos += rayDir * stepSize;
-		rayDepth = rayPos.z;
+		rayPos += rayDir * StepSize;
+        rayDepth = rayPos.z;
 	}
 	return float4(rayPos, mask);
 }
@@ -99,7 +88,7 @@ void rayIterations(sampler2D forntDepth, in bool traceBehind_Old, in bool traceB
     P -= dP, Q.z -= dQ.z, k -= dk;
 }
 
-bool LinearTraceRay2DSpace(sampler2D forntDepth,
+bool Linear2D_Trace(sampler2D forntDepth,
                              half3 csOrigin,
                              half3 csDirection,
                              half4x4 projectMatrix,
@@ -215,12 +204,6 @@ inline half3 GetPosition(sampler2D depth, half4 _MainTex_TexelSize, half4 _ProjI
 }
 
 /////////////////////////////////////Hierarchical_Z Trace/////////////////////////////////////
-float Clamp(float2 start,float2 end,float2 delta)
-{
-    float2 dir = abs(end - start);
-    return length(float2(min(dir.x, delta.x), min(dir.y,delta.y)));
-}
-
 float2 cell(float2 ray, float2 cell_count) {
 	return floor(ray.xy * cell_count);
 }
@@ -255,7 +238,7 @@ float minimum_depth_plane(float2 ray, float2 cell_count, float level, Texture2D 
 	return SceneDepth.Load( int3( (ray * cell_count), level ) );
 }
 
-float3 HiZTrace(int HiZ_Max_Level, int HiZ_Start_Level, int HiZ_Stop_Level, int NumSteps, float2 screenSize, float3 rayOrigin, float3 rayDir, Texture2D SceneDepth)
+float3 Hierarchical_Z_Trace(int HiZ_Max_Level, int HiZ_Start_Level, int HiZ_Stop_Level, int NumSteps, float2 screenSize, float3 rayOrigin, float3 rayDir, Texture2D SceneDepth)
 {
 	float level = HiZ_Start_Level;
 	float2 crossStep = float2(rayDir.x >= 0.0 ? 1.0 : -1.0, rayDir.y >= 0.0 ? 1.0 : -1.0);
@@ -296,21 +279,27 @@ float3 HiZTrace(int HiZ_Max_Level, int HiZ_Start_Level, int HiZ_Stop_Level, int 
 	return ray;
 }
 
-float4 HiZTrace(int HiZ_Max_Level, int HiZ_Start_Level, int HiZ_Stop_Level, int NumSteps, float thickness, float2 RayCastSize, float3 rayStart, float3 rayDir, Texture2D SceneDepth, SamplerState SceneDepth_Sampler)
+float GetMarchSize(float2 start,float2 end,float2 SamplerPos)
 {
-    float SamplerSize = Clamp(rayStart.xy, rayStart.xy + rayDir.xy, RayCastSize);
+    float2 dir = abs(end - start);
+    return length( float2( min(dir.x, SamplerPos.x), min(dir.y, SamplerPos.y) ) );
+}
+
+float4 Hierarchical_Z_Trace(int HiZ_Max_Level, int HiZ_Start_Level, int HiZ_Stop_Level, int NumSteps, float thickness, float2 RayCastSize, float3 rayStart, float3 rayDir, Texture2D SceneDepth, SamplerState SceneDepth_Sampler)
+{
+    float SamplerSize = GetMarchSize(rayStart.xy, rayStart.xy + rayDir.xy, RayCastSize);
     float3 samplePos = rayStart + rayDir * (SamplerSize);
     int level = HiZ_Start_Level; float mask = 0.0;
 
-    [loop]
+    UNITY_LOOP
     for (int i = 0; i < NumSteps; i++)
     {
         float2 currSamplerPos = RayCastSize * exp2(level + 1.0);
-        float newSamplerSize = Clamp(samplePos.xy, samplePos.xy + rayDir.xy, currSamplerPos);
+        float newSamplerSize = GetMarchSize(samplePos.xy, samplePos.xy + rayDir.xy, currSamplerPos);
         float3 newSamplePos = samplePos + rayDir * newSamplerSize;
         float sampleMinDepth = Texture2DSampleLevel(SceneDepth, SceneDepth_Sampler, newSamplePos.xy, level);
 
-        [flatten]
+        UNITY_FLATTEN
         if (sampleMinDepth < newSamplePos.z) {
             level = min(HiZ_Max_Level, level + 2.0);
             samplePos = newSamplePos;
@@ -318,7 +307,7 @@ float4 HiZTrace(int HiZ_Max_Level, int HiZ_Start_Level, int HiZ_Stop_Level, int 
             level--;
         }
 
-        [branch]
+        UNITY_BRANCH
         if (level < HiZ_Stop_Level) {
             float delta = (-LinearEyeDepth(sampleMinDepth)) - (-LinearEyeDepth(samplePos.z));
             mask = delta <= thickness && i > 0.0;

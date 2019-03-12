@@ -1,20 +1,22 @@
 #include "UnityCG.cginc"
+#include "SSRCommon.cginc"
+#include "SSRBSDF.cginc"
 #include "SSRLibrary.cginc"
 
 sampler2D _SSR_SceneColor_RT, _SSR_Noise, _SSR_PreintegratedGF_LUT, _SSR_RayCastRT, _SSR_RayMask_RT, _SSR_Spatial_RT, _SSR_TemporalPrev_RT, _SSR_TemporalCurr_RT, _SSR_CombienReflection_RT, _SSAO_GTOTexture2SSR_RT,
-		  _CameraDepthTexture, _CameraMotionVectorsTexture, _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraReflectionsTexture;
+		  _CameraDepthTexture, _CameraMotionVectorsTexture, _CameraGBufferTexture0, _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraReflectionsTexture;
 
 Texture2D _SSR_HierarchicalDepth_RT; SamplerState sampler_SSR_HierarchicalDepth_RT;
 
-int _SSR_NumSteps_Linear, _SSR_NumSteps_HiZ, _SSR_NumRays, _SSR_NumResolver, _SSR_CullBack, _SSR_BackwardsRay, _SSR_TraceBehind, _SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_HiZ_PrevDepthLevel;
+int _SSR_NumSteps_Linear, _SSR_NumSteps_HiZ, _SSR_NumRays, _SSR_NumResolver, _SSR_CullBack, _SSR_BackwardsRay, _SSR_TraceBehind, _SSR_RayStepSize, _SSR_TraceDistance, _SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_HiZ_PrevDepthLevel;
 
-half _SSR_BRDFBias, _SSR_ScreenFade, _SSR_TemporalScale, _SSR_TemporalWeight, _SSR_Thickness, _SSR_RayStepSize, _SSR_TraceDistance;
+half _SSR_BRDFBias, _SSR_ScreenFade, _SSR_TemporalScale, _SSR_TemporalWeight, _SSR_Thickness;
 
 half3 _SSR_CameraClipInfo;
 
 half4 _SSR_ScreenSize, _SSR_RayCastSize, _SSR_NoiseSize, _SSR_Jitter, _SSR_RandomSeed, _SSR_ProjInfo;
 
-half4x4 _SSR_ProjectionMatrix, _SSR_InverseProjectionMatrix, _SSR_ViewProjectionMatrix, _SSR_InverseViewProjectionMatrix, _SSR_LastFrameViewProjectionMatrix, _SSR_WorldToCameraMatrix, _SSR_CameraToWorldMatrix, _SSR_ProjectToPixelMatrix;
+half4x4 _SSR_ProjectionMatrix, _SSR_InverseProjectionMatrix, _VP, _InvVP, _LastVp, _SSR_WorldToCameraMatrix, _SSR_CameraToWorldMatrix, _SSR_ProjectToPixelMatrix;
 
 struct VertexInput
 {
@@ -71,15 +73,9 @@ float Hierarchical_ZBuffer(PixelInput i) : SV_Target {
 void Linear_2DTrace_SingleSPP(PixelInput i, out half4 RayHit_PDF : SV_Target0, out half4 Mask : SV_Target1)
 {
 	half2 UV = i.uv.xy;
-	half SceneDepth = GetDepth(_CameraDepthTexture, UV);
 	half Roughness = clamp(1 - tex2D(_CameraGBufferTexture1, UV).a, 0.02, 1);
 	half4 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
 	float3 ViewNormal = mul((float3x3)(_SSR_WorldToCameraMatrix), WorldNormal);
-	
-	half3 ScreenPos = GetScreenPos(UV, SceneDepth);
-	half3 WorldPos = GetWorlPos(ScreenPos, _SSR_InverseViewProjectionMatrix);
-	half3 ViewPos = GetViewPos(ScreenPos, _SSR_InverseProjectionMatrix);
-	half3 ViewDir = GetViewDir(WorldPos, _WorldSpaceCameraPos);
 
 	//-----Consten Property-------------------------------------------------------------------------
 	half Ray_HitMask = 0.0, Ray_NumMarch = 0.0;
@@ -109,7 +105,7 @@ void Linear_2DTrace_SingleSPP(PixelInput i, out half4 RayHit_PDF : SV_Target0, o
 	}
 
     //-----Ray Trace-----------------------------------------------------------------------------
-	bool Hit = LinearTraceRay2DSpace(_CameraDepthTexture, Ray_Origin_VS + ViewNormal * Ray_Bump, Ray_Dir_VS, _SSR_ProjectToPixelMatrix, _SSR_ScreenSize, Jinter, _SSR_NumSteps_Linear, _SSR_Thickness, _SSR_TraceDistance, Ray_HitUV, _SSR_RayStepSize, _SSR_TraceBehind == 1, Ray_HitPoint, Ray_NumMarch);
+	bool Hit = Linear2D_Trace(_CameraDepthTexture, Ray_Origin_VS + ViewNormal * Ray_Bump, Ray_Dir_VS, _SSR_ProjectToPixelMatrix, _SSR_ScreenSize, Jinter, _SSR_NumSteps_Linear, _SSR_Thickness, _SSR_TraceDistance, Ray_HitUV, _SSR_RayStepSize, _SSR_TraceBehind == 1, Ray_HitPoint, Ray_NumMarch);
 	Ray_HitUV /= _SSR_ScreenSize;
 
 	UNITY_BRANCH
@@ -135,15 +131,12 @@ void Linear_2DTrace_SingleSPP(PixelInput i, out half4 RayHit_PDF : SV_Target0, o
 void Linear_2DTrace_MultiSPP(PixelInput i, out half4 SSRColor_PDF : SV_Target0, out half4 Mask_Depth_HitUV : SV_Target1)
 {
 	half2 UV = i.uv.xy;
-	half SceneDepth = GetDepth(_CameraDepthTexture, UV);
+
 	half Roughness = clamp(1 - tex2D(_CameraGBufferTexture1, UV).a, 0.02, 1);
 	half4 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
 	float3 ViewNormal = mul((float3x3)(_SSR_WorldToCameraMatrix), WorldNormal);
 
-	half3 ScreenPos = GetScreenPos(UV, SceneDepth);
-	half3 WorldPos = GetWorlPos(ScreenPos, _SSR_InverseViewProjectionMatrix);
-	half3 ViewPos = GetViewPos(ScreenPos, _SSR_InverseProjectionMatrix);
-	half3 ViewDir = GetViewDir(WorldPos, _WorldSpaceCameraPos);
+
 
 	//-----Consten Property-------------------------------------------------------------------------
 	half Ray_HitMask = 0, Out_Fade = 0, Out_Mask= 0, Out_PDF = 0, Out_RayDepth = 0;
@@ -155,7 +148,7 @@ void Linear_2DTrace_MultiSPP(PixelInput i, out half4 SSRColor_PDF : SV_Target0, 
 	half3 Ray_Origin_VS = GetPosition(_CameraDepthTexture, Screen_TexelSize, _SSR_ProjInfo, UV);
 	half Ray_Bump = max(-0.01 * Ray_Origin_VS.z, 0.001);
 
-	[loop]
+	//UNITY_LOOP
 	for (uint i = 0; i < (uint)_SSR_NumRays; i++)
 	{
 		//-----Trace Dir-----------------------------------------------------------------------------
@@ -182,7 +175,7 @@ void Linear_2DTrace_MultiSPP(PixelInput i, out half4 SSRColor_PDF : SV_Target0, 
 		half Ray_NumMarch = 0.0;
 		half2 Ray_HitUV = 0.0;
 		half3 Ray_HitPoint = 0.0;
-		bool Hit = LinearTraceRay2DSpace(_CameraDepthTexture, Ray_Origin_VS + ViewNormal * Ray_Bump, Ray_Dir_VS, _SSR_ProjectToPixelMatrix, _SSR_ScreenSize, Jinter, _SSR_NumSteps_Linear, _SSR_Thickness, _SSR_TraceDistance, Ray_HitUV, _SSR_RayStepSize, _SSR_TraceBehind == 1, Ray_HitPoint, Ray_NumMarch);
+		bool Hit = Linear2D_Trace(_CameraDepthTexture, Ray_Origin_VS + ViewNormal * Ray_Bump, Ray_Dir_VS, _SSR_ProjectToPixelMatrix, _SSR_ScreenSize, Jinter, _SSR_NumSteps_Linear, _SSR_Thickness, _SSR_TraceDistance, Ray_HitUV, _SSR_RayStepSize, _SSR_TraceBehind == 1, Ray_HitPoint, Ray_NumMarch);
 		Ray_HitUV /= _SSR_ScreenSize;
 
 		UNITY_BRANCH
@@ -227,11 +220,12 @@ void Hierarchical_ZTrace_SingleSPP(PixelInput i, out half4 RayHit_PDF : SV_Targe
 {
 	float2 UV = i.uv.xy;
 
-	float ScneDepth = tex2Dlod(_CameraDepthTexture, float4(UV, 0, 0)).r;
+	float SceneDepth = tex2Dlod(_CameraDepthTexture, float4(UV, 0, 0)).r;
 	half Roughness = clamp(1 - tex2D(_CameraGBufferTexture1, UV).a, 0.02, 1);
-	float3 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
-	float3 ViewNormal = mul((float3x3)(_SSR_WorldToCameraMatrix), WorldNormal);
-	float3 ScreenPos = float3(UV * 2 - 1, ScneDepth);
+	float3 WorldNormal = normalize(tex2D(_CameraGBufferTexture2, UV) * 2 - 1);
+	float3 ViewNormal = normalize(mul((float3x3)(_SSR_WorldToCameraMatrix), WorldNormal));
+
+	float3 ScreenPos = float3(UV * 2 - 1, SceneDepth);
 	float4 ViewPos = mul(_SSR_InverseProjectionMatrix, float4(ScreenPos, 1));
 	ViewPos /= ViewPos.w;
 
@@ -242,12 +236,15 @@ void Hierarchical_ZTrace_SingleSPP(PixelInput i, out half4 RayHit_PDF : SV_Targe
 	float3 ReflectionDir = reflect(normalize(ViewPos.xyz), H.xyz);
 
 	float3 rayStart = float3(UV, ScreenPos.z);
+	//float4 rayProj = float4( abs(_SSR_ProjectionMatrix._m00 * 0.5), abs(_SSR_ProjectionMatrix._m11 * 0.5), ((_ProjectionParams.z * _ProjectionParams.y) / (_ProjectionParams.y - _ProjectionParams.z)) * 0.5, 0.0 );
+	//float3 rayDir = normalize(float3(ViewDir.xy - (ViewPos / ViewPos.z) * ViewDir.z, ViewDir.z / EyeDepth) * rayProj);
 	float4 rayProj = mul ( _SSR_ProjectionMatrix, float4(ViewPos.xyz + ReflectionDir, 1.0) );
 	float3 rayDir = normalize( (rayProj.xyz / rayProj.w) - ScreenPos);
 	rayDir.xy *= 0.5;
 
-  	//float3 RayHitData = HiZTrace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_RayCastSize.xy, rayStart, rayDir, SSR_HierarchicalDepth_RT);
-	float4 RayHitData = HiZTrace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_Thickness, 1 / _SSR_RayCastSize.xy, rayStart, rayDir, _SSR_HierarchicalDepth_RT, sampler_SSR_HierarchicalDepth_RT);
+  	//float4 RayHitData = half4(Hierarchical_Z_Trace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_RayCastSize.xy, rayStart, rayDir, _SSR_HierarchicalDepth_RT), 1.0);
+	float4 RayHitData = Hierarchical_Z_Trace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_Thickness, 1 / _SSR_RayCastSize.xy, rayStart, rayDir, _SSR_HierarchicalDepth_RT, sampler_SSR_HierarchicalDepth_RT);
+	//float4 RayHitData = LinearTraceRay3DSpace(_SSR_HierarchicalDepth_RT, sampler_SSR_HierarchicalDepth_RT, _SSR_NumSteps_HiZ, BlueNoise, rayStart, rayDir); 
 
 	RayHit_PDF = half4(RayHitData.xyz, H.a);
 	Mask = Square( RayHitData.a * GetScreenFadeBord(RayHitData.xy, _SSR_ScreenFade) );
@@ -258,15 +255,13 @@ void Hierarchical_ZTrace_MultiSPP(PixelInput i, out half4 SSRColor_PDF : SV_Targ
 {
 	float2 UV = i.uv.xy;
 
-	float ScneDepth = tex2Dlod(_CameraDepthTexture, float4(UV, 0, 0)).r;
+	float SceneDepth = tex2Dlod(_CameraDepthTexture, float4(UV, 0, 0)).r;
 	half Roughness = clamp(1 - tex2D(_CameraGBufferTexture1, UV).a, 0.02, 1);
 	float3 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
 	float3 ViewNormal = mul((float3x3)(_SSR_WorldToCameraMatrix), WorldNormal);
 
-	float3 ScreenPos = GetScreenPos(UV, ScneDepth);
-	float3 WorldPos = GetWorlPos(ScreenPos, _SSR_InverseViewProjectionMatrix);
+	float3 ScreenPos = GetScreenPos(UV, SceneDepth);
 	float3 ViewPos = GetViewPos(ScreenPos, _SSR_InverseProjectionMatrix);
-	float3 ViewDir = GetViewDir(WorldPos, ViewPos);
 
 	//-----Consten Property-------------------------------------------------------------------------
 	half Ray_HitMask = 0, Out_Fade = 0, Out_Mask= 0, Out_PDF = 0, Out_RayDepth = 0;
@@ -287,8 +282,8 @@ void Hierarchical_ZTrace_MultiSPP(PixelInput i, out half4 SSRColor_PDF : SV_Targ
 		float3 rayDir = normalize( (rayProj.xyz / rayProj.w) - ScreenPos);
 		rayDir.xy *= 0.5;
 
-		//float3 RayHitData = HiZTrace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_RayCastSize.xy, rayStart, rayDir, SSR_HierarchicalDepth_RT);
-		float4 RayHitData = HiZTrace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_Thickness, 1 / _SSR_RayCastSize.xy, rayStart, rayDir, _SSR_HierarchicalDepth_RT, sampler_SSR_HierarchicalDepth_RT);
+		//float4 RayHitData = half4(Hierarchical_Z_Trace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_RayCastSize.xy, rayStart, rayDir, _SSR_HierarchicalDepth_RT), 1.0);
+		float4 RayHitData = Hierarchical_Z_Trace(_SSR_HiZ_MaxLevel, _SSR_HiZ_StartLevel, _SSR_HiZ_StopLevel, _SSR_NumSteps_HiZ, _SSR_Thickness, 1 / _SSR_RayCastSize.xy, rayStart, rayDir, _SSR_HierarchicalDepth_RT, sampler_SSR_HierarchicalDepth_RT);
 
 		float4 SampleColor = tex2Dlod(_SSR_SceneColor_RT, half4(RayHitData.xy, 0, 0));
 		SampleColor.rgb /= 1 + Luminance(SampleColor.rgb);
@@ -318,21 +313,19 @@ float4 Spatiofilter_SingleSPP(PixelInput i) : SV_Target
 {
 	half2 UV = i.uv.xy;
 	half Roughness = clamp(1 - tex2D(_CameraGBufferTexture1, UV).a, 0.02, 1);
-	half SceneDepth = tex2D(_CameraDepthTexture, UV);
+	half SceneDepth = GetDepth(_CameraDepthTexture, UV);
 	half4 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
 	half3 ViewNormal = GetViewNormal(WorldNormal, _SSR_WorldToCameraMatrix);
-	float3 ScreenPos = float3(UV * 2 - 1, SceneDepth);
-	half4 ViewPos = mul(_SSR_InverseProjectionMatrix, float4(ScreenPos, 1));
-	ViewPos /= ViewPos.w;
+	half3 ScreenPos = GetScreenPos(UV, SceneDepth);
+	half3 ViewPos = GetViewPos(ScreenPos, _SSR_InverseProjectionMatrix);
 
 	half2 BlueNoise = tex2D(_SSR_Noise, (UV + _SSR_Jitter.zw) * _SSR_ScreenSize.xy / _SSR_NoiseSize.xy) * 2 - 1;
-	
 	half2x2 OffsetRotationMatrix = half2x2(BlueNoise.x, BlueNoise.y, -BlueNoise.y, -BlueNoise.x);
 
 	half NumWeight, Weight;
 	half2 Offset_UV, Neighbor_UV;
 	half4 SampleColor, ReflecttionColor;
-	[loop]
+
 	for (int i = 0; i < _SSR_NumResolver; i++)
 	{
 		Offset_UV = mul(OffsetRotationMatrix, offset[i] * (1 / _SSR_ScreenSize.xy));
@@ -342,16 +335,18 @@ float4 Spatiofilter_SingleSPP(PixelInput i) : SV_Target
 		half3 Hit_ViewPos = GetViewPos(GetScreenPos(HitUV_PDF.rg, HitUV_PDF.b), _SSR_InverseProjectionMatrix);
 
 		///SpatioSampler
-		Weight = SSR_BRDF(normalize(-ViewPos.xyz), normalize(Hit_ViewPos - ViewPos.xyz), ViewNormal, Roughness) / max(1e-5, HitUV_PDF.a);
+		Weight = SSR_BRDF(normalize(-ViewPos), normalize(Hit_ViewPos - ViewPos), ViewNormal, Roughness) / max(1e-5, HitUV_PDF.a);
 		SampleColor.rgb = tex2Dlod(_SSR_SceneColor_RT, half4(HitUV_PDF.rg, 0, 0)).rgb;
 		SampleColor.rgb /= 1 + Luminance(SampleColor.rgb);
 		ReflecttionColor += SampleColor * Weight;
 		NumWeight += Weight;
 	}
+
 	ReflecttionColor /= NumWeight;
 	ReflecttionColor.rgb /= 1 - Luminance(ReflecttionColor.rgb);
 	ReflecttionColor = max(1e-5, ReflecttionColor);
 	ReflecttionColor.a = tex2D(_SSR_RayMask_RT, UV).r;
+
 	return ReflecttionColor;
 }
 
@@ -363,7 +358,6 @@ float4 Spatiofilter_MultiSPP(PixelInput i) : SV_Target
 	half4 WorldNormal = tex2D(_CameraGBufferTexture2, UV) * 2 - 1;
 	half3 ViewNormal = GetViewNormal(WorldNormal, _SSR_WorldToCameraMatrix);
 	half3 ScreenPos = GetScreenPos(UV, SceneDepth);
-	half3 WorldPos = GetWorlPos(ScreenPos, _SSR_InverseViewProjectionMatrix);
 	half3 ViewPos = GetViewPos(ScreenPos, _SSR_InverseProjectionMatrix);
 
 	half2 BlueNoise = tex2D(_SSR_Noise, (UV + _SSR_Jitter.zw) * _SSR_ScreenSize.xy / _SSR_NoiseSize.xy) * 2 - 1;
@@ -378,13 +372,13 @@ float4 Spatiofilter_MultiSPP(PixelInput i) : SV_Target
 		Offset_UV = mul( OffsetRotationMatrix, offset[i] * (1 / _SSR_ScreenSize.xy) );
 		Neighbor_UV = UV + Offset_UV;
 
-		half4 PDF = tex2Dlod(_SSR_RayCastRT, half4(Neighbor_UV, 0, 0));
+		half PDF = tex2Dlod(_SSR_RayCastRT, half4(Neighbor_UV, 0, 0)).a;
 		half4 Hit_Mask_Depth_UV = tex2Dlod(_SSR_RayMask_RT, half4(Neighbor_UV, 0, 0));
 		half3 Hit_ViewPos = GetViewPos(GetScreenPos(Hit_Mask_Depth_UV.ba, Hit_Mask_Depth_UV.g), _SSR_InverseProjectionMatrix);
 
 		///SpatioSampler
-		Weight = SSR_BRDF(normalize(-ViewPos), normalize(Hit_ViewPos - ViewPos), ViewNormal, Roughness) / max(1e-5, PDF.a);
-		SampleColor.rgb = PDF.rgb;
+		Weight = SSR_BRDF(normalize(-ViewPos), normalize(Hit_ViewPos - ViewPos), ViewNormal, Roughness) / max(1e-5, PDF);
+		SampleColor.rgb = tex2Dlod(_SSR_RayCastRT, half4(Neighbor_UV, 0, 0)).rgb;
 
 		ReflecttionColor += SampleColor * Weight;
 		NumWeight += Weight;
@@ -406,7 +400,7 @@ half4 Temporalfilter_SingleSPP(PixelInput i) : SV_Target
 
 	/////Get Reprojection Velocity
 	half2 Depth_Velocity = tex2D(_CameraMotionVectorsTexture, UV);
-	half2 Ray_Velocity = GetRayMotionVector(HitDepth, UV, _SSR_InverseViewProjectionMatrix, _SSR_LastFrameViewProjectionMatrix, _SSR_ViewProjectionMatrix);
+	half2 Ray_Velocity = GetRayMotionVector(HitDepth, UV, _InvVP, _LastVp, _VP);
 	half Velocity_Weight = saturate(dot(WorldNormal, half3(0, 1, 0)));
 	half2 Velocity = lerp(Depth_Velocity, Ray_Velocity, Velocity_Weight);
 
@@ -435,7 +429,7 @@ half4 Temporalfilter_MultiSPP(PixelInput i) : SV_Target
 
 	/////Get Reprojection Velocity
 	half2 Depth_Velocity = tex2D(_CameraMotionVectorsTexture, UV);
-	half2 Ray_Velocity = GetRayMotionVector(HitDepth, UV, _SSR_InverseViewProjectionMatrix, _SSR_LastFrameViewProjectionMatrix, _SSR_ViewProjectionMatrix);
+	half2 Ray_Velocity = GetRayMotionVector(HitDepth, UV, _InvVP, _LastVp, _VP);
 	half Velocity_Weight = saturate(dot(WorldNormal, half3(0, 1, 0)));
 	half2 Velocity = lerp(Depth_Velocity, Ray_Velocity, Velocity_Weight);
 	
@@ -458,7 +452,7 @@ half4 Temporalfilter_MultiSPP(PixelInput i) : SV_Target
 
 ////////////////////////////////-----CombinePass-----------------------------------------------------------------------------
 half4 CombineReflectionColor(PixelInput i) : SV_Target {
-	half2 uv = i.uv.xy;
+/*	half2 uv = i.uv.xy;
 
 	half4 WorldNormal = tex2D(_CameraGBufferTexture2, uv) * 2 - 1;
 	half4 SpecularColor = tex2D(_CameraGBufferTexture1, uv);
@@ -466,7 +460,7 @@ half4 CombineReflectionColor(PixelInput i) : SV_Target {
 
 	half SceneDepth = GetDepth(_CameraDepthTexture, uv);
 	half3 ScreenPos = GetScreenPos(uv, SceneDepth);
-	half3 WorldPos = GetWorlPos(ScreenPos, _SSR_InverseViewProjectionMatrix);
+	half3 WorldPos = GetWorlPos(ScreenPos, _InvVP);
 	half3 ViewDir = GetViewDir(WorldPos, _WorldSpaceCameraPos);
 
 	half NoV = saturate(dot(WorldNormal, -ViewDir));
@@ -485,7 +479,8 @@ half4 CombineReflectionColor(PixelInput i) : SV_Target {
 	half SSRMask = Square(SSRColor.a);
 	half4 ReflectionColor = (CubemapColor * (1 - SSRMask)) + (SSRColor * PreintegratedGF * SSRMask * ReflectionOcclusion);
 
-	return SceneColor + ReflectionColor;
+	return SceneColor + ReflectionColor;*/
+	return 1;
 }
 
 ////////////////////////////////-----DeBug_SSRColor Sampler-----------------------------------------------------------------------------
@@ -494,4 +489,5 @@ half4 DeBug_SSRColor(PixelInput i) : SV_Target
 	half2 UV = i.uv.xy;
 	half4 SSRColor = tex2D(_SSR_TemporalCurr_RT, UV);
 	return SSRColor * Square(SSRColor.a);
+	//return tex2D(_SSR_RayCastRT, UV).z;
 }

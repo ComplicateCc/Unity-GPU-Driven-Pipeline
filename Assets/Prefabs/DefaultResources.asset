@@ -40,7 +40,7 @@ MonoBehaviour:
     reflectionCullingShader: {fileID: 7200000, guid: a1fa3016d1a7dba49b1e80f5c5d3139d,
       type: 3}
     taaShader: {fileID: 4800000, guid: 51bcf79c50dc92e47ba87821b61100c3, type: 3}
-    ssrShader: {fileID: 4800000, guid: 189b5a0299160974db35a8589c338bb8, type: 3}
+    ssrShader: {fileID: 4800000, guid: 18704a45733ea43459834cc74c454ac8, type: 3}
     indirectDepthShader: {fileID: 4800000, guid: 2896c2d5ef5101b46942a11a481cb2d6,
       type: 3}
     HizLodShader: {fileID: 4800000, guid: 26c0c9d0c19bd4f4d958db01aa775f53, type: 3}

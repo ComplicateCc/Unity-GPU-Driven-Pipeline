@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcd0c6469ac1cd442b693ea77f1a521b, type: 3}
   m_Name: Reflection
   m_EditorClassIdentifier: 
-  enabled: 0
+  enabled: 1
   unitedResolution: 512
   ssrEvents:
     enabled: 1
@@ -20,8 +20,8 @@ MonoBehaviour:
     RayCastingResolution: 1
     Denoise: 1
     RayNums: 1
-    BRDFBias: 1
-    Thickness: 0.2
+    BRDFBias: 0
+    Thickness: 0.05
     ScreenFade: 0
     HiZ_RaySteps: 64
     HiZ_MaxLevel: 4
@@ -29,7 +29,7 @@ MonoBehaviour:
     HiZ_StopLevel: 0
     Linear_TowardRay: 1
     Linear_TraceBehind: 0
-    Linear_RayDistance: 128
+    Linear_RayDistance: 512
     Linear_RaySteps: 256
     Linear_StepSize: 5
     BlueNoise_LUT: {fileID: 2800000, guid: e166910e7efe86f4aaa1a416f2eb5025, type: 3}

@@ -27,7 +27,11 @@ float GetShadow(float4 worldPos, float depth)
 	float2 shadowUV = shadowPos.xy;
 	shadowUV = shadowUV * 0.5 + 0.5;
 	float softValue = dot(_SoftParam, eyeRange);
+	#if UNITY_REVERSED_Z
 	float dist = shadowPos.z + _ShadowOffset;
+	#else
+	float dist = shadowPos.z - _ShadowOffset;
+	#endif
 	float atten = 0;
 	for (int i = 0; i < SAMPLECOUNT; ++i)
 	{

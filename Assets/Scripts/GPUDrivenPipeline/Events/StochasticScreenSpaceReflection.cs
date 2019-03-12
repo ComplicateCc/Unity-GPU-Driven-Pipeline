@@ -207,10 +207,7 @@ namespace MPipeline
 
 
         private static int SSR_ProjectionMatrix_ID = Shader.PropertyToID("_SSR_ProjectionMatrix");
-        private static int SSR_ViewProjectionMatrix_ID = Shader.PropertyToID("_SSR_ViewProjectionMatrix");
-        private static int SSR_LastFrameViewProjectionMatrix_ID = Shader.PropertyToID("_SSR_LastFrameViewProjectionMatrix");
         private static int SSR_InverseProjectionMatrix_ID = Shader.PropertyToID("_SSR_InverseProjectionMatrix");
-        private static int SSR_InverseViewProjectionMatrix_ID = Shader.PropertyToID("_SSR_InverseViewProjectionMatrix");
         private static int SSR_WorldToCameraMatrix_ID = Shader.PropertyToID("_SSR_WorldToCameraMatrix");
         private static int SSR_CameraToWorldMatrix_ID = Shader.PropertyToID("_SSR_CameraToWorldMatrix");
         private static int SSR_ProjectToPixelMatrix_ID = Shader.PropertyToID("_SSR_ProjectToPixelMatrix");
@@ -228,13 +225,13 @@ namespace MPipeline
             Object.DestroyImmediate(StochasticScreenSpaceReflectionMaterial);
         }
 
-        public RenderTexture Render(ref PipelineCommandData data, PipelineCamera cam, PropertySetEvent propertySetEvents, ReflectionEvent parentEvent)
+        public RenderTexture Render(ref PipelineCommandData data, PipelineCamera cam, ReflectionEvent parentEvent)
         {
             RandomSampler = GenerateRandomOffset();
             SSRCameraData cameraData = IPerCameraData.GetProperty(cam, getDataFunc, parentEvent);
-            SSR_UpdateVariable(cameraData, propertySetEvents, cam.cam, ref data);
+            SSR_UpdateVariable(cameraData, cam.cam, ref data);
             RenderScreenSpaceReflection(data.buffer, cameraData, cam);
-            return cameraData.SSR_Spatial_RT;
+            return cameraData.SSR_TemporalCurr_RT;
         }
 
 
@@ -297,7 +294,7 @@ namespace MPipeline
             }
         }
 
-        private void SSR_UpdateVariable(SSRCameraData cameraData, PropertySetEvent setEvent, Camera RenderCamera, ref PipelineCommandData data)
+        private void SSR_UpdateVariable(SSRCameraData cameraData, Camera RenderCamera, ref PipelineCommandData data)
         {
             Vector2Int CameraSize = new Vector2Int(RenderCamera.pixelWidth, RenderCamera.pixelHeight);
             CommandBuffer buffer = data.buffer;
@@ -318,12 +315,9 @@ namespace MPipeline
             buffer.SetGlobalVector(SSR_Jitter_ID, new Vector4((float)CameraSize.x / 1024, (float)CameraSize.y / 1024, RandomSampler.x, RandomSampler.y));
             Matrix4x4 proj = GL.GetGPUProjectionMatrix(RenderCamera.projectionMatrix, false);
             buffer.SetGlobalMatrix(SSR_ProjectionMatrix_ID, proj);
-            buffer.SetGlobalMatrix(SSR_ViewProjectionMatrix_ID, data.vp);
             buffer.SetGlobalMatrix(SSR_InverseProjectionMatrix_ID, proj.inverse);
-            buffer.SetGlobalMatrix(SSR_InverseViewProjectionMatrix_ID, data.inverseVP);
             buffer.SetGlobalMatrix(SSR_WorldToCameraMatrix_ID, RenderCamera.worldToCameraMatrix);
             buffer.SetGlobalMatrix(SSR_CameraToWorldMatrix_ID, RenderCamera.cameraToWorldMatrix);
-            buffer.SetGlobalMatrix(SSR_LastFrameViewProjectionMatrix_ID, setEvent.lastViewProjection);
 
             Matrix4x4 warpToScreenSpaceMatrix = Matrix4x4.identity;
             Vector2 HalfCameraSize = new Vector2(CameraSize.x, CameraSize.y) / 2;
