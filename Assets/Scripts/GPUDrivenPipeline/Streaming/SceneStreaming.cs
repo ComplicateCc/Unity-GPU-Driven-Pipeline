@@ -443,25 +443,24 @@ namespace MPipeline
             ComputeShader copyShader = resources.shaders.gpuFrustumCulling;
             //TODO
             //Load Property
-            const int loadPropertyKernel = 6;
             ComputeBuffer currentPropertyBuffer = SceneController.commonData.GetTempPropertyBuffer(property.properties.Length, PROPERTYVALUESIZE);
             currentPropertyBuffer.SetData(property.properties);
             ComputeBuffer propertyIndexBuffer = SceneController.commonData.GetTempPropertyBuffer(propertiesPool.Length, 4);
             propertyIndexBuffer.SetData(propertiesPool);
-            copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._PropertiesBuffer, SceneController.commonData.propertyBuffer);
-            copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._TempPropBuffer, currentPropertyBuffer);
-            copyShader.SetBuffer(loadPropertyKernel, ShaderIDs._IndexBuffer, propertyIndexBuffer);
-            ComputeShaderUtility.Dispatch(copyShader, loadPropertyKernel, propertiesPool.Length, 64);
-            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexProperty, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexProperty, ShaderIDs._IndexBuffer, propertyIndexBuffer);
+            copyShader.SetBuffer(PipelineBaseBuffer.LoadProperty_Kernel, ShaderIDs._PropertiesBuffer, SceneController.commonData.propertyBuffer);
+            copyShader.SetBuffer(PipelineBaseBuffer.LoadProperty_Kernel, ShaderIDs._TempPropBuffer, currentPropertyBuffer);
+            copyShader.SetBuffer(PipelineBaseBuffer.LoadProperty_Kernel, ShaderIDs._IndexBuffer, propertyIndexBuffer);
+            ComputeShaderUtility.Dispatch(copyShader, PipelineBaseBuffer.LoadProperty_Kernel, propertiesPool.Length, 64);
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexProperty_Kernel, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexProperty_Kernel, ShaderIDs._IndexBuffer, propertyIndexBuffer);
             copyShader.SetInt(ShaderIDs._OffsetIndex, baseBuffer.clusterCount);
-            copyShader.Dispatch(PipelineBaseBuffer.SetVertexProperty, clusterCount, 1, 1);
-            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexLightmapIndex, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            copyShader.Dispatch(PipelineBaseBuffer.SetVertexProperty_Kernel, clusterCount, 1, 1);
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexLightmapIndex_Kernel, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
             propertyIndexBuffer = SceneController.commonData.GetTempPropertyBuffer(lightmapIndices.Length, 4);
             propertyIndexBuffer.SetData(lightmapIndices);
             lightmapIndices.Dispose();
-            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexLightmapIndex, ShaderIDs._IndexBuffer, propertyIndexBuffer);
-            copyShader.Dispatch(PipelineBaseBuffer.SetVertexLightmapIndex, clusterCount, 1, 1);
+            copyShader.SetBuffer(PipelineBaseBuffer.SetVertexLightmapIndex_Kernel, ShaderIDs._IndexBuffer, propertyIndexBuffer);
+            copyShader.Dispatch(PipelineBaseBuffer.SetVertexLightmapIndex_Kernel, clusterCount, 1, 1);
             baseBuffer.clusterCount += clusterCount;
         }
         #endregion

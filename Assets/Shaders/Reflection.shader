@@ -4,17 +4,13 @@
 CGINCLUDE
 #include "UnityCG.cginc"
 #include "CGINC/VoxelLight.cginc"
-#define _CameraDepthTexture _
-#include "UnityDeferredLibrary.cginc"
-#include "UnityStandardUtils.cginc"
 #include "UnityGBuffer.cginc"
-#include "UnityStandardBRDF.cginc"
 #include "UnityPBSLighting.cginc"
 #include "CGINC/Reflection.cginc"
 #pragma multi_compile _ UNITY_HDR_ON
 #pragma multi_compile _ EnableGTAO
 #pragma target 5.0
-#undef _CameraDepthTexture
+
 
             struct appdata
             {

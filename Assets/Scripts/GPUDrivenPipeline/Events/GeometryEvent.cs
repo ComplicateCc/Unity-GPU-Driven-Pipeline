@@ -32,9 +32,6 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             CommandBuffer buffer = data.buffer;
-            buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthBuffer);
-            buffer.ClearRenderTarget(true, true, Color.black);
-            HizOcclusionData hizData = IPerCameraData.GetProperty(cam, () => new HizOcclusionData(), this);
             RenderClusterOptions options = new RenderClusterOptions
             {
                 command = buffer,
@@ -45,39 +42,14 @@ namespace MPipeline
 
             if (enableOcclusionCulling)
             {
-                HizOptions hizOptions;
-                hizOptions = new HizOptions
-                {
-                    currentCameraUpVec = cam.cam.transform.up,
-                    hizData = hizData,
-                    hizDepth = hizDepth,
-                    linearLODMaterial = linearMat,
-                    currentDepthTex = cam.targets.depthTexture
-                };
-                SceneController.DrawClusterOccDoubleCheck(ref options, ref hizOptions, ref cam.targets, ref data, cam.cam);
+
             }
             else
             {
+                buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthBuffer);
+                buffer.ClearRenderTarget(true, true, Color.black);
                 SceneController.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
             }
-        }
-    }
-    public class HizOcclusionData : IPerCameraData
-    {
-        public Vector3 lastFrameCameraUp = Vector3.up;
-        public RenderTexture historyDepth;
-        public HizOcclusionData()
-        {
-            historyDepth = new RenderTexture(512, 256, 0, RenderTextureFormat.RHalf);
-            historyDepth.useMipMap = true;
-            historyDepth.autoGenerateMips = false;
-            historyDepth.filterMode = FilterMode.Point;
-            historyDepth.wrapMode = TextureWrapMode.Clamp;
-        }
-        public override void DisposeProperty()
-        {
-            historyDepth.Release();
-            Object.DestroyImmediate(historyDepth);
         }
     }
 }

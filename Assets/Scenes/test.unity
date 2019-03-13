@@ -1707,7 +1707,7 @@ MonoBehaviour:
   farestDistance: 55
   bias: 0.2
   normalBias: {x: 0.001, y: 0.002, z: 0.003, w: 0.004}
-  cascadeSoftValue: {x: 4, y: 2, z: 1.5, w: 1}
+  cascadeSoftValue: {x: 5, y: 2, z: 1.5, w: 1}
 --- !u!20 &1391845214
 Camera:
   m_ObjectHideFlags: 2

@@ -6,7 +6,8 @@ namespace MPipeline
 {
     public unsafe struct HizDepth
     {
-        private RenderTexture backupMip;
+        public RenderTexture backupMip { get; private set; }
+        public RenderTexture depthMip { get; private set; }
         private Material getLodMat;
         public bool Check()
         {
@@ -21,17 +22,20 @@ namespace MPipeline
             backupMip.enableRandomWrite = false;
             backupMip.wrapMode = TextureWrapMode.Clamp;
             backupMip.filterMode = FilterMode.Point;
+            depthMip = new RenderTexture(backupMip);
+            depthMip.Create();
+            backupMip.Create();
             getLodMat = new Material(resources.shaders.HizLodShader);
         }
-        public void GetMipMap(RenderTexture depthMipTexture, CommandBuffer buffer)
+        public void GetMipMap(CommandBuffer buffer)
         {
-            buffer.SetGlobalTexture(ShaderIDs._MainTex, depthMipTexture);
+            buffer.SetGlobalTexture(ShaderIDs._MainTex, depthMip);
             for (int i = 1; i < 8; ++i)
             {
                 buffer.SetGlobalInt(ShaderIDs._PreviousLevel, i - 1);
                 buffer.SetRenderTarget(backupMip, i);
                 buffer.DrawMesh(GraphicsUtility.mesh, Matrix4x4.identity, getLodMat, 0, 0);
-                buffer.CopyTexture(backupMip, 0, i, depthMipTexture, 0, i);
+                buffer.CopyTexture(backupMip, 0, i, depthMip, 0, i);
             }
         }
         public void DisposeHiZ()

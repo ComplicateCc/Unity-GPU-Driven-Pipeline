@@ -97,9 +97,6 @@ namespace MPipeline
 
     public class PipelineBaseBuffer
     {
-        public ComputeBuffer reCheckCount;
-        public ComputeBuffer reCheckResult;
-        public ComputeBuffer dispatchBuffer;
         public ComputeBuffer clusterBuffer;         //ObjectInfo
         public ComputeBuffer instanceCountBuffer;   //uint
         public ComputeBuffer resultBuffer;          //uint
@@ -110,30 +107,14 @@ namespace MPipeline
         public const int CLUSTERCLIPCOUNT = 256;
         public const int CLUSTERVERTEXCOUNT = CLUSTERCLIPCOUNT * 6 / 4;
 
-        /// <summary>
-        /// Cluster cull with only frustum culling
-        /// </summary>
-        public const int ClusterCullKernel = 0;
-        /// <summary>
-        /// Clear Cluster data's kernel count
-        /// </summary>
-        public const int ClearClusterKernel = 1;
-        /// <summary>
-        /// Cluster cull with frustum & occlusion culling
-        /// </summary>
-        public const int ClusterCullOccKernel = 2;
-        public const int VertexIndexKernel = 6;
-        public const int MoveVertex = 7;
-        public const int MoveCluster = 8;
-        public const int SetVertexProperty = 9;
-        public const int SetVertexLightmapIndex = 10;
-    }
-
-    public struct OcclusionBuffers
-    {
-        public const int FrustumFilter = 2;
-        public const int OcclusionRecheck = 3;
-        public const int ClearOcclusionData = 4;
+        public const int ClusterCull_Kernel = 0;
+        public const int ClearCluster_Kernel = 1;
+        public const int UnsafeCull_Kernel = 2;
+        public const int LoadProperty_Kernel = 3;
+        public const int MoveVertex_Kernel = 4;
+        public const int MoveCluster_Kernel = 5;
+        public const int SetVertexProperty_Kernel = 6;
+        public const int SetVertexLightmapIndex_Kernel = 7;
     }
 
     [System.Serializable]

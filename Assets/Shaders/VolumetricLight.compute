@@ -178,10 +178,29 @@ inline uint From3DTo1D(uint3 id, const uint3 size){
     return dot(id, multiValue);
 }
 
+inline uint wang_hash(uint seed)
+{
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+float4 _RandomSeed;
+inline float3 getRandomFloat3(uint index)
+{
+    uint3 value = 0;
+    value.x = wang_hash(index);
+    value.y = wang_hash(value.x);
+    value.z = wang_hash(value.y); 
+    return sin( value * float3(1.0 / 42949656.68541, 23465216.76521, 46871352.13846) * _RandomSeed.xyz * _RandomSeed.w);
+}
+
 [numthreads(2, 2, VOXELZ)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    float3 jitterCoord = updateRandomFloat3(From3DTo1D(id, _ScreenSize));
+    float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);

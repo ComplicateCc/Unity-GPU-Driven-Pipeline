@@ -53,34 +53,4 @@ inline uint GetIndex(uint3 id, const uint3 size, const int multiply){
     return dot(id, multiValue);
 }
 
-RWStructuredBuffer<uint> _RandomBuffer;
-#define NEXTSTATE(state) state ^= state << 13; state ^= state >> 17; state ^= state << 5;
-inline uint wang_hash(uint seed)
-{
-    seed = (seed ^ 61) ^ (seed >> 16);
-    seed *= 9;
-    seed = seed ^ (seed >> 4);
-    seed *= 0x27d4eb2d;
-    seed = seed ^ (seed >> 15);
-    return seed;
-}
-
-inline float3 getRandomFloat3(uint index)
-{
-    uint3 value = 0;
-    value.x = wang_hash(_RandomBuffer[index]);
-    value.y = wang_hash(value.x);
-    value.z = wang_hash(value.y); 
-    return value * (1.0 / 4294967296.0);
-}
-
-inline float3 updateRandomFloat3(uint index)
-{
-    uint3 value = 0;
-    value.x = wang_hash(_RandomBuffer[index]);
-    value.y = wang_hash(value.x);
-    value.z = wang_hash(value.y);
-    _RandomBuffer[index] = value.z;
-    return value * (1.0 / 4294967296.0);
-}
 #endif

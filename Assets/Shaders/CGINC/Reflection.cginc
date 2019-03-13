@@ -85,7 +85,6 @@ StructuredBuffer<uint> _ReflectionIndices;
 StructuredBuffer<ReflectionData> _ReflectionData;
 float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, float4 specular, float3 normal, float occlusion, float2 screenUV)
 {
-	float3 finalColor = 0;
 	Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(specular.w, -viewDir, normal, specular.xyz);
 	half perceptualRoughness = g.roughness;
 	perceptualRoughness = perceptualRoughness * (1.7 - 0.7*perceptualRoughness);
@@ -99,6 +98,7 @@ float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, f
 	light.dir = half3(0, 1, 0);
 	UnityIndirect ind;
 	ind.diffuse = 0;
+    ind.specular = 0;
 	float rate = saturate((linearDepth - _CameraClipDistance.x) / _CameraClipDistance.y);
 	float3 uv = float3(screenUV, rate);
 	uint3 intUV = uv * float3(XRES, YRES, ZRES);
@@ -120,13 +120,12 @@ float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, f
 			d.boxMin[0].xyz = leftDown;
 			d.boxMax[0].xyz = (data.position + data.maxExtent);
 		}
-		ind.specular = MPipelineGI_IndirectSpecular(d, occlusion, g, data, currentIndex, lod);
-		half3 rgb = BRDF1_Unity_PBS(0, specular.xyz, oneMinusReflectivity, specular.w, normal, -viewDir, light, ind).rgb;
+		float3 specColor = MPipelineGI_IndirectSpecular(d, occlusion, g, data, currentIndex, lod);
 		float3 distanceToMin = saturate((abs(worldPos.xyz - data.position) - data.minExtent) / data.blendDistance);
-		finalColor = lerp(rgb * data.hdr.r, finalColor, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
+		ind.specular = lerp(specColor * data.hdr.r, ind.specular, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
 	}
-
-	return finalColor;
+    half3 rgb = BRDF1_Unity_PBS(0, specular.xyz, oneMinusReflectivity, specular.w, normal, -viewDir, light, ind).rgb;
+	return rgb;
 }
 #endif
 #endif

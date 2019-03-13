@@ -18,15 +18,6 @@ namespace MPipeline
         public ComputeShader cullingShader;
         public ComputeShader terrainCompute;
     }
-
-    public struct HizOptions
-    {
-        public HizOcclusionData hizData;
-        public HizDepth hizDepth;
-        public Material linearLODMaterial;
-        public RenderTargetIdentifier currentDepthTex;
-        public Vector3 currentCameraUpVec;
-    }
     [Serializable]
     public unsafe static class SceneController
     {
@@ -299,10 +290,10 @@ namespace MPipeline
         {
             if (baseBuffer.clusterCount - startPos <= 0) return;
             resources.shaders.gpuFrustumCulling.SetInt(ShaderIDs._OffsetIndex, startPos);
-            resources.shaders.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveVertex, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-            resources.shaders.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveCluster, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-            resources.shaders.gpuFrustumCulling.Dispatch(PipelineBaseBuffer.MoveVertex, baseBuffer.clusterCount - startPos, 1, 1);
-            ComputeShaderUtility.Dispatch(resources.shaders.gpuFrustumCulling, PipelineBaseBuffer.MoveCluster, baseBuffer.clusterCount - startPos, 64);
+            resources.shaders.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveVertex_Kernel, ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
+            resources.shaders.gpuFrustumCulling.SetBuffer(PipelineBaseBuffer.MoveCluster_Kernel, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+            resources.shaders.gpuFrustumCulling.Dispatch(PipelineBaseBuffer.MoveVertex_Kernel, baseBuffer.clusterCount - startPos, 1, 1);
+            ComputeShaderUtility.Dispatch(resources.shaders.gpuFrustumCulling, PipelineBaseBuffer.MoveCluster_Kernel, baseBuffer.clusterCount - startPos, 64);
         }
 
         public static void Dispose()
@@ -450,7 +441,7 @@ namespace MPipeline
             buffer.SetInvertCulling(inverseRender);
         }
 
-        public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
+      /*  public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
         {
             if (!gpurpEnabled)
             {
@@ -486,7 +477,7 @@ options.frustumPlanes);
             buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
             hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
         }
-
+        */
         public static void DrawDirectionalShadow(PipelineCamera cam, ref StaticFit staticFit, ref PipelineCommandData data, ref RenderClusterOptions opts, float* clipDistances, float4x4* worldToCamMatrices, float4x4* projectionMatrices)
         {
             SunLight sunLight = SunLight.current;
