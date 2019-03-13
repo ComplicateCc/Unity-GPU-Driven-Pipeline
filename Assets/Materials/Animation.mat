@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Animation
-  m_Shader: {fileID: 4800000, guid: cbaa9fe6466c82840b218b6e5a550dd9, type: 3}
+  m_Shader: {fileID: 4800000, guid: d3ffd86cfd293de4b8d56dc637c0ecc3, type: 3}
   m_ShaderKeywords: USE_ALBEDO
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -69,6 +69,7 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.259
     - _GlossyReflections: 1
+    - _Index: 5
     - _Metallic: 0
     - _MetallicIntensity: 0.1
     - _Mip: 5

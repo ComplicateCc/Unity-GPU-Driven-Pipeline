@@ -22,8 +22,7 @@ RWStructuredBuffer<uint> resultBuffer;
 Texture2D<half> _HizDepthTex;  SamplerState sampler_HizDepthTex;
 uint _Count;
 float3 _CameraUpVector;
-float4x4 _VP;
-float4x4 _LastVp;
+float4x4 _NonJitterVP;
 float PlaneTest(ClusterMeshData info){
     float3 position = info.position;
     float3 extent = info.extent;
@@ -55,7 +54,7 @@ float OcclusionTest(ClusterMeshData info, float4x4 vpMat)
     float4 farClipPos = mul(vpMat, float4(farPoint, 1));
     farClipPos /= farClipPos.w;
     float screenDist = distance(farClipPos.xy, centerClipPos.xy);
-    float lodLevel = clamp(log2(screenDist * 64), 0, 7.4);
+    float lodLevel = clamp(log2(screenDist * 96), 0, 7.4);
     [unroll]
     for(uint i = 0; i < 6; ++i)
     {
@@ -101,7 +100,7 @@ void UnsafeCull(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
     ClusterMeshData currentObject = clusterBuffer[id];
-    if((PlaneTest(currentObject) * OcclusionTest(currentObject, _LastVp)) > 0.5)
+    if((PlaneTest(currentObject) * OcclusionTest(currentObject, _NonJitterVP)) > 0.5)
     {
         uint currentIndex;
         InterlockedAdd(instanceCountBuffer[1], 1, currentIndex);

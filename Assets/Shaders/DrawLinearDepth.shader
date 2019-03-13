@@ -8,25 +8,26 @@
         Pass
         {
             CGPROGRAM
+// Upgrade NOTE: excluded shader from OpenGL ES 2.0 because it uses non-square matrices
+#pragma exclude_renderers gles
             #pragma vertex vert
             #pragma fragment frag
-
+            #pragma target 5.0
             #include "UnityCG.cginc"
-
-            struct appdata
-            {
-                float4 vertex : POSITION;
-            };
-
+            StructuredBuffer<float3x4> clusterBuffer;
+            StructuredBuffer<uint> resultBuffer;
+            StructuredBuffer<float3> verticesBuffer;
             struct v2f
             {
                 float4 vertex : SV_POSITION;
             };
 
-            v2f vert (appdata v)
+            v2f vert (uint vertexID : SV_VERTEXID, uint instanceID : SV_INSTANCEID)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
+                uint id = resultBuffer[instanceID];
+                float3 worldPos = mul(clusterBuffer[id], float4(verticesBuffer[vertexID], 1));
+                o.vertex = mul(UNITY_MATRIX_VP, float4(worldPos, 1));
                 return o;
             }
 

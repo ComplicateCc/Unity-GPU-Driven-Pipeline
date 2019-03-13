@@ -45,11 +45,12 @@ namespace MPipeline
 
             if (enableOcclusionCulling)
             {
-                buffer.SetRenderTarget(hizDepth.backupMip);
-                buffer.ClearRenderTarget(true, true, Color.white);
-                if (OccluderDrawer.current)
+                if (SceneController.gpurpEnabled)
                 {
-                    OccluderDrawer.current.Drawer(buffer, linearDrawerMat);
+                    buffer.SetRenderTarget(hizDepth.backupMip);
+                    buffer.ClearRenderTarget(true, true, Color.white);
+                    if (OccluderDrawer.current)
+                        OccluderDrawer.current.Drawer(buffer, linearDrawerMat, data.frustumPlanes);
                 }
                 SceneController.DrawClusterOccDoubleCheck(ref options, ref cam.targets, ref data, ref hizDepth, linearMat, cam.cam);
             }

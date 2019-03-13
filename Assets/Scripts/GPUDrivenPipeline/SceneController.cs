@@ -461,7 +461,7 @@ namespace MPipeline
             RenderScene(ref data, cam);
             buffer.BlitSRT(hiz.backupMip, hiz.depthMip, linearMat, 0);
             hiz.GetMipMap(buffer);
-
+            buffer.SetGlobalVector(ShaderIDs._CameraUpVector, cam.transform.up);
             buffer.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
             buffer.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
             buffer.SetGlobalTexture(ShaderIDs._LightMap, commonData.lightmapArray);

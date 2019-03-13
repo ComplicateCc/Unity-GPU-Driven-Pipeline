@@ -21,13 +21,13 @@ namespace MPipeline
             backupMip.autoGenerateMips = false;
             backupMip.enableRandomWrite = false;
             backupMip.wrapMode = TextureWrapMode.Clamp;
-            backupMip.filterMode = FilterMode.Bilinear;
+            backupMip.filterMode = FilterMode.Point;
             depthMip = new RenderTexture(depthRes * 2, depthRes, 16, RenderTextureFormat.R16, RenderTextureReadWrite.Linear);
             depthMip.useMipMap = true;
             depthMip.autoGenerateMips = false;
             depthMip.enableRandomWrite = false;
             depthMip.wrapMode = TextureWrapMode.Clamp;
-            depthMip.filterMode = FilterMode.Bilinear;
+            depthMip.filterMode = FilterMode.Point;
             depthMip.Create();
             backupMip.Create();
             getLodMat = new Material(resources.shaders.HizLodShader);

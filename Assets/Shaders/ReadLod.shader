@@ -2,8 +2,7 @@
 {
     Properties
     {
-        _MainTex ("Texture", any) = "white" {}
-        _Index("Index", Range(0, 50)) = 0
+        _Index("Index", Range(0, 10)) = 0
     }
     SubShader
     {
@@ -33,7 +32,7 @@
                 UNITY_FOG_COORDS(1)
                 float4 vertex : SV_POSITION;
             };
-            Texture2DArray<half4> _MainTex; SamplerState sampler_MainTex;
+            Texture2D<half4> _MainTex; SamplerState sampler_MainTex;
             float _Index;
             v2f vert (appdata v)
             {
@@ -43,9 +42,9 @@
                 return o;
             }
 
-            fixed4 frag (v2f i) : SV_Target
+            float4 frag (v2f i) : SV_Target
             {
-                return _MainTex.Sample(sampler_MainTex, float3(i.uv, _Index));
+                return _MainTex.SampleLevel(sampler_MainTex, i.uv, _Index).rrrr;
             }
             ENDCG
         }
