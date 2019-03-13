@@ -386,6 +386,8 @@ namespace MPipeline
         }
         public static void DrawCluster(ref RenderClusterOptions options, ref RenderTargets targets, ref PipelineCommandData data, Camera cam)
         {
+            data.buffer.SetRenderTarget(targets.gbufferIdentifier, targets.depthBuffer);
+            data.buffer.ClearRenderTarget(true, true, Color.black);
             if (gpurpEnabled)
             {
                 options.command.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
@@ -441,43 +443,35 @@ namespace MPipeline
             buffer.SetInvertCulling(inverseRender);
         }
 
-      /*  public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
+        public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref RenderTargets rendTargets, ref PipelineCommandData data, ref HizDepth hiz, Material linearMat, Camera cam)
         {
+            CommandBuffer buffer = options.command;
             if (!gpurpEnabled)
             {
+                buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthBuffer);
+                buffer.ClearRenderTarget(true, true, Color.black);
                 RenderScene(ref data, cam);
                 return;
             }
-            CommandBuffer buffer = options.command;
+
             ComputeShader gpuFrustumShader = options.cullingShader;
 
-            PipelineFunctions.ClearOcclusionData(baseBuffer, buffer, gpuFrustumShader);
-            PipelineFunctions.UpdateOcclusionBuffer(
-baseBuffer, gpuFrustumShader,
-buffer,
-hizOpts.hizData,
-options.frustumPlanes);
-            //First Draw
+            buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthBuffer);
+            buffer.ClearRenderTarget(true, true, Color.black);
+            RenderScene(ref data, cam);
+            buffer.BlitSRT(hiz.backupMip, hiz.depthMip, linearMat, 0);
+            hiz.GetMipMap(buffer);
+
             buffer.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
             buffer.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
             buffer.SetGlobalTexture(ShaderIDs._LightMap, commonData.lightmapArray);
-            PipelineFunctions.DrawLastFrameCullResult(baseBuffer, buffer, commonData.clusterMaterial);
-            //更新Vector，Depth Mip Map
-            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
-            //TODO Draw others
-            RenderScene(ref data, cam);
-            //TODO
-            buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
-            hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
-            //double check
-            PipelineFunctions.OcclusionRecheck(baseBuffer, gpuFrustumShader, buffer, hizOpts.hizData);
-            //double draw
+            buffer.SetComputeTextureParam(options.cullingShader, PipelineBaseBuffer.UnsafeCull_Kernel, ShaderIDs._HizDepthTex, hiz.depthMip);
+            PipelineFunctions.SetBaseBufferOcc(baseBuffer, options.cullingShader, options.frustumPlanes, options.command);
+            PipelineFunctions.RunCullDispatchingOcc(baseBuffer, options.cullingShader, options.command);
             buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthBuffer);
-            PipelineFunctions.DrawRecheckCullResult(baseBuffer, commonData.clusterMaterial, buffer);
-            buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
-            hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
+            PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
         }
-        */
+
         public static void DrawDirectionalShadow(PipelineCamera cam, ref StaticFit staticFit, ref PipelineCommandData data, ref RenderClusterOptions opts, float* clipDistances, float4x4* worldToCamMatrices, float4x4* projectionMatrices)
         {
             SunLight sunLight = SunLight.current;
@@ -543,7 +537,7 @@ options.frustumPlanes);
                 layerMask = -1,
                 renderingLayerMask = uint.MaxValue
             };
-            DrawingSettings dsettings = new DrawingSettings(new ShaderTagId("PointLightPass"), new SortingSettings { criteria = SortingCriteria.None})
+            DrawingSettings dsettings = new DrawingSettings(new ShaderTagId("PointLightPass"), new SortingSettings { criteria = SortingCriteria.None })
             {
                 enableDynamicBatching = true,
                 enableInstancing = false,

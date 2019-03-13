@@ -11,6 +11,7 @@ namespace MPipeline
     public unsafe class GeometryEvent : PipelineEvent
     {
         HizDepth hizDepth;
+        Material linearDrawerMat;
         Material linearMat;
         public bool enableOcclusionCulling;
         protected override void Init(PipelineResources resources)
@@ -18,15 +19,17 @@ namespace MPipeline
             hizDepth = new HizDepth();
             hizDepth.InitHiZ(resources);
             linearMat = new Material(resources.shaders.linearDepthShader);
+            linearDrawerMat = new Material(resources.shaders.linearDrawerShader);
         }
         public override bool CheckProperty()
         {
-            return hizDepth.Check() && linearMat != null;
+            return hizDepth.Check() && linearMat && linearDrawerMat;
         }
         protected override void Dispose()
         {
             hizDepth.DisposeHiZ();
             DestroyImmediate(linearMat);
+            DestroyImmediate(linearDrawerMat);
             linearMat = null;
         }
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
@@ -42,12 +45,16 @@ namespace MPipeline
 
             if (enableOcclusionCulling)
             {
-
+                buffer.SetRenderTarget(hizDepth.backupMip);
+                buffer.ClearRenderTarget(true, true, Color.white);
+                if (OccluderDrawer.current)
+                {
+                    OccluderDrawer.current.Drawer(buffer, linearDrawerMat);
+                }
+                SceneController.DrawClusterOccDoubleCheck(ref options, ref cam.targets, ref data, ref hizDepth, linearMat, cam.cam);
             }
             else
             {
-                buffer.SetRenderTarget(cam.targets.gbufferIdentifier, cam.targets.depthBuffer);
-                buffer.ClearRenderTarget(true, true, Color.black);
                 SceneController.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
             }
         }

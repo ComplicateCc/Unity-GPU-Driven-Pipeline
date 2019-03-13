@@ -42,7 +42,8 @@
                     _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, uint2(1,-1)),
                     _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, uint2(1, 1))
                 );
-                return max(max(value.x, value.y), max(value.z, value.w));
+                value.xy = max(value.xy, value.zw);
+                return max(value.x, value.y);
             }
             ENDCG
         }

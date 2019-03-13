@@ -175,11 +175,22 @@ public unsafe static class PipelineFunctions
     {
         var compute = gpuFrustumShader;
         buffer.SetComputeVectorArrayParam(compute, ShaderIDs.planes, frustumCullingPlanes);
-        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-        buffer.SetComputeBufferParam(compute, 1, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-        buffer.DispatchCompute(compute, 1, 1, 1, 1);
-        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClusterCull_Kernel, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClusterCull_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClearCluster_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.DispatchCompute(compute, PipelineBaseBuffer.ClearCluster_Kernel, 1, 1, 1);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClusterCull_Kernel, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+    }
+
+    public static void SetBaseBufferOcc(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, Vector4[] frustumCullingPlanes, CommandBuffer buffer)
+    {
+        var compute = gpuFrustumShader;
+        buffer.SetComputeVectorArrayParam(compute, ShaderIDs.planes, frustumCullingPlanes);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.UnsafeCull_Kernel, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.UnsafeCull_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClearCluster_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.DispatchCompute(compute, PipelineBaseBuffer.ClearCluster_Kernel, 1, 1, 1);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.UnsafeCull_Kernel, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
     }
     private static Vector4[] backupFrustumArray = new Vector4[6];
 
@@ -188,26 +199,35 @@ public unsafe static class PipelineFunctions
         var compute = gpuFrustumShader;
         UnsafeUtility.MemCpy(backupFrustumArray.Ptr(), frustumCullingPlanes, sizeof(float4) * 6);
         buffer.SetComputeVectorArrayParam(compute, ShaderIDs.planes, backupFrustumArray);
-        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
-        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-        buffer.SetComputeBufferParam(compute, 1, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
-        buffer.DispatchCompute(compute, 1, 1, 1, 1);
-        buffer.SetComputeBufferParam(compute, 0, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClusterCull_Kernel, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClusterCull_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClearCluster_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.DispatchCompute(compute, PipelineBaseBuffer.ClearCluster_Kernel, 1, 1, 1);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClusterCull_Kernel, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
     }
 
-    public static void DrawLastFrameCullResult(
-        PipelineBaseBuffer baseBuffer,
-        CommandBuffer buffer, Material mat)
+    public static void SetBaseBufferOcc(PipelineBaseBuffer baseBuffer, ComputeShader gpuFrustumShader, float4* frustumCullingPlanes, CommandBuffer buffer)
     {
-        buffer.SetGlobalBuffer(ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
-        buffer.SetGlobalBuffer(ShaderIDs.verticesBuffer, baseBuffer.verticesBuffer);
-        buffer.DrawProceduralIndirect(Matrix4x4.identity, mat, 0, MeshTopology.Triangles, baseBuffer.instanceCountBuffer, 0);
+        var compute = gpuFrustumShader;
+        UnsafeUtility.MemCpy(backupFrustumArray.Ptr(), frustumCullingPlanes, sizeof(float4) * 6);
+        buffer.SetComputeVectorArrayParam(compute, ShaderIDs.planes, backupFrustumArray);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.UnsafeCull_Kernel, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.UnsafeCull_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.ClearCluster_Kernel, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.DispatchCompute(compute, PipelineBaseBuffer.ClearCluster_Kernel, 1, 1, 1);
+        buffer.SetComputeBufferParam(compute, PipelineBaseBuffer.UnsafeCull_Kernel, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RunCullDispatching(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, CommandBuffer buffer)
     {
-        ComputeShaderUtility.Dispatch(computeShader, buffer, 0, baseBuffer.clusterCount, 64);
+        ComputeShaderUtility.Dispatch(computeShader, buffer, PipelineBaseBuffer.ClusterCull_Kernel, baseBuffer.clusterCount, 64);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RunCullDispatchingOcc(PipelineBaseBuffer baseBuffer, ComputeShader computeShader, CommandBuffer buffer)
+    {
+        ComputeShaderUtility.Dispatch(computeShader, buffer, PipelineBaseBuffer.UnsafeCull_Kernel, baseBuffer.clusterCount, 64);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RenderProceduralCommand(PipelineBaseBuffer buffer, Material material, CommandBuffer cb)
@@ -224,12 +244,12 @@ public unsafe static class PipelineFunctions
     }
     public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, CommandBuffer buffer)
     {
-        buffer.GetTemporaryRT(tar.gbufferIndex[0], tarcam.pixelWidth, tarcam.pixelHeight, 32, FilterMode.Point, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1, false);
+        buffer.GetTemporaryRT(tar.gbufferIndex[0], tarcam.pixelWidth, tarcam.pixelHeight, 24, FilterMode.Point, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1, false);
         buffer.GetTemporaryRT(tar.gbufferIndex[1], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1, false);
-        buffer.GetTemporaryRT(tar.gbufferIndex[2], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB2101010, RenderTextureReadWrite.Linear, 1, false);
+        buffer.GetTemporaryRT(tar.gbufferIndex[2], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.ARGB2101010, RenderTextureReadWrite.Linear, 1, false);
         buffer.GetTemporaryRT(tar.gbufferIndex[3], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear, 1, false);
-        buffer.GetTemporaryRT(tar.gbufferIndex[4], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear, 1, false);
-        buffer.GetTemporaryRT(tar.gbufferIndex[5], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear, 1, false);
+        buffer.GetTemporaryRT(tar.gbufferIndex[4], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear, 1, false);
+        buffer.GetTemporaryRT(tar.gbufferIndex[5], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear, 1, false);
         buffer.GetTemporaryRT(ShaderIDs._BackupMap, tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear, 1, false);
         tar.renderTargetIdentifier = tar.gbufferIndex[3];
         tar.backupIdentifier = ShaderIDs._BackupMap;

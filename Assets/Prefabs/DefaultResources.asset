@@ -49,6 +49,8 @@ MonoBehaviour:
     shadowMaskShader: {fileID: 4800000, guid: 59587a2c9dce614429a67657b3058d89, type: 3}
     reflectionShader: {fileID: 4800000, guid: 570f61f4159173a449116b777a6d5480, type: 3}
     linearDepthShader: {fileID: 4800000, guid: 77485821d74bdd841b30cd6723eff35e, type: 3}
+    linearDrawerShader: {fileID: 4800000, guid: 2e72d662f1ade4d4793cb016a15b5b17,
+      type: 3}
     cubeDepthShader: {fileID: 4800000, guid: b33fc3a2454d9ca46b31777fb5e46e00, type: 3}
     clusterRenderShader: {fileID: 4800000, guid: 538f1aea21e411247a28ba6f5befa4c1,
       type: 3}

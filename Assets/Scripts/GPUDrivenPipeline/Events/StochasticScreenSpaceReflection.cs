@@ -335,8 +335,7 @@ namespace MPipeline
 
         private void RenderScreenSpaceReflection(CommandBuffer ScreenSpaceReflectionBuffer, SSRCameraData camData, PipelineCamera cam)
         {
-            //////Set HierarchicalDepthRT//////
-            ScreenSpaceReflectionBuffer.CopyTexture(cam.targets.renderTargetIdentifier, 0, 0, camData.SSR_SceneColor_RT, 0, 0);
+
             ScreenSpaceReflectionBuffer.CopyTexture(cam.targets.depthTexture, 0, 0, camData.SSR_HierarchicalDepth_RT, 0, 0);//TODO
             for (int i = 1; i < 5; ++i)
             {
@@ -348,7 +347,7 @@ namespace MPipeline
             ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_HierarchicalDepth_ID, camData.SSR_HierarchicalDepth_RT);
 
             //////Set SceneColorRT//////
-            ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_SceneColor_ID, camData.SSR_SceneColor_RT);
+            ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_SceneColor_ID, cam.targets.renderTargetIdentifier);
 
             //////RayCasting//////
             ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_Trace_ID, camData.SSR_TraceMask_RT[0]);
@@ -376,7 +375,7 @@ namespace MPipeline
             public Vector2 CameraSize { get; private set; }
             public int RayCastingResolution { get; private set; }
             public RenderTexture[] SSR_TraceMask_RT = new RenderTexture[2]; public RenderTargetIdentifier[] SSR_TraceMask_ID = new RenderTargetIdentifier[2];
-            public RenderTexture SSR_Spatial_RT, SSR_TemporalPrev_RT, SSR_TemporalCurr_RT, SSR_HierarchicalDepth_RT, SSR_HierarchicalDepth_BackUp_RT, SSR_SceneColor_RT;
+            public RenderTexture SSR_Spatial_RT, SSR_TemporalPrev_RT, SSR_TemporalCurr_RT, SSR_HierarchicalDepth_RT, SSR_HierarchicalDepth_BackUp_RT;
             private static void CheckAndRelease(RenderTexture targetRT)
             {
                 if (targetRT && targetRT.IsCreated())
@@ -399,8 +398,6 @@ namespace MPipeline
                 SSR_HierarchicalDepth_BackUp_RT.useMipMap = true;
                 SSR_HierarchicalDepth_BackUp_RT.autoGenerateMips = false;
 
-                SSR_SceneColor_RT = new RenderTexture(currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
-
                 SSR_TraceMask_RT[0] = new RenderTexture(currentSize.x / (int)RayCastingResolution, currentSize.y / (int)RayCastingResolution, 0, RenderTextureFormat.ARGBHalf);
                 SSR_TraceMask_RT[0].filterMode = FilterMode.Point;
                 SSR_TraceMask_ID[0] = SSR_TraceMask_RT[0].colorBuffer;
@@ -420,7 +417,6 @@ namespace MPipeline
 
                 SSR_HierarchicalDepth_RT.Create();
                 SSR_HierarchicalDepth_BackUp_RT.Create();
-                SSR_SceneColor_RT.Create();
                 SSR_TraceMask_RT[0].Create();
                 SSR_TraceMask_RT[1].Create();
                 SSR_Spatial_RT.Create();
@@ -446,7 +442,6 @@ namespace MPipeline
                 RayCastingResolution = targetResolution;
                 ChangeSet(SSR_HierarchicalDepth_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.RHalf);
                 ChangeSet(SSR_HierarchicalDepth_BackUp_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.RHalf);
-                ChangeSet(SSR_SceneColor_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.DefaultHDR);
                 ChangeSet(SSR_TraceMask_RT[0], currentSize.x / (int)RayCastingResolution, currentSize.y / (int)RayCastingResolution, 0, RenderTextureFormat.ARGBHalf);
                 ChangeSet(SSR_TraceMask_RT[1], currentSize.x / (int)RayCastingResolution, currentSize.y / (int)RayCastingResolution, 0, RenderTextureFormat.ARGBHalf);
                 ChangeSet(SSR_Spatial_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
@@ -458,7 +453,6 @@ namespace MPipeline
             public override void DisposeProperty()
             {
                 CheckAndRelease(SSR_HierarchicalDepth_RT);
-                CheckAndRelease(SSR_SceneColor_RT);
                 CheckAndRelease(SSR_TraceMask_RT[0]);
                 CheckAndRelease(SSR_TraceMask_RT[1]);
                 CheckAndRelease(SSR_Spatial_RT);

@@ -16,13 +16,18 @@ namespace MPipeline
         public void InitHiZ(PipelineResources resources)
         {
             const int depthRes = 256;
-            backupMip = new RenderTexture(depthRes * 2, depthRes, 0, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
+            backupMip = new RenderTexture(depthRes * 2, depthRes, 16, RenderTextureFormat.R16, RenderTextureReadWrite.Linear);
             backupMip.useMipMap = true;
             backupMip.autoGenerateMips = false;
             backupMip.enableRandomWrite = false;
             backupMip.wrapMode = TextureWrapMode.Clamp;
-            backupMip.filterMode = FilterMode.Point;
-            depthMip = new RenderTexture(backupMip);
+            backupMip.filterMode = FilterMode.Bilinear;
+            depthMip = new RenderTexture(depthRes * 2, depthRes, 16, RenderTextureFormat.R16, RenderTextureReadWrite.Linear);
+            depthMip.useMipMap = true;
+            depthMip.autoGenerateMips = false;
+            depthMip.enableRandomWrite = false;
+            depthMip.wrapMode = TextureWrapMode.Clamp;
+            depthMip.filterMode = FilterMode.Bilinear;
             depthMip.Create();
             backupMip.Create();
             getLodMat = new Material(resources.shaders.HizLodShader);

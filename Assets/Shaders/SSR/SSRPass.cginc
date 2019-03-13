@@ -63,10 +63,13 @@ float Hierarchical_ZBuffer(PixelInput i) : SV_Target {
         _SSR_HierarchicalDepth_RT.SampleLevel( sampler_SSR_HierarchicalDepth_RT, uv, _SSR_HiZ_PrevDepthLevel, uint2(1, 1) ).r
     );
 	#if UNITY_REVERSED_Z
-	return max( max(minDepth.r, minDepth.g), max(minDepth.b, minDepth.a) );
+	minDepth.xy = max(minDepth.xy, minDepth.zw);
+	minDepth.x = max(minDepth.x, minDepth.y);
 	#else
-	return min( min(minDepth.r, minDepth.g), min(minDepth.b, minDepth.a) );
+	minDepth.xy = min(minDepth.xy, minDepth.zw);
+	minDepth.x = min(minDepth.x, minDepth.y);
 	#endif
+	return minDepth.x;
 }
 
 ////////////////////////////////-----Linear_2DTrace Sampler-----------------------------------------------------------------------------

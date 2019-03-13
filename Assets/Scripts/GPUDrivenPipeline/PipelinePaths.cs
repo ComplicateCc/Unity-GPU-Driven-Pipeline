@@ -24,6 +24,7 @@ namespace MPipeline
         public Shader shadowMaskShader;
         public Shader reflectionShader;
         public Shader linearDepthShader;
+        public Shader linearDrawerShader;
         public Shader cubeDepthShader;
         public Shader clusterRenderShader;
         public Shader volumetricShader;
