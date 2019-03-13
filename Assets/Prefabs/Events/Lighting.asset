@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d03bb786d57c3c4db2c26301cedb05b, type: 3}
   m_Name: Lighting
   m_EditorClassIdentifier: 
-  enabled: 0
+  enabled: 1
   culler:
     targetResoures: {fileID: 11400000, guid: 64bb376764f5c9848bbb1a526b40051d, type: 2}

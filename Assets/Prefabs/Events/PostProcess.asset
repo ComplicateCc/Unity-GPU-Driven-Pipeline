@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d237876de09eba543825aad2b835200b, type: 3}
   m_Name: PostProcess
   m_EditorClassIdentifier: 
-  enabled: 0
+  enabled: 1
   profile: {fileID: 11400000, guid: 6d0d1a1ad21c9604896988c0fd15fc68, type: 2}
   resources: {fileID: 11400000, guid: d82512f9c8e5d4a4d938b575d47f88d4, type: 2}
