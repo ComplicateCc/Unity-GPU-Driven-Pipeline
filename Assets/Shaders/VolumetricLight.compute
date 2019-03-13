@@ -249,7 +249,6 @@ void CalculateGI(uint3 id : SV_DISPATCHTHREADID)
 [numthreads(32, 2, 1)]
 void Scatter(uint2 id : SV_DISPATCHTHREADID)
 {
-    
 	float4 accum = float4(0, 0, 0, 1);
 	uint3 pos = uint3(id.xy, 0);
     float lastDist = 0;

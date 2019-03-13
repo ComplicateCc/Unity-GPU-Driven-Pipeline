@@ -54,7 +54,7 @@ float OcclusionTest(ClusterMeshData info, float4x4 vpMat)
     float4 farClipPos = mul(vpMat, float4(farPoint, 1));
     farClipPos /= farClipPos.w;
     float screenDist = distance(farClipPos.xy, centerClipPos.xy);
-    float lodLevel = clamp(log2(screenDist * 96), 0, 7.4);
+    float lodLevel = min(log2(max(1,screenDist * 64)), 7.4);
     [unroll]
     for(uint i = 0; i < 6; ++i)
     {
