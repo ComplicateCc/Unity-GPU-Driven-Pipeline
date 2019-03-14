@@ -12,24 +12,25 @@ namespace MPipeline
         public RenderTexture dirLightShadowmap;
         public RenderTexture xyPlaneTexture;
         public RenderTexture zPlaneTexture;
-        public RenderTexture pointTileLightList;
-        public RenderTexture spotTileLightList;
         public ComputeBuffer allFogVolumeBuffer;
         public ComputeBuffer allPointLightBuffer;
         public ComputeBuffer allSpotLightBuffer;
         public ComputeBuffer pointlightIndexBuffer;
         public ComputeBuffer spotlightIndexBuffer;
-        public const int XRES = 32;
-        public const int YRES = 16;
-        public const int ZRES = 128;
+        public const int XRES = 16;
+        public const int YRES = 8;
+        public const int ZRES = 256;
         public const int MAXLIGHTPERCLUSTER = 16;
-        public const int MAXPOINTLIGHTPERTILE = 64;
-        public const int MAXSPOTLIGHTPERTILE = 64;
         public const int pointLightInitCapacity = 50;
         public const int spotLightInitCapacity = 50;
         public const int SetXYPlaneKernel = 0;
         public const int SetZPlaneKernel = 1;
         public const int DeferredCBDR = 2;
+        public const int TBDRPointKernel = 3;
+
+        public const int ClearKernel = 4;
+        public const int TBDRSpotKernel = 5;
+        
         public const int MAXIMUMPOINTLIGHTCOUNT = 4;
         public const int MAXIMUMSPOTLIGHTCOUNT = 8;
         public uint lightFlag;
@@ -119,16 +120,7 @@ namespace MPipeline
             spotlightIndexBuffer = new ComputeBuffer(XRES * YRES * ZRES * (MAXLIGHTPERCLUSTER + 1), sizeof(int));
             allPointLightBuffer = new ComputeBuffer(pointLightInitCapacity, sizeof(PointLightStruct));
             allSpotLightBuffer = new ComputeBuffer(pointLightInitCapacity, sizeof(SpotLight));
-            desc.width = XRES;
-            desc.height = YRES;
-            desc.volumeDepth = MAXPOINTLIGHTPERTILE;
-            desc.colorFormat = RenderTextureFormat.RInt;
-            desc.dimension = TextureDimension.Tex3D;
-            pointTileLightList = new RenderTexture(desc);
-            pointTileLightList.Create();
-            desc.volumeDepth = MAXSPOTLIGHTPERTILE;
-            spotTileLightList = new RenderTexture(desc);
-            spotTileLightList.Create();
+
             allFogVolumeBuffer = new ComputeBuffer(30, sizeof(FogVolume));
         }
         public static void ResizeBuffer(ref ComputeBuffer buffer, int newCapacity)
@@ -137,29 +129,7 @@ namespace MPipeline
             buffer.Dispose();
             buffer = new ComputeBuffer(newCapacity, buffer.stride);
         }
-        public int TBDRPointKernel
-        {
-            get
-            {
-                return 3;
-            }
-        }
 
-        public int ClearKernel
-        {
-            get
-            {
-                return 4;
-            }
-        }
-
-        public int TBDRSpotKernel
-        {
-            get
-            {
-                return 5;
-            }
-        }
 
         public void Dispose()
         {
@@ -170,8 +140,6 @@ namespace MPipeline
             allSpotLightBuffer.Dispose();
             spotlightIndexBuffer.Dispose();
             allFogVolumeBuffer.Dispose();
-            Object.DestroyImmediate(pointTileLightList);
-            Object.DestroyImmediate(spotTileLightList);
             Object.DestroyImmediate(cubeArrayMap);
             Object.DestroyImmediate(spotArrayMap);
         }

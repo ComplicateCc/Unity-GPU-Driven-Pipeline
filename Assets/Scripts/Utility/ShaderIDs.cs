@@ -101,8 +101,8 @@ public static partial class ShaderIDs
     public static readonly int _NearFarClip = Shader.PropertyToID("_NearFarClip");
     public static readonly int _CameraClipDistance = Shader.PropertyToID("_CameraClipDistance");
     public static readonly int _Screen_TexelSize = Shader.PropertyToID("_Screen_TexelSize");
-    public static readonly int _TilePointLightList = Shader.PropertyToID("_TilePointLightList");
-    public static readonly int _TileSpotLightList = Shader.PropertyToID("_TileSpotLightList");
+    public static readonly int _PointLightCount = Shader.PropertyToID("_PointLightCount");
+    public static readonly int _SpotLightCount = Shader.PropertyToID("_SpotLightCount");
     public static readonly int _AllFogVolume = Shader.PropertyToID("_AllFogVolume");
     public static readonly int _FogVolumeCount = Shader.PropertyToID("_FogVolumeCount");
     public static readonly int _SceneOffset = Shader.PropertyToID("_SceneOffset");

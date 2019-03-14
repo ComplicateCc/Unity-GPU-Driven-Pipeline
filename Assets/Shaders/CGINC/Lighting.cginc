@@ -54,6 +54,7 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		BSDFContext LightData;
 		Init(LightData, WorldNormal, ViewDir, LightDir, floatDir);
 		float3 Energy = Spot_Energy(ldh, lightDirLen, LightColor, cos(Light.smallAngle), LightAngle, 1.0 / LightRange, LightData.NoL) * isNear;
+		
 		if(dot(Energy, 1) < 1e-5) continue;
 		//////Shadow
 		const float ShadowResolution = 512.0;
@@ -87,7 +88,7 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 	LightIndex = uint2(sb + 1, _PointLightIndexBuffer[sb]);
 	[loop]
 	for (c = LightIndex.x; c < LightIndex.y; c++)
-	{
+	{		
 		PointLight Light = _AllPointLight[_PointLightIndexBuffer[c]];
 		float LightRange = Light.sphere.a;
 		float3 LightPos = Light.sphere.rgb;

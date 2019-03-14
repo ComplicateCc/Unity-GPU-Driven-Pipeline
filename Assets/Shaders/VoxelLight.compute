@@ -2,22 +2,19 @@
 #pragma kernel SetXYPlane
 #pragma kernel SetZPlane
 #pragma kernel CBDR
-#pragma kernel TBDRSphere
-#pragma kernel Clear 
-#pragma kernel TBDRSpot
+
 #include "UnityCG.cginc"
 #include "CGINC/VoxelLight.cginc"
 float4x4 _InvVP;
 
 RWTexture3D<float4> _XYPlaneTexture;
 RWTexture2D<float4> _ZPlaneTexture;
-RWTexture3D<int> _TilePointLightList;
-RWTexture3D<int> _TileSpotLightList;
 StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
-StructuredBuffer<FogVolume> _AllFogVolume;
 RWStructuredBuffer<uint> _PointLightIndexBuffer;
 RWStructuredBuffer<uint> _SpotLightIndexBuffer;
+int _PointLightCount;
+int _SpotLightCount;
 
 
 [numthreads(XRES, YRES, 1)]
@@ -55,72 +52,35 @@ void SetZPlane(uint id : SV_DISPATCHTHREADID)
 [numthreads(XRES, YRES, 1)]
 void CBDR(uint3 id : SV_DISPATCHTHREADID)
 {
-	float4 planes[2];
+	float4 planes[6];
 	uint i;
 	planes[0] = _ZPlaneTexture[uint2(id.z, 0)];
 	planes[1] = _ZPlaneTexture[uint2(id.z, 1)];
-
+	planes[2] = _XYPlaneTexture[uint3(id.xy, 0)];
+	planes[3] = _XYPlaneTexture[uint3(id.xy, 1)];
+	planes[4] = _XYPlaneTexture[uint3(id.xy, 2)];
+	planes[5] = _XYPlaneTexture[uint3(id.xy, 3)];
 	//TODO
 	//
 	uint clusterCount = 0;
 	uint sBufferIndex = GetIndex(id, VOXELSIZE, (MAXLIGHTPERCLUSTER + 1)) + 1;
-	uint len = min(_TilePointLightList[uint3(id.xy, 0)], MAXPOINTLIGHTPERTILE + 1);
-	for (i = 1; i < len && clusterCount < MAXLIGHTPERCLUSTER; ++i) {
-		int lightIndex = _TilePointLightList[uint3(id.xy, i)];
-		PointLight lit = _AllPointLight[lightIndex];
+	for (i = 0; i < _PointLightCount; ++i) {
+		PointLight lit = _AllPointLight[i];
 		if (SphereIntersect(lit.sphere, planes) > 0.5) {
-			_PointLightIndexBuffer[sBufferIndex + clusterCount] = lightIndex;
+			_PointLightIndexBuffer[sBufferIndex + clusterCount] = i;
 			clusterCount++;
 		}
 	}
 	_PointLightIndexBuffer[sBufferIndex - 1] = clusterCount + sBufferIndex;
 
 	clusterCount = 0;
-	len = min(_TileSpotLightList[uint3(id.xy, 0)], MAXSPOTLIGHTPERTILE + 1);
-	for (i = 1; i < len && clusterCount < MAXLIGHTPERCLUSTER; ++i) {
-		int lightIndex = _TileSpotLightList[uint3(id.xy, i)];
-		Cone lit = _AllSpotLight[lightIndex].lightCone;
+	
+	for (i = 0; i < _SpotLightCount; ++i) {
+		Cone lit = _AllSpotLight[i].lightCone;
 		if (ConeIntersect(lit, planes) > 0.5) {
-			_SpotLightIndexBuffer[sBufferIndex + clusterCount] = lightIndex;
+			_SpotLightIndexBuffer[sBufferIndex + clusterCount] = i;
 			clusterCount++;
 		}
 	}
 	_SpotLightIndexBuffer[sBufferIndex - 1] = clusterCount + sBufferIndex;
-}
-
-[numthreads(XRES, YRES, 1)]
-void TBDRSphere(uint3 id : SV_DISPATCHTHREADID)
-{
-	uint i;
-	PointLight lit = _AllPointLight[id.z];
-	if (SphereIntersect(lit.sphere, _XYPlaneTexture, id.xy, 4) > 0.5) {
-		int currentValue;
-		InterlockedAdd(_TilePointLightList[uint3(id.xy, 0)], 1, currentValue);
-		if (currentValue <= MAXPOINTLIGHTPERTILE)
-		{
-			_TilePointLightList[uint3(id.xy, currentValue)] = id.z;
-		}
-	}
-}
-
-[numthreads(XRES, YRES, 1)]
-void Clear(uint3 id : SV_DISPATCHTHREADID)
-{
-	_TilePointLightList[uint3(id.xy, 0)] = 1;
-	_TileSpotLightList[uint3(id.xy, 0)] = 1;
-}
-
-[numthreads(XRES, YRES, 1)]
-void TBDRSpot(uint3 id : SV_DISPATCHTHREADID)
-{
-	uint i;
-	SpotLight lit = _AllSpotLight[id.z];
-	if (ConeIntersect(lit.lightCone, _XYPlaneTexture, id.xy, 4) > 0.5) {
-		int currentValue;
-		InterlockedAdd(_TileSpotLightList[uint3(id.xy, 0)], 1, currentValue);
-		if (currentValue <= MAXSPOTLIGHTPERTILE)
-		{
-			_TileSpotLightList[uint3(id.xy, currentValue)] = id.z;
-		}
-	}
 }

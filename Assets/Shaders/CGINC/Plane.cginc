@@ -60,25 +60,16 @@ float BoxIntersect(float3 extent, float3x3 boxLocalToWorld, float3 position, flo
     return result;
 }
 
-float SphereIntersect(float4 sphere, float4 planes[2])
+float SphereIntersect(float4 sphere, float4 planes[6])
 {
     float result = 1;
-    for(uint i = 0; i < 2; ++i)
+    for(uint i = 0; i < 6; ++i)
     {
         result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w);
     }
     return result;
 }
 
-float SphereIntersect(float4 sphere, float4 planes[4])
-{
-    float result = 1;
-    for(uint i = 0; i < 4; ++i)
-    {
-        result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w);
-    }
-    return result;
-}
 
 float BoxIntersect(float3 extent, float3x3 localToWorld, float3 position, RWTexture3D<float4> tex, uint2 uv, const uint count){
     float result = 1;
@@ -151,11 +142,11 @@ float SphereIntersect(float4 sphere, RWTexture3D<float4> tex, uint2 uv, const ui
 }
 
 
-    float ConeIntersect(Cone cone, float4 planes[2])
+    float ConeIntersect(Cone cone, float4 planes[6])
 {
     float result = 1;
     [unroll]
-    for(uint i = 0; i < 2; ++i)
+    for(uint i = 0; i < 6; ++i)
     {
         result *= ConeInsidePlane(cone, planes[i]);
     }

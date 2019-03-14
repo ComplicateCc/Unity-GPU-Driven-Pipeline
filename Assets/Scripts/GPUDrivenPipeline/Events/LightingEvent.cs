@@ -213,7 +213,6 @@ namespace MPipeline
         {
             CommandBuffer buffer = data.buffer;
             VoxelLightCommonData(buffer, cam.cam);
-            ClearDispatch(buffer);
             lightingHandle.Complete();
             foreach (var i in addMLightCommandList)
             {
@@ -264,7 +263,7 @@ namespace MPipeline
                         //Multi frame shadowmap
                     }
                 }
-                SetPointLightBuffer(pointLightArray, LightFilter.pointLightCount, buffer);
+                SetPointLightBuffer(pointLightArray, LightFilter.pointLightCount);
                 buffer.EnableShaderKeyword("POINTLIGHT");
                 cbdr.lightFlag |= 1;
             }
@@ -319,7 +318,7 @@ namespace MPipeline
             {
                 buffer.DisableShaderKeyword("SPOTLIGHT");
             }
-            VoxelLightCalculate(buffer, cam.cam);
+            VoxelLightCalculate(buffer, cam.cam, LightFilter.pointLightCount, LightFilter.spotLightCount);
         }
         private void VoxelLightCommonData(CommandBuffer buffer, Camera cam)
         {
@@ -348,46 +347,28 @@ namespace MPipeline
             buffer.DrawMesh(GraphicsUtility.cubeMesh, localToWorld, irradianceVolumeMat, 0, 0);
         }
 
-        private void SetPointLightBuffer(NativeArray<PointLightStruct> pointLightArray, int pointLightLength, CommandBuffer buffer)
+        private void SetPointLightBuffer(NativeArray<PointLightStruct> pointLightArray, int pointLightLength)
         {
             CBDRSharedData.ResizeBuffer(ref cbdr.allPointLightBuffer, pointLightLength);
             cbdr.allPointLightBuffer.SetData(pointLightArray, 0, 0, pointLightLength);
-            int tbdrPointKernel = cbdr.TBDRPointKernel;
-            ComputeShader cbdrShader = cbdr.cbdrShader;
-            buffer.SetComputeTextureParam(cbdrShader, tbdrPointKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
-            buffer.SetComputeBufferParam(cbdrShader, tbdrPointKernel, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
-            buffer.SetComputeTextureParam(cbdrShader, tbdrPointKernel, ShaderIDs._TilePointLightList, cbdr.pointTileLightList);
-            buffer.DispatchCompute(cbdr.cbdrShader, tbdrPointKernel, 1, 1, pointLightLength);
+            
         }
 
         private void SetSpotLightBuffer(NativeArray<SpotLight> spotLightArray, int spotLightLength, CommandBuffer buffer)
         {
             CBDRSharedData.ResizeBuffer(ref cbdr.allSpotLightBuffer, spotLightLength);
             ComputeShader cbdrShader = cbdr.cbdrShader;
-            int tbdrSpotKernel = cbdr.TBDRSpotKernel;
             cbdr.allSpotLightBuffer.SetData(spotLightArray, 0, 0, spotLightLength);
-            buffer.SetComputeTextureParam(cbdrShader, tbdrSpotKernel, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
-            buffer.SetComputeBufferParam(cbdrShader, tbdrSpotKernel, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
-            buffer.SetComputeTextureParam(cbdrShader, tbdrSpotKernel, ShaderIDs._TileSpotLightList, cbdr.spotTileLightList);
-            buffer.DispatchCompute(cbdr.cbdrShader, tbdrSpotKernel, 1, 1, spotLightLength);
         }
 
-        private void ClearDispatch(CommandBuffer buffer)
-        {
-            int clearKernel = cbdr.ClearKernel;
-            ComputeShader cbdrShader = cbdr.cbdrShader;
-            buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._TilePointLightList, cbdr.pointTileLightList);
-            buffer.SetComputeTextureParam(cbdrShader, clearKernel, ShaderIDs._TileSpotLightList, cbdr.spotTileLightList);
-            buffer.DispatchCompute(cbdrShader, clearKernel, 1, 1, 1);
-        }
-
-        private void VoxelLightCalculate(CommandBuffer buffer, Camera cam)
+        private void VoxelLightCalculate(CommandBuffer buffer, Camera cam, int pointLightLength, int spotLightLength)
         {
             ComputeShader cbdrShader = cbdr.cbdrShader;
             buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._AllPointLight, cbdr.allPointLightBuffer);
             buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._AllSpotLight, cbdr.allSpotLightBuffer);
-            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._TilePointLightList, cbdr.pointTileLightList);
-            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._TileSpotLightList, cbdr.spotTileLightList);
+            buffer.SetComputeIntParam(cbdrShader, ShaderIDs._PointLightCount, pointLightLength);
+            buffer.SetComputeIntParam(cbdrShader, ShaderIDs._SpotLightCount, spotLightLength);
+            buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._XYPlaneTexture, cbdr.xyPlaneTexture);
             buffer.SetComputeTextureParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._ZPlaneTexture, cbdr.zPlaneTexture);
             buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._PointLightIndexBuffer, cbdr.pointlightIndexBuffer);
             buffer.SetComputeBufferParam(cbdrShader, CBDRSharedData.DeferredCBDR, ShaderIDs._SpotLightIndexBuffer, cbdr.spotlightIndexBuffer);

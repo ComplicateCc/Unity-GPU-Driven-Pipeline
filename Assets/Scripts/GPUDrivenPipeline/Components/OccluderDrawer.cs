@@ -11,7 +11,6 @@ namespace MPipeline
     public unsafe class OccluderDrawer : MonoBehaviour
     {
         public static OccluderDrawer current { get; private set; }
-        public Mesh occluderMesh;
         public ComputeShader shader;
         public const int cull_Kernel = 0;
         public const int clear_Kernel = 1;
@@ -34,8 +33,8 @@ namespace MPipeline
             clusterArray.Dispose();
             resultBuffer = new ComputeBuffer(allRenderers.Count, sizeof(int));
             instanceCountBuffer = new ComputeBuffer(5, sizeof(int), ComputeBufferType.IndirectArguments);
-            Vector3[] vertices = occluderMesh.vertices;
-            int[] tris = occluderMesh.triangles;
+            Vector3[] vertices = GraphicsUtility.cubeMesh.vertices;
+            int[] tris = GraphicsUtility.cubeMesh.triangles;
             verticesBuffer = new ComputeBuffer(tris.Length, sizeof(float3));
             NativeArray<float3> verts = new NativeArray<float3>(tris.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             for(int i = 0; i < verts.Length; ++i)
