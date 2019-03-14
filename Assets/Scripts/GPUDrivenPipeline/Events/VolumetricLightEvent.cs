@@ -20,7 +20,7 @@ namespace MPipeline
         const int scatterPass = 8;
         const int clearPass = 9;
         const int calculateGI = 10;
-        static readonly int3 downSampledSize = new int3(160, 90, 256);
+        static readonly int3 downSampledSize = new int3(160, 90, 128);
         private JobHandle jobHandle;
         private NativeArray<FogVolume> resultVolume;
         private int fogCount = 0;

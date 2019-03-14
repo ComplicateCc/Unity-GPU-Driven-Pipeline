@@ -12,7 +12,7 @@
 #define FROXELMAXSPOTLIGHTPERTILE 32
 #define MAXFOGVOLUMEPERTILE 16
 
-static const uint3 _ScreenSize = uint3(160, 90, 256);
+static const uint3 _ScreenSize = uint3(160, 90, 128);
 #include "CGINC/Plane.cginc"
 
 #define VOXELSIZE uint3(XRES, YRES, ZRES)

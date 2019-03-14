@@ -191,19 +191,19 @@ inline uint wang_hash(uint n)
 	return (n*(n*n * 15731 + 789221) + 1376312589) & 2147483647;
 }
 float4 _RandomSeed;
-inline float3 getRandomFloat3(uint index)
+inline float3 getRandomFloat3(inout uint index)
 {
     uint3 value = 0;
     value.x = wang_hash(index);
     value.y = wang_hash(value.x);
     value.z = wang_hash(value.y); 
+    index = value.z;
     return sin( value * float3(1.0 / 4294956.68541,1.0 / 2364516.76521, 1.0 /  4688732.13846) * _RandomSeed.xyz + _RandomSeed.w) * 0.5 + 0.5;
 }
 
-[numthreads(2, 2, VOXELZ)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+float4 RenderVoxel(uint3 id, float3 currentColor, inout uint value)
 {
-    float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
+    float3 jitterCoord = getRandomFloat3(value);
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
@@ -219,7 +219,14 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
     col.rgb *= col.a;
    float reprojectionValid = lerp(_TemporalWeight * (abs(dot(lastFrameUV - saturate(lastFrameUV), 1)) < 1e-4), 0.999, _SceneOffset.w);
-    _VolumeTex[id] = float4(lerp(col.xyz + _VolumeTex[id].xyz, lastFrameColor.xyz, reprojectionValid) , col.w);
+    return float4(lerp(col.xyz + currentColor, lastFrameColor.xyz, reprojectionValid) , col.w);
+}
+[numthreads(2, 2, VOXELZ)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint value = From3DTo1D(id, _ScreenSize);
+    float3 currentColor = _VolumeTex[id].xyz;
+    _VolumeTex[id] = (RenderVoxel(id, currentColor, value) +  RenderVoxel(id, currentColor, value)) * 0.5;
 }
 
 [numthreads(2,2,VOXELZ)]
@@ -231,7 +238,8 @@ void Clear(uint3 id : SV_DISPATCHTHREADID)
 [numthreads(2, 2, VOXELZ)]
 void CalculateGI(uint3 id : SV_DISPATCHTHREADID)
 {
-    float3 jitterCoord = getRandomFloat3(From3DTo1D(id, _ScreenSize));
+    uint value = From3DTo1D(id, _ScreenSize);
+    float3 jitterCoord = getRandomFloat3(value);
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
