@@ -1,8 +1,8 @@
 #ifndef PROCEDURAL
 #define PROCEDURAL
 
-#define CLUSTERCLIPCOUNT 255
-#define CLUSTERVERTEXCOUNT 255
+#define CLUSTERCLIPCOUNT 384
+#define CLUSTERVERTEXCOUNT 384
 #define PLANECOUNT 6
     struct PropertyValue
     {
@@ -29,11 +29,6 @@ struct Point{
 #ifndef COMPUTESHADER		//Below is Not for compute shader
 StructuredBuffer<Point> verticesBuffer;
 StructuredBuffer<uint> resultBuffer;
-static const uint IndexArray[6] = 
-{
-	0,	1,	2,
-	1,	3,	2
-};
 inline Point getVertex(uint vertexID, uint instanceID)
 {
     instanceID = resultBuffer[instanceID];

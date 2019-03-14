@@ -104,7 +104,7 @@ namespace MPipeline
         public int clusterCount;
         public const int INDIRECTSIZE = 20;
         public const int UINTSIZE = 4;
-        public const int CLUSTERCLIPCOUNT = 255;
+        public const int CLUSTERCLIPCOUNT = 384;
         public const int CLUSTERVERTEXCOUNT = CLUSTERCLIPCOUNT;
 
         public const int ClusterCull_Kernel = 0;
