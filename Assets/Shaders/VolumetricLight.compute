@@ -198,12 +198,14 @@ inline float3 getRandomFloat3(inout uint index)
     value.y = wang_hash(value.x);
     value.z = wang_hash(value.y); 
     index = value.z;
-    return sin( value * float3(1.0 / 4294956.68541,1.0 / 2364516.76521, 1.0 /  4688732.13846) * _RandomSeed.xyz + _RandomSeed.w) * 0.5 + 0.5;
+    return sin( value * float3(1.0 / 4294956.68541,1.0 / 2364516.76521, 1.0 /  4688732.13846) * _RandomSeed.xyz + _RandomSeed.w);
 }
 
-float4 RenderVoxel(uint3 id, float3 currentColor, inout uint value)
+float4 RenderVoxel(uint3 id, float3 currentColor, inout uint value, float offset)
 {
-    float3 jitterCoord = getRandomFloat3(value);
+    float3 jitterCoord = getRandomFloat3(value) * 0.5 + 0.5;
+    jitterCoord.z += offset;
+    jitterCoord.z *= 0.5;
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
@@ -226,7 +228,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint value = From3DTo1D(id, _ScreenSize);
     float3 currentColor = _VolumeTex[id].xyz;
-    _VolumeTex[id] = (RenderVoxel(id, currentColor, value) +  RenderVoxel(id, currentColor, value)) * 0.5;
+    _VolumeTex[id] = (RenderVoxel(id, currentColor, value, 0) +  RenderVoxel(id, currentColor, value, 0.5)) * 0.5;
 }
 
 [numthreads(2,2,VOXELZ)]
@@ -239,7 +241,7 @@ void Clear(uint3 id : SV_DISPATCHTHREADID)
 void CalculateGI(uint3 id : SV_DISPATCHTHREADID)
 {
     uint value = From3DTo1D(id, _ScreenSize);
-    float3 jitterCoord = getRandomFloat3(value);
+    float3 jitterCoord = getRandomFloat3(value) * 0.5 + 0.5;
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
