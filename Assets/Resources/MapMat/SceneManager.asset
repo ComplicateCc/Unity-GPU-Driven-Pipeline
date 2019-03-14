@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clusterProperties:
   - name: TestFile
-    clusterCount: 615
+    clusterCount: 719
     properties:
     - _SpecularIntensity: 0.3
       _MetallicIntensity: 0.1
@@ -32,7 +32,7 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 42, y: -1, z: -1}
+      textureIndex: {x: 49, y: -1, z: -1}
       detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
@@ -42,7 +42,7 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 45, y: -1, z: -1}
+      textureIndex: {x: 48, y: -1, z: -1}
       detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
@@ -52,7 +52,7 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 45, y: -1, z: -1}
+      textureIndex: {x: 48, y: -1, z: -1}
       detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
@@ -62,15 +62,15 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.286
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 43, y: 44, z: -1}
-      detailTextureIndex: {x: 43, y: 47}
+      textureIndex: {x: 47, y: 46, z: -1}
+      detailTextureIndex: {x: 47, y: 45}
       mainScaleOffset: {x: 3, y: 3, z: 0, w: 0}
       detailScaleOffset: {x: 50, y: 50, z: 0, w: 0}
-    - _SpecularIntensity: 0.3
-      _MetallicIntensity: 0.1
+    - _SpecularIntensity: 0
+      _MetallicIntensity: 0.38
       _EmissionColor: {x: 0, y: 0, z: 0, w: 1}
       _Occlusion: 1
-      _Glossiness: 0.207
+      _Glossiness: 1
       _Color: {x: 1, y: 1, z: 1, w: 1}
       textureIndex: {x: -1, y: -1, z: -1}
       detailTextureIndex: {x: -1, y: -1}
@@ -92,8 +92,8 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.635
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 46, y: 48, z: -1}
-      detailTextureIndex: {x: -1, y: 47}
+      textureIndex: {x: 44, y: 43, z: -1}
+      detailTextureIndex: {x: -1, y: 45}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 40, y: 40, z: 0, w: 0}
     - _SpecularIntensity: 0.3
@@ -102,7 +102,7 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.38
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 49, y: 47, z: -1}
+      textureIndex: {x: 42, y: 45, z: -1}
       detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 1, y: 1, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}
@@ -122,7 +122,7 @@ MonoBehaviour:
       _Occlusion: 1
       _Glossiness: 0.1
       _Color: {x: 1, y: 1, z: 1, w: 1}
-      textureIndex: {x: 49, y: -1, z: -1}
+      textureIndex: {x: 42, y: -1, z: -1}
       detailTextureIndex: {x: -1, y: -1}
       mainScaleOffset: {x: 0.75, y: 0.75, z: 0, w: 0}
       detailScaleOffset: {x: 1, y: 1, z: 0, w: 0}

@@ -1,8 +1,8 @@
 #ifndef PROCEDURAL
 #define PROCEDURAL
 
-#define CLUSTERCLIPCOUNT 256
-#define CLUSTERVERTEXCOUNT 384
+#define CLUSTERCLIPCOUNT 255
+#define CLUSTERVERTEXCOUNT 255
 #define PLANECOUNT 6
     struct PropertyValue
     {
@@ -38,9 +38,7 @@ inline Point getVertex(uint vertexID, uint instanceID)
 {
     instanceID = resultBuffer[instanceID];
 	uint vertID = instanceID * CLUSTERCLIPCOUNT;
-	uint triangleCount = IndexArray[vertexID % 6];
-	vertID += vertexID / 6 * 4 + triangleCount;
-	return verticesBuffer[vertID];
+	return verticesBuffer[vertID + vertexID];
 }
 #endif
 #endif

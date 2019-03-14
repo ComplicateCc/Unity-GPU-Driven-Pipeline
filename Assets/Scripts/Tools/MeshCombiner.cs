@@ -229,10 +229,10 @@ namespace MPipeline
             {
                 "mainScaleOffset", "detailScaleOffset"
             };
-            for(int i = 0; i < matNames.Length; ++i)
+            for (int i = 0; i < matNames.Length; ++i)
             {
                 Vector4[] vecs = new Vector4[mats.Count];
-                for(int j = 0; j < vecs.Length; ++j)
+                for (int j = 0; j < vecs.Length; ++j)
                 {
                     Vector2 scale = mats[j].GetTextureScale(matNames[i]);
                     Vector2 offset = mats[j].GetTextureOffset(matNames[i]);

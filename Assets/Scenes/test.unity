@@ -385,7 +385,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &253029157
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3033,7 +3033,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8124619872751021015}
-  - component: {fileID: 8124619872751021009}
   m_Layer: 0
   m_Name: BoundLightWall
   m_TagString: Untagged
@@ -3041,23 +3040,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &8124619872751021009
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8124619872751021008}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aaf2e9cd6a376cd48ae705c4302fd47a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lightmapShader: {fileID: 7200000, guid: f6e116db19c13064cad38faa281ae1c4, type: 3}
-  mainTexFormat: 5
-  bumpMapFormat: 5
-  specularFormat: 3
-  modelName: Bounding
 --- !u!4 &8124619872751021015
 Transform:
   m_ObjectHideFlags: 0
