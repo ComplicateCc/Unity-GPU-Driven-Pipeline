@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcd0c6469ac1cd442b693ea77f1a521b, type: 3}
   m_Name: Reflection
   m_EditorClassIdentifier: 
-  enabled: 0
+  enabled: 1
   unitedResolution: 512
   ssrEvents:
-    enabled: 0
+    enabled: 1
     TraceMethod: 0
     RayCastingResolution: 1
     Denoise: 1

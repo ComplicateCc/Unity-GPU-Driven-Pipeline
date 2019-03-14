@@ -221,14 +221,14 @@ namespace MPipeline
         {
             Object.DestroyImmediate(StochasticScreenSpaceReflectionMaterial);
         }
-
-        public RenderTexture Render(ref PipelineCommandData data, PipelineCamera cam, ReflectionEvent parentEvent)
+        public RenderTargetIdentifier[] SSR_TraceMask_ID = new RenderTargetIdentifier[2];
+        public RenderTargetIdentifier Render(ref PipelineCommandData data, PipelineCamera cam, ReflectionEvent parentEvent)
         {
             RandomSampler = GenerateRandomOffset();
             SSRCameraData cameraData = IPerCameraData.GetProperty(cam, getDataFunc, parentEvent);
             SSR_UpdateVariable(cameraData, cam.cam, ref data);
             RenderScreenSpaceReflection(data.buffer, cameraData, cam);
-            return cameraData.SSR_TemporalCurr_RT;
+            return SSR_TemporalCurr_ID;
         }
 
 
@@ -335,7 +335,7 @@ namespace MPipeline
 
         private void RenderScreenSpaceReflection(CommandBuffer ScreenSpaceReflectionBuffer, SSRCameraData camData, PipelineCamera cam)
         {
-
+            Vector2Int resolution = new Vector2Int(cam.cam.pixelWidth, cam.cam.pixelHeight);
             ScreenSpaceReflectionBuffer.CopyTexture(cam.targets.depthTexture, 0, 0, camData.SSR_HierarchicalDepth_RT, 0, 0);//TODO
             for (int i = 1; i < 5; ++i)
             {
@@ -349,33 +349,33 @@ namespace MPipeline
             //////Set SceneColorRT//////
             ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_SceneColor_ID, cam.targets.renderTargetIdentifier);
 
+            ScreenSpaceReflectionBuffer.GetTemporaryRT(SSR_Trace_ID, resolution.x / (int)RayCastingResolution, resolution.y / (int)RayCastingResolution, 0, FilterMode.Point, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            ScreenSpaceReflectionBuffer.GetTemporaryRT(SSR_Mask_ID, resolution.x / (int)RayCastingResolution, resolution.y / (int)RayCastingResolution, 0, FilterMode.Point, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            SSR_TraceMask_ID[0] = SSR_Trace_ID;
+            SSR_TraceMask_ID[1] = SSR_Mask_ID;
             //////RayCasting//////
-            ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_Trace_ID, camData.SSR_TraceMask_RT[0]);
-            ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_Mask_ID, camData.SSR_TraceMask_RT[1]);
             if (TraceMethod == TraceApprox.HiZTrace)
             {
-                ScreenSpaceReflectionBuffer.BlitMRT(camData.SSR_TraceMask_ID, camData.SSR_TraceMask_RT[0], StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_HiZ3D_MultiSpp : RenderPass_HiZ3D_SingelSpp);
+                ScreenSpaceReflectionBuffer.BlitMRT(SSR_TraceMask_ID,cam.targets.depthBuffer , StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_HiZ3D_MultiSpp : RenderPass_HiZ3D_SingelSpp);
             }
             else
             {
-                ScreenSpaceReflectionBuffer.BlitMRT(camData.SSR_TraceMask_ID, camData.SSR_TraceMask_RT[0], StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Linear2D_MultiSPP : RenderPass_Linear2D_SingelSPP);
+                ScreenSpaceReflectionBuffer.BlitMRT(SSR_TraceMask_ID, cam.targets.depthBuffer, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Linear2D_MultiSPP : RenderPass_Linear2D_SingelSPP);
             }
-            //////Spatial filter//////  
-            ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_Spatial_ID, camData.SSR_Spatial_RT);
-            ScreenSpaceReflectionBuffer.BlitSRT(camData.SSR_Spatial_RT, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Spatiofilter_MultiSPP : RenderPass_Spatiofilter_SingleSPP);
+            ScreenSpaceReflectionBuffer.GetTemporaryRT(SSR_Spatial_ID, resolution.x, resolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            ScreenSpaceReflectionBuffer.BlitSRT(SSR_Spatial_ID, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Spatiofilter_MultiSPP : RenderPass_Spatiofilter_SingleSPP);
             //////Temporal filter//////
+            ScreenSpaceReflectionBuffer.GetTemporaryRT(SSR_TemporalCurr_ID, resolution.x, resolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_TemporalPrev_ID, camData.SSR_TemporalPrev_RT);
-            ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_TemporalCurr_ID, camData.SSR_TemporalCurr_RT);
-            ScreenSpaceReflectionBuffer.BlitSRT(camData.SSR_TemporalCurr_RT, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Temporalfilter_MultiSpp : RenderPass_Temporalfilter_SingleSPP);
-            ScreenSpaceReflectionBuffer.CopyTexture(camData.SSR_TemporalCurr_RT, 0, 0, camData.SSR_TemporalPrev_RT, 0, 0);
+            ScreenSpaceReflectionBuffer.BlitSRT(SSR_TemporalCurr_ID, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Temporalfilter_MultiSpp : RenderPass_Temporalfilter_SingleSPP);
+            ScreenSpaceReflectionBuffer.CopyTexture(SSR_TemporalCurr_ID, 0, 0, camData.SSR_TemporalPrev_RT, 0, 0);
         }
 
         public class SSRCameraData : IPerCameraData
         {
             public Vector2 CameraSize { get; private set; }
             public int RayCastingResolution { get; private set; }
-            public RenderTexture[] SSR_TraceMask_RT = new RenderTexture[2]; public RenderTargetIdentifier[] SSR_TraceMask_ID = new RenderTargetIdentifier[2];
-            public RenderTexture SSR_Spatial_RT, SSR_TemporalPrev_RT, SSR_TemporalCurr_RT, SSR_HierarchicalDepth_RT, SSR_HierarchicalDepth_BackUp_RT;
+            public RenderTexture SSR_TemporalPrev_RT,  SSR_HierarchicalDepth_RT, SSR_HierarchicalDepth_BackUp_RT;
             private static void CheckAndRelease(RenderTexture targetRT)
             {
                 if (targetRT && targetRT.IsCreated())
@@ -398,30 +398,11 @@ namespace MPipeline
                 SSR_HierarchicalDepth_BackUp_RT.useMipMap = true;
                 SSR_HierarchicalDepth_BackUp_RT.autoGenerateMips = false;
 
-                SSR_TraceMask_RT[0] = new RenderTexture(currentSize.x / (int)RayCastingResolution, currentSize.y / (int)RayCastingResolution, 0, RenderTextureFormat.ARGBHalf);
-                SSR_TraceMask_RT[0].filterMode = FilterMode.Point;
-                SSR_TraceMask_ID[0] = SSR_TraceMask_RT[0].colorBuffer;
-
-                SSR_TraceMask_RT[1] = new RenderTexture(currentSize.x / (int)RayCastingResolution, currentSize.y / (int)RayCastingResolution, 0, RenderTextureFormat.ARGBHalf);
-                SSR_TraceMask_RT[1].filterMode = FilterMode.Point;
-                SSR_TraceMask_ID[1] = SSR_TraceMask_RT[1].colorBuffer;
-
-                SSR_Spatial_RT = new RenderTexture(currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
-                SSR_Spatial_RT.filterMode = FilterMode.Bilinear;
-
                 SSR_TemporalPrev_RT = new RenderTexture(currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
                 SSR_TemporalPrev_RT.filterMode = FilterMode.Bilinear;
-
-                SSR_TemporalCurr_RT = new RenderTexture(currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
-                SSR_TemporalCurr_RT.filterMode = FilterMode.Bilinear;
-
                 SSR_HierarchicalDepth_RT.Create();
                 SSR_HierarchicalDepth_BackUp_RT.Create();
-                SSR_TraceMask_RT[0].Create();
-                SSR_TraceMask_RT[1].Create();
-                SSR_Spatial_RT.Create();
                 SSR_TemporalPrev_RT.Create();
-                SSR_TemporalCurr_RT.Create();
 
             }
 
@@ -442,22 +423,15 @@ namespace MPipeline
                 RayCastingResolution = targetResolution;
                 ChangeSet(SSR_HierarchicalDepth_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.RHalf);
                 ChangeSet(SSR_HierarchicalDepth_BackUp_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.RHalf);
-                ChangeSet(SSR_TraceMask_RT[0], currentSize.x / (int)RayCastingResolution, currentSize.y / (int)RayCastingResolution, 0, RenderTextureFormat.ARGBHalf);
-                ChangeSet(SSR_TraceMask_RT[1], currentSize.x / (int)RayCastingResolution, currentSize.y / (int)RayCastingResolution, 0, RenderTextureFormat.ARGBHalf);
-                ChangeSet(SSR_Spatial_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
                 ChangeSet(SSR_TemporalPrev_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
-                ChangeSet(SSR_TemporalCurr_RT, currentSize.x, currentSize.y, 0, RenderTextureFormat.ARGBHalf);
                 return true;
             }
 
             public override void DisposeProperty()
             {
                 CheckAndRelease(SSR_HierarchicalDepth_RT);
-                CheckAndRelease(SSR_TraceMask_RT[0]);
-                CheckAndRelease(SSR_TraceMask_RT[1]);
-                CheckAndRelease(SSR_Spatial_RT);
+                CheckAndRelease(SSR_HierarchicalDepth_BackUp_RT);
                 CheckAndRelease(SSR_TemporalPrev_RT);
-                CheckAndRelease(SSR_TemporalCurr_RT);
             }
         }
     }
