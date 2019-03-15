@@ -2,7 +2,7 @@ Shader "Hidden/PostProcessing/MotionBlur"
 {
     HLSLINCLUDE
 
-        #pragma target 3.0
+        #pragma target 5.0
         #include "../StdLib.hlsl"
 
         TEXTURE2D_SAMPLER2D(_MainTex, sampler_MainTex);
@@ -59,7 +59,7 @@ Shader "Hidden/PostProcessing/MotionBlur"
         // Prefilter
 
         // Velocity texture setup
-        float4 FragVelocitySetup(VaryingsDefault i) : SV_Target
+        float4 FragVelocitySetup(v2f i) : SV_Target
         {
             // Sample the motion vector.
             float2 v = SAMPLE_TEXTURE2D(_CameraMotionVectorsTexture, sampler_CameraMotionVectorsTexture, i.texcoord).rg;
@@ -74,7 +74,7 @@ Shader "Hidden/PostProcessing/MotionBlur"
             float d = Linear01Depth(_CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.texcoord).r);
 
             // Pack into 10/10/10/2 format.
-            return float4((v * _RcpMaxBlurRadius + 1.0) * 0.5, d, 0.0);
+            return  float4((v * _RcpMaxBlurRadius + 1.0) * 0.5, d, 0.0);
         }
 
         float2 MaxV(float2 v1, float2 v2)
@@ -83,7 +83,7 @@ Shader "Hidden/PostProcessing/MotionBlur"
         }
 
         // TileMax filter (2 pixel width with normalization)
-        float4 FragTileMax1(VaryingsDefault i) : SV_Target
+        float4 FragTileMax1(v2f i) : SV_Target
         {
             float4 d = _MainTex_TexelSize.xyxy * float4(-0.5, -0.5, 0.5, 0.5);
 
@@ -101,7 +101,7 @@ Shader "Hidden/PostProcessing/MotionBlur"
         }
 
         // TileMax filter (2 pixel width)
-        float4 FragTileMax2(VaryingsDefault i) : SV_Target
+        float4 FragTileMax2(v2f i) : SV_Target
         {
             float4 d = _MainTex_TexelSize.xyxy * float4(-0.5, -0.5, 0.5, 0.5);
 
@@ -114,7 +114,7 @@ Shader "Hidden/PostProcessing/MotionBlur"
         }
 
         // TileMax filter (variable width)
-        float4 FragTileMaxV(VaryingsDefault i) : SV_Target
+        float4 FragTileMaxV(v2f i) : SV_Target
         {
             float2 uv0 = i.texcoord + _MainTex_TexelSize.xy * _TileMaxOffs.xy;
 
@@ -138,7 +138,7 @@ Shader "Hidden/PostProcessing/MotionBlur"
         }
 
         // NeighborMax filter
-        float4 FragNeighborMax(VaryingsDefault i) : SV_Target
+        float4 FragNeighborMax(v2f i) : SV_Target
         {
             const float cw = 1.01; // Center weight tweak
 
@@ -188,8 +188,9 @@ Shader "Hidden/PostProcessing/MotionBlur"
         }
 
         // Reconstruction filter
-        float4 FragReconstruction(VaryingsDefault i) : SV_Target
+        float4 FragReconstruction(v2f i) : SV_Target
         {
+            //return float4(i.texcoord, 0, 0);
             // Color sample at the center point
             const float4 c_p = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);
 
@@ -244,7 +245,6 @@ Shader "Hidden/PostProcessing/MotionBlur"
 
                 // Color sample
                 const float3 c = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_MainTex, uv0, 0.0).rgb;
-
                 // Velocity/Depth sample
                 const float3 vd = SampleVelocity(uv1);
 

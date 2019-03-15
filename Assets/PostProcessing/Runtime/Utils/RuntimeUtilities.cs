@@ -311,7 +311,7 @@ namespace UnityEngine.Rendering.PostProcessing
             if (clear)
                 cmd.ClearRenderTarget(true, true, Color.clear);
 
-            cmd.DrawMesh(fullscreenTriangle, Matrix4x4.identity, propertySheet.material, 0, pass, propertySheet.properties);
+            cmd.DrawMesh(MFullScreenTriangle, Matrix4x4.identity, propertySheet.material, 0, pass, propertySheet.properties);
         }
 
         public static void BlitFullscreenTriangle(this CommandBuffer cmd, RenderTargetIdentifier source, RenderTargetIdentifier destination, PropertySheet propertySheet, int pass, bool clear = false)

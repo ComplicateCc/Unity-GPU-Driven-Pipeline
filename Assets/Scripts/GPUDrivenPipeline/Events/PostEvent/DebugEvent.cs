@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Rendering;
 using UnityEngine;
 namespace MPipeline
 {
@@ -23,7 +24,7 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            data.buffer.BlitSRT(cam.targets.renderTargetIdentifier, debugMat, 0);
+            data.buffer.Blit(cam.targets.renderTargetIdentifier, BuiltinRenderTextureType.CameraTarget);
         }
     }
 }

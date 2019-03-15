@@ -26,9 +26,8 @@ public unsafe static class PipelineFunctions
     {
         source = targets.renderTargetIdentifier;
         dest = targets.backupIdentifier;
-        RenderTargetIdentifier back = targets.backupIdentifier;
         targets.backupIdentifier = targets.renderTargetIdentifier;
-        targets.renderTargetIdentifier = back;
+        targets.renderTargetIdentifier = dest;
     }
     public static void GetFrustumCorner(ref PerspCam perspCam, float distance, float3* corners)
     {

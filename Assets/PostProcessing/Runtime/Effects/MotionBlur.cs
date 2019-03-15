@@ -47,7 +47,7 @@ namespace UnityEngine.Rendering.PostProcessing
         public override void Render(PostProcessRenderContext context)
         {
             var cmd = context.command;
-
+            if (!settings.active) return;
             if (m_ResetHistory)
             {
                 cmd.BlitFullscreenTriangle(context.source, context.destination);
@@ -60,7 +60,6 @@ namespace UnityEngine.Rendering.PostProcessing
             var packedRTFormat = RenderTextureFormat.ARGB2101010;
 
             var sheet = context.propertySheets.Get(context.resources.shaders.motionBlur);
-            cmd.BeginSample("MotionBlur");
 
             // Calculate the maximum blur radius in pixels.
             int maxBlurPixels = (int)(kMaxBlurRadius * context.height / 100);
@@ -123,10 +122,8 @@ namespace UnityEngine.Rendering.PostProcessing
             // Pass 7 - Reconstruction pass
             sheet.properties.SetFloat(ShaderIDs.LoopCount, Mathf.Clamp(settings.sampleCount / 2, 1, 64));
             cmd.BlitFullscreenTriangle(context.source, context.destination, sheet, (int)Pass.Reconstruction);
-
             cmd.ReleaseTemporaryRT(vbuffer);
             cmd.ReleaseTemporaryRT(neighborMax);
-            cmd.EndSample("MotionBlur");
         }
     }
 }

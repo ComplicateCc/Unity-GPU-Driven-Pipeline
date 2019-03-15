@@ -58,7 +58,8 @@ namespace MPipeline
         typeof(PropertySetEvent),
         typeof(GeometryEvent),
         typeof(LightingEvent),
-        typeof(SkyboxEvent)
+        typeof(SkyboxEvent),
+        typeof(DebugEvent)
         };
 
         public static List<Pair<int, Type[]>> GetAllPath()
