@@ -127,6 +127,9 @@ v2f_surf vert_surf (appdata v)
   	v2f_surf o;
   	o.pack0 = v.texcoord;
   	o.pos = UnityObjectToClipPos(v.vertex);
+/*		#if UNITY_UV_STARTS_AT_TOP
+		o.pos.y = -o.pos.y;
+		#endif*/
 	  float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
 	  worldPos /= worldPos.w;
   	o.worldTangent = float4( v.tangent.xyz, worldPos.x);

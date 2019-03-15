@@ -15,13 +15,26 @@ public static class GraphicsUtility
         {
             if (m_mesh != null)
                 return m_mesh;
+            UpdatePlatform();
             m_mesh = new Mesh();
-            m_mesh.vertices = new Vector3[] {
+            if (isD3D)
+            {
+                m_mesh.vertices = new Vector3[] {
                 new Vector3(-1,-1,0f),
                 new Vector3(-1,1,0f),
                 new Vector3(1,1,0f),
                 new Vector3(1,-1,0f)
-            };
+                };
+            }
+            else
+            {
+                m_mesh.vertices = new Vector3[] {
+                new Vector3(-1,1,0f),
+                new Vector3(-1,-1,0f),
+                new Vector3(1,-1,0f),
+                new Vector3(1,1,0f)
+                };
+            }
             m_mesh.uv = new Vector2[] {
                 new Vector2(0,1),
                 new Vector2(0,0),

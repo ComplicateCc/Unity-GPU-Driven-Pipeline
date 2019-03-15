@@ -57,9 +57,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             const float kMaxBlurRadius = 5f;
             var vectorRTFormat = RenderTextureFormat.RGHalf;
-            var packedRTFormat = RenderTextureFormat.ARGB2101010.IsSupported()
-                ? RenderTextureFormat.ARGB2101010
-                : RenderTextureFormat.ARGB32;
+            var packedRTFormat = RenderTextureFormat.ARGB2101010;
 
             var sheet = context.propertySheets.Get(context.resources.shaders.motionBlur);
             cmd.BeginSample("MotionBlur");

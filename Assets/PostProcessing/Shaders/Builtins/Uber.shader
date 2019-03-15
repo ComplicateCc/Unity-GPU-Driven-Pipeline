@@ -11,6 +11,7 @@ Shader "Hidden/PostProcessing/Uber"
 #pragma multi_compile __ VIGNETTE
 #pragma multi_compile __ GRAIN
 #pragma multi_compile __ FINALPASS
+#pragma multi_compile __ RENDERING_EDITOR
 
 #include "../StdLib.hlsl"
 #include "../Colors.hlsl"
@@ -277,6 +278,9 @@ Shader "Hidden/PostProcessing/Uber"
 					v2f o;
 					o.vertex = v.vertex;
 					o.uv = v.uv;
+					#if UNITY_UV_STARTS_AT_TOP && !RENDERING_EDITOR
+					o.vertex.y = -o.vertex.y;
+					#endif
 					return o;
 				}
 

@@ -405,7 +405,11 @@ namespace MPipeline
             ref SpotLightMatrix spotLightMatrix = ref spotcommand.shadowMatrices[spotLights.shadowIndex];
             spotLights.vpMatrix = GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, false) * spotLightMatrix.worldToCamera;
             buffer.SetInvertCulling(true);
-            currentCam.projectionMatrix = spotLightMatrix.projectionMatrix;
+            currentCam.orthographic = false;
+            currentCam.fieldOfView = spotLights.angle;
+            currentCam.nearClipPlane = spotLights.nearClip;
+            currentCam.farClipPlane = spotLights.lightCone.height;
+            currentCam.cullingMatrix = spotLightMatrix.projectionMatrix * currentCam.worldToCameraMatrix;
             buffer.SetRenderTarget(spotcommand.renderTarget, 0, CubemapFace.Unknown, spotLights.shadowIndex);
             buffer.ClearRenderTarget(true, true, new Color(float.PositiveInfinity, 1, 1, 1));
             buffer.SetGlobalMatrix(ShaderIDs._ShadowMapVP, GL.GetGPUProjectionMatrix(spotLightMatrix.projectionMatrix, true) * spotLightMatrix.worldToCamera);
@@ -472,7 +476,7 @@ namespace MPipeline
             PipelineFunctions.RenderProceduralCommand(baseBuffer, commonData.clusterMaterial, options.command);
         }
 
-        public static void DrawDirectionalShadow(PipelineCamera cam, ref StaticFit staticFit, ref PipelineCommandData data, ref RenderClusterOptions opts, float* clipDistances, float4x4* worldToCamMatrices, float4x4* projectionMatrices)
+        public static void DrawDirectionalShadow(PipelineCamera cam, ref StaticFit staticFit, ref PipelineCommandData data, ref RenderClusterOptions opts, float* clipDistances, OrthoCam* camCoords, Matrix4x4[] shadowVPs)
         {
             SunLight sunLight = SunLight.current;
             if (gpurpEnabled)
@@ -487,8 +491,11 @@ namespace MPipeline
             for (int pass = 0; pass < SunLight.CASCADELEVELCOUNT; ++pass)
             {
                 float4* vec = (float4*)opts.frustumPlanes.Ptr();
-                SunLight.shadowCam.worldToCameraMatrix = worldToCamMatrices[pass];
-                SunLight.shadowCam.projectionMatrix = projectionMatrices[pass];
+                ref OrthoCam orthoCam = ref camCoords[pass];
+                SunLight.shadowCam.cullingMatrix = shadowVPs[pass];
+                SunLight.shadowCam.orthographicSize = orthoCam.size;
+                SunLight.shadowCam.nearClipPlane = orthoCam.nearClipPlane;
+                SunLight.shadowCam.farClipPlane = orthoCam.farClipPlane;
                 if (!SunLight.shadowCam.TryGetCullingParameters(out data.cullParams))
                     return;
                 for (int i = 0; i < 6; ++i)
@@ -497,7 +504,7 @@ namespace MPipeline
                     vec[i] = -float4(p.normal, p.distance);
                 }
                 Matrix4x4 vpMatrix;
-                PipelineFunctions.UpdateCascadeState(sunLight, ref projectionMatrices[pass], ref worldToCamMatrices[pass], opts.command, pass, out vpMatrix);
+                PipelineFunctions.UpdateCascadeState(sunLight, ref orthoCam.projectionMatrix, ref orthoCam.worldToCameraMatrix, opts.command, pass, out vpMatrix);
                 if (gpurpEnabled)
                 {
                     PipelineFunctions.SetBaseBuffer(baseBuffer, opts.cullingShader, opts.frustumPlanes, opts.command);
@@ -550,9 +557,14 @@ namespace MPipeline
             cb.SetGlobalMatrix(ShaderIDs._VP, vpMatrices.rightProjView);
             data.ExecuteCommandBuffer();
             float size = light.sphere.w;
-            lit.shadowCam.projectionMatrix = Matrix4x4.Ortho(-size, size, -size, size, -size, size);
+            lit.shadowCam.orthographic = true;
+            lit.shadowCam.nearClipPlane = -size;
+            lit.shadowCam.farClipPlane = size;
+            lit.shadowCam.orthographicSize = size;
+            lit.shadowCam.cullingMatrix = Matrix4x4.Ortho(-size, size, -size, size, -size, size) * lit.shadowCam.worldToCameraMatrix;
             lit.shadowCam.TryGetCullingParameters(out data.cullParams);
             data.cullParams.cullingOptions = CullingOptions.ForceEvenIfCameraIsNotActive;
+          
             CullingResults results = data.context.Cull(ref data.cullParams);
             if (gpurpEnabled)
             {

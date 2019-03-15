@@ -27,7 +27,7 @@ public class SunLight : MonoBehaviour
     [System.NonSerialized] public NativeArray<AspectInfo> shadowFrustumPlanes;
     [System.NonSerialized] public Light light;
     [System.NonSerialized] public OrthoCam shadCam;
-    public static Camera shadowCam;
+    public static Camera shadowCam { get; private set; }
     private void OnEnable()
     {
         if (current)
@@ -58,7 +58,9 @@ public class SunLight : MonoBehaviour
             shadowCam.enabled = false;
             shadowCam.hideFlags = HideFlags.HideInInspector;
             shadowCam.aspect = 1;
-            
+            shadowCam.orthographic = true;
+            shadowCam.worldToCameraMatrix = Matrix4x4.identity;
+            shadowCam.projectionMatrix = Matrix4x4.identity;
         }
         shadowmapTexture = new RenderTexture(new RenderTextureDescriptor
         {

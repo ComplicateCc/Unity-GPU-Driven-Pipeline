@@ -113,7 +113,7 @@ float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, f
 		float3 leftDown = data.position - data.maxExtent;
 		float3 cubemapUV = (worldPos.xyz - leftDown) / (data.maxExtent * 2);
 		if (abs(dot(cubemapUV - saturate(cubemapUV), 1)) > 1e-13) continue;
-
+        
 		d.probeHDR[0] = data.hdr;
 		if (data.boxProjection > 0)
 		{

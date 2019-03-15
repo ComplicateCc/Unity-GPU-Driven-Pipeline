@@ -58,6 +58,7 @@ namespace MPipeline
             {
                 SceneController.DrawCluster(ref options, ref cam.targets, ref data, cam.cam);
             }
+         //   buffer.Blit(cam.targets.gbufferIdentifier[2], BuiltinRenderTextureType.CameraTarget);
         }
     }
 }

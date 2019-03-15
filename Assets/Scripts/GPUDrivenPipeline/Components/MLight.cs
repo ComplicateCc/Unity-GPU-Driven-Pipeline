@@ -212,10 +212,11 @@ public unsafe class MLight : MonoBehaviour
                 shadowCam = gameObject.AddComponent<Camera>();
             }
             shadowCam.hideFlags = HideFlags.HideInInspector;
+            shadowCam.projectionMatrix = Matrix4x4.identity;
             shadowCam.enabled = false;
+            shadowCam.aspect = 1;
         }
         useCubemap = light.type == LightType.Point;
-        shadowCam.orthographic = useCubemap;
         if (useShadowCache)
         {
             GenerateShadowCache();

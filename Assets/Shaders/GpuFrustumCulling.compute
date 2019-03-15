@@ -26,15 +26,17 @@ float4x4 _NonJitterVP;
 float PlaneTest(ClusterMeshData info){
     float3 position = info.position;
     float3 extent = info.extent;
-    float result = 1;
     [unroll]
     for(uint i = 0; i < 6; ++i)
     {
         float4 plane = planes[i];
         float3 absNormal = abs(plane.xyz);
-        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w) ? 1.0 : 0.0;
+        if((dot(position, plane.xyz) - dot(absNormal, extent)) > -plane.w)
+        {
+            return 0;
+        }
     }
-    return result;
+    return 1;
 }
 static const float3 aggressiveExtentArray[6] =
 {

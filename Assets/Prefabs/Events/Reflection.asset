@@ -12,18 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcd0c6469ac1cd442b693ea77f1a521b, type: 3}
   m_Name: Reflection
   m_EditorClassIdentifier: 
-  enabled: 1
+  enabled: 0
   unitedResolution: 512
   ssrEvents:
     enabled: 1
     TraceMethod: 0
     RayCastingResolution: 1
     Denoise: 1
-    RayNums: 1
+    RayNums: 8
     BRDFBias: 0.7
     Thickness: 0.05
     ScreenFade: 0
-    HiZ_RaySteps: 64
+    HiZ_RaySteps: 256
     HiZ_MaxLevel: 4
     HiZ_StartLevel: 1
     HiZ_StopLevel: 0

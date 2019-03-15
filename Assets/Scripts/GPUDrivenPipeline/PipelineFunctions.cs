@@ -82,7 +82,7 @@ public unsafe static class PipelineFunctions
         baseBuffer.verticesBuffer = new ComputeBuffer(maximumLength * PipelineBaseBuffer.CLUSTERCLIPCOUNT, sizeof(Point));
         baseBuffer.clusterCount = 0;
 
-      
+
     }
 
     public static void GetfrustumCorners(float* planes, int planesCount, Camera cam, float3* frustumCorners)
@@ -244,6 +244,31 @@ public unsafe static class PipelineFunctions
     }
     public static void InitRenderTarget(ref RenderTargets tar, Camera tarcam, CommandBuffer buffer)
     {
+     /*   RenderTextureDescriptor desc = new RenderTextureDescriptor
+        {
+            autoGenerateMips = false,
+            bindMS = false,
+            colorFormat = RenderTextureFormat.ARGB32,
+            depthBufferBits = 24,
+            dimension = TextureDimension.Tex2D,
+            enableRandomWrite = false,
+            width = tarcam.pixelWidth,
+            height = tarcam.pixelHeight,
+            msaaSamples = 1,
+            volumeDepth = 0
+        };
+        buffer.GetTemporaryRT(tar.gbufferIndex[0], desc, FilterMode.Point);
+        desc.depthBufferBits = 0;
+        buffer.GetTemporaryRT(tar.gbufferIndex[1], desc, FilterMode.Point);
+        desc.colorFormat = RenderTextureFormat.ARGB2101010;
+        buffer.GetTemporaryRT(tar.gbufferIndex[2], desc, FilterMode.Point);
+        desc.colorFormat = RenderTextureFormat.ARGBHalf;
+        buffer.GetTemporaryRT(tar.gbufferIndex[3], desc, FilterMode.Bilinear);
+        buffer.GetTemporaryRT(ShaderIDs._BackupMap, desc, FilterMode.Bilinear);
+        desc.colorFormat = RenderTextureFormat.RGHalf;
+        buffer.GetTemporaryRT(tar.gbufferIndex[4], desc, FilterMode.Bilinear);
+        desc.colorFormat = RenderTextureFormat.RHalf;
+        buffer.GetTemporaryRT(tar.gbufferIndex[5], desc, FilterMode.Point);*/
         buffer.GetTemporaryRT(tar.gbufferIndex[0], tarcam.pixelWidth, tarcam.pixelHeight, 24, FilterMode.Point, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1, false);
         buffer.GetTemporaryRT(tar.gbufferIndex[1], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1, false);
         buffer.GetTemporaryRT(tar.gbufferIndex[2], tarcam.pixelWidth, tarcam.pixelHeight, 0, FilterMode.Point, RenderTextureFormat.ARGB2101010, RenderTextureReadWrite.Linear, 1, false);

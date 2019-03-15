@@ -21,6 +21,7 @@ namespace MPipeline
             public Action<object> func;
         }
         public PipelineResources resources;
+        public static bool renderingEditor = false;
         private static List<Command> afterRenderFrame = new List<Command>(10);
         private static List<Command> beforeRenderFrame = new List<Command>(10);
         public static PipelineResources.CameraRenderingPath currentPath { get; private set; }
@@ -184,11 +185,16 @@ namespace MPipeline
                 if(!PipelineCamera.allCamera.Get(cam.gameObject.GetInstanceID(), out pipelineCamPtr))
                 {
 #if UNITY_EDITOR
+                    renderingEditor = true;
                     if (!PipelineCamera.allCamera.Get(Camera.main.gameObject.GetInstanceID(), out pipelineCamPtr))
                         continue;
 #else
                     continue;
 #endif
+                }
+                else
+                {
+                    renderingEditor = false;
                 }
                 pipelineCam = MUnsafeUtility.GetObject<PipelineCamera>(pipelineCamPtr.ToPointer());
                 Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam, propertyCheckedFlags);
@@ -267,7 +273,6 @@ namespace MPipeline
                     e.FrameUpdate(pipelineCam, ref data);
                 }
             }
-            data.buffer.Blit(pipelineCam.targets.renderTargetIdentifier, dest);
         }
     }
 }

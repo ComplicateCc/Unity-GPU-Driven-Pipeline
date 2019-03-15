@@ -78,7 +78,7 @@ namespace MPipeline
                     renderer.Render(postContext);
                 }
             };
-            data.buffer.BlitSRT(source, dest, postContext.uberSheet.material, 0, postContext.uberSheet.properties);
+            data.buffer.BlitSRT(source, BuiltinRenderTextureType.CameraTarget, postContext.uberSheet.material, 0, postContext.uberSheet.properties);
             if (postContext.bloomBufferNameID > -1) data.buffer.ReleaseTemporaryRT(postContext.bloomBufferNameID);
         }
     }
