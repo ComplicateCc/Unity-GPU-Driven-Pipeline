@@ -20,7 +20,7 @@ MonoBehaviour:
     RayCastingResolution: 1
     Denoise: 1
     RayNums: 1
-    BRDFBias: 1
+    BRDFBias: 0.7
     Thickness: 0.05
     ScreenFade: 0
     HiZ_RaySteps: 64

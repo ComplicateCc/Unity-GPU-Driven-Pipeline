@@ -144,7 +144,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
    // color.rgb += GetVolumetricColor(targetWorldPos);
     color.a = 0;
     [loop]
-    for(uint c = 0; c < _FogVolumeCount; c++)
+    for(c = 0; c < _FogVolumeCount; c++)
     {
         FogVolume vol = _AllFogVolume[c];
         float3 localPos = abs(mul(vol.worldToLocal, float4(targetWorldPos, 1)).xyz);
@@ -179,18 +179,28 @@ inline uint From3DTo1D(uint3 id, const uint3 size){
 }
 
 float4 _RandomSeed;
-StructuredBuffer<float3> _RandomBuffer;
-inline float3 getRandomFloat3(uint index)
+
+inline uint ihash(uint n)
 {
-    float3 randSeed = _RandomBuffer[index];
-    return frac(sin( randSeed * _RandomSeed.xyz + _RandomSeed.w));
+	n = (n << 13) ^ n;
+	return (n*(n*n * 15731 + 789221) + 1376312589) & 2147483647;
 }
 
-float4 RenderVoxel(uint3 id, float3 currentColor, uint value)
+inline float3 getRandomFloat3(inout uint index)
+{
+    uint3 value;
+    value.x = ihash(index);
+    value.y = ihash(value.x);
+    value.z = ihash(value.y);
+    index = value.z;
+    return frac(sin( value * float3(9.313225746154785e-9, 2.8616876848645469e-9, 4.4687613857687e-9) * _RandomSeed.xyz + _RandomSeed.w));
+}
+
+float4 RenderVoxel(uint3 id, float3 currentColor, inout uint value, const float offset)
 {
     float3 jitterCoord = getRandomFloat3(value);
-    jitterCoord *= float3(0.7, 0.7, 0.5);
-    jitterCoord += float3(0.15, 0.15, 0.25);
+    jitterCoord.z *= 0.5;
+    jitterCoord.z += offset;
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
@@ -213,7 +223,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint value = From3DTo1D(id, _ScreenSize);
     float3 currentColor = _VolumeTex[id].xyz;
-    _VolumeTex[id] = (RenderVoxel(id, currentColor, value));// +  RenderVoxel(id, currentColor, value, 0.5)) * 0.5;
+    _VolumeTex[id] = (RenderVoxel(id, currentColor, value, 0) + RenderVoxel(id, currentColor, value, 0.5) ) * 0.5;
 }
 
 [numthreads(2,2,VOXELZ)]

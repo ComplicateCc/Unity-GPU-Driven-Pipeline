@@ -13,6 +13,7 @@
     TextureCube<float4> _ReflectionCubeMap5; SamplerState sampler_ReflectionCubeMap5;
     TextureCube<float4> _ReflectionCubeMap6; SamplerState sampler_ReflectionCubeMap6;
     TextureCube<float4> _ReflectionCubeMap7; SamplerState sampler_ReflectionCubeMap7;
+    Texture2D<float4> _SSR_TemporalCurr_RT; SamplerState sampler_SSR_TemporalCurr_RT;
     float4 GetColor(int index, float3 normal, float lod)
     {
         switch(index)
@@ -124,6 +125,10 @@ float3 CalculateReflection(float linearDepth, float3 worldPos, float3 viewDir, f
 		float3 distanceToMin = saturate((abs(worldPos.xyz - data.position) - data.minExtent) / data.blendDistance);
 		ind.specular = lerp(specColor * data.hdr.r, ind.specular, max(distanceToMin.x, max(distanceToMin.y, distanceToMin.z)));
 	}
+    #if ENABLE_SSR
+    float4 ssr = _SSR_TemporalCurr_RT.Sample(sampler_SSR_TemporalCurr_RT, screenUV);
+    ind.specular = lerp(ind.specular, ssr.rgb * occlusion, ssr.a);
+    #endif
     half3 rgb = BRDF1_Unity_PBS(0, specular.xyz, oneMinusReflectivity, specular.w, normal, -viewDir, light, ind).rgb;
 	return rgb;
 }

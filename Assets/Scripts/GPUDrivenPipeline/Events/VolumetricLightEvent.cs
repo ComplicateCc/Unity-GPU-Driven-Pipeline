@@ -26,22 +26,15 @@ namespace MPipeline
         private NativeArray<FogVolume> resultVolume;
         private int fogCount = 0;
         private LightingEvent lightingData;
-        private ComputeBuffer randomBuffer;
+
         public override bool CheckProperty()
         {
-            return randomBuffer.IsValid();
+            return true;
         }
         protected override void Init(PipelineResources resources)
         {
             lightingData = RenderPipeline.GetEvent<LightingEvent>();
-            randomBuffer = new ComputeBuffer(downSampledSize.x * downSampledSize.y * downSampledSize.z, sizeof(float3));
-            Random rand = new Random((uint)System.Guid.NewGuid().GetHashCode());
-            NativeArray<float3> rands = new NativeArray<float3>(randomBuffer.count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            for (int i = 0; i < rands.Length; ++i)
-            {
-                rands[i] = (float3)(rand.NextDouble3() * 100);
-            }
-            randomBuffer.SetData(rands);
+            
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
@@ -150,7 +143,6 @@ namespace MPipeline
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._DirShadowMap, cbdr.dirLightShadowmap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._SpotMapArray, cbdr.spotArrayMap);
             buffer.SetComputeTextureParam(scatter, pass, ShaderIDs._CubeShadowMapArray, cbdr.cubeArrayMap);
-            buffer.SetComputeBufferParam(scatter, pass, ShaderIDs._RandomBuffer, randomBuffer);
             cbdr.dirLightShadowmap = null;
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
             int3 dispatchCount = int3(downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
@@ -159,7 +151,6 @@ namespace MPipeline
             if (cullingResult.isCreated && cullingResult.Length > 0)
             {
                 buffer.SetComputeTextureParam(scatter, calculateGI, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
-                buffer.SetComputeBufferParam(scatter, calculateGI, ShaderIDs._RandomBuffer, randomBuffer);
                 buffer.SetComputeFloatParam(scatter, ShaderIDs._IndirectIntensity, indirectIntensity);
                 foreach (var i in cullingResult)
                 {
@@ -202,7 +193,7 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-            randomBuffer.Dispose();
+
         }
         [Unity.Burst.BurstCompile]
         public unsafe struct FogVolumeCalculate : IJobParallelFor

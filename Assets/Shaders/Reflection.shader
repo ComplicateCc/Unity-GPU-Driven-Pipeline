@@ -2,6 +2,7 @@
 {
 
 CGINCLUDE
+#pragma target 5.0
 #include "UnityCG.cginc"
 #include "CGINC/VoxelLight.cginc"
 #include "UnityGBuffer.cginc"
@@ -9,7 +10,7 @@ CGINCLUDE
 #include "CGINC/Reflection.cginc"
 #pragma multi_compile _ UNITY_HDR_ON
 #pragma multi_compile _ EnableGTAO
-#pragma target 5.0
+#pragma multi_compile _ ENABLE_SSR
 
 
             struct appdata

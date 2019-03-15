@@ -222,13 +222,12 @@ namespace MPipeline
             Object.DestroyImmediate(StochasticScreenSpaceReflectionMaterial);
         }
         public RenderTargetIdentifier[] SSR_TraceMask_ID = new RenderTargetIdentifier[2];
-        public RenderTargetIdentifier Render(ref PipelineCommandData data, PipelineCamera cam, ReflectionEvent parentEvent)
+        public void Render(ref PipelineCommandData data, PipelineCamera cam, ReflectionEvent parentEvent)
         {
             RandomSampler = GenerateRandomOffset();
             SSRCameraData cameraData = IPerCameraData.GetProperty(cam, getDataFunc, parentEvent);
             SSR_UpdateVariable(cameraData, cam.cam, ref data);
             RenderScreenSpaceReflection(data.buffer, cameraData, cam);
-            return SSR_TemporalCurr_ID;
         }
 
 

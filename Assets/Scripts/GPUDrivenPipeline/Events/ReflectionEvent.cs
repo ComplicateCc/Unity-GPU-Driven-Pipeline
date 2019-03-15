@@ -26,6 +26,7 @@ namespace MPipeline
         private ComputeBuffer probeBuffer;
         private LightingEvent lightingEvents;
         private ComputeBuffer reflectionIndices;
+        private Material reflectionMat;
         private NativeList<int> reflectionCubemapIDs;
         [SerializeField]
         private StochasticScreenSpaceReflection ssrEvents;
@@ -73,6 +74,7 @@ namespace MPipeline
                     }
                 }
             }
+            reflectionMat = new Material(resources.shaders.reflectionShader);
             ssrEvents.Init(resources);
         }
         protected override void Dispose()
@@ -81,6 +83,7 @@ namespace MPipeline
             reflectionIndices.Dispose();
             reflectionCubemapIDs.Dispose();
             ssrEvents.Dispose();
+            DestroyImmediate(reflectionMat);
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
@@ -120,15 +123,15 @@ namespace MPipeline
             }
             if (ssrEvents.enabled)
             {
-                var rt = ssrEvents.Render(ref data, cam, this);
-                buffer.Blit(rt, cam.targets.renderTargetIdentifier);
+                ssrEvents.Render(ref data, cam, this);
+                //buffer.Blit(rt, cam.targets.renderTargetIdentifier);
                 buffer.EnableShaderKeyword("ENABLE_SSR");
             }
             else
             {
                 buffer.DisableShaderKeyword("ENABLE_SSR");
             }
-
+            buffer.BlitSRTWithDepth(cam.targets.renderTargetIdentifier, cam.targets.depthBuffer, reflectionMat, 0);
             //TODO
         }
         [Unity.Burst.BurstCompile]

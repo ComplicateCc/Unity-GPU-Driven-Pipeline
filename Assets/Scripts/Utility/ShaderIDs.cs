@@ -95,7 +95,6 @@ public static partial class ShaderIDs
     public static readonly int _TemporalWeight = Shader.PropertyToID("_TemporalWeight");
     public static readonly int _MaxDistance = Shader.PropertyToID("_MaxDistance");
     public static readonly int _VolumeTex = Shader.PropertyToID("_VolumeTex");
-    public static readonly int _RandomBuffer = Shader.PropertyToID("_RandomBuffer");
     public static readonly int _RandomSeed = Shader.PropertyToID("_RandomSeed");
     public static readonly int _LastVolume = Shader.PropertyToID("_LastVolume");
     public static readonly int _NearFarClip = Shader.PropertyToID("_NearFarClip");
