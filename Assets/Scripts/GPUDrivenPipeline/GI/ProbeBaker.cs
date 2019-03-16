@@ -40,7 +40,6 @@ namespace MPipeline
         private ComputeBuffer coeff;
         public Mesh sampleMesh;
 
-        private RenderTexture[] coeffTextures;
         private bool isRendering = false;
         private int indexInList;
         private NativeArray<Vertex> InitializeVertexBuffer()
@@ -66,29 +65,7 @@ namespace MPipeline
             isRendered = false;
             cbuffer = new CommandBuffer();
 
-            coeffTextures = new RenderTexture[7];
-            for (int i = 0; i < 7; ++i)
-            {
-                coeffTextures[i] = new RenderTexture(new RenderTextureDescriptor
-                {
-                    autoGenerateMips = false,
-                    bindMS = false,
-                    colorFormat = RenderTextureFormat.ARGBHalf,
-                    depthBufferBits = 0,
-                    dimension = TextureDimension.Tex3D,
-                    enableRandomWrite = true,
-                    height = probeCount.y,
-                    width = probeCount.x,
-                    volumeDepth = probeCount.z,
-                    memoryless = RenderTextureMemoryless.None,
-                    msaaSamples = 1,
-                    shadowSamplingMode = ShadowSamplingMode.None,
-                    sRGB = false,
-                    useMipMap = false,
-                    vrUsage = VRTextureUsage.None
-                });
-                coeffTextures[i].Create();
-            }
+
             NativeArray<Vertex> verts = InitializeVertexBuffer();
             vertexBuffer = new ComputeBuffer(verts.Length, sizeof(Vertex));
             vertexBuffer.SetData(verts);
@@ -115,12 +92,13 @@ namespace MPipeline
             DestroyImmediate(targetCamera.gameObject);
             targetCamera = null;
             cbuffer.Dispose();
+
+            vertexBuffer.Dispose();
+            float3[] flt = new float3[coeff.count];
+            coeff.GetData(flt);
+            foreach (var i in flt) Debug.Log(i);
             coeff.Dispose();
             coeffTemp.Dispose();
-            foreach (var i in coeffTextures)
-            {
-                Destroy(i);
-            }
             isRendered = false;
 
         }

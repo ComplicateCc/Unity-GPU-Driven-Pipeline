@@ -70,6 +70,7 @@
 	}
 				float4 frag(v2f i) : SV_Target
 				{
+					
 					float4 color = tex2D(_MainTex, i.texcoord) * _Color;
 					float4 specular = tex2D(_SpecularTex, i.texcoord) * _SpecularColor;
 					float3 viewDir = normalize(i.worldPos - _WorldSpaceCameraPos);

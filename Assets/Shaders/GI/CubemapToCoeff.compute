@@ -65,7 +65,7 @@ void Scatter(uint id : SV_DISPATCHTHREADID)
     float3 coeff = 0;
     for(uint i = 0; i < _Count; ++i)
     {
-         coeff += _CoeffTemp[i * 9 + id];
+         coeff += max(0, _CoeffTemp[i * 9 + id]);
     }
     _Coeff[id + _OffsetIndex * 9] = coeff *  (4.0 *  UNITY_PI) / (float)_Count;
 }

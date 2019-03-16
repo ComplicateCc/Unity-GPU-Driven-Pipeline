@@ -117,7 +117,7 @@ namespace MPipeline
         private static int _PrevRT_ID = Shader.PropertyToID("_PrevRT");
         private static int _CurrRT_ID = Shader.PropertyToID("_CurrRT");
         private static int _Combien_AO_RT_ID = Shader.PropertyToID("_Combien_AO_RT");
-
+        private RenderTargetIdentifier[] AO_BentNormal_ID = new RenderTargetIdentifier[2];
         /* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* */
 
         protected override void Init(PipelineResources resources)
@@ -220,17 +220,19 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             int2 renderResolution = int2(cam.cam.pixelWidth, cam.cam.pixelHeight);
 
+            buffer.GetTemporaryRT(_GTAO_Texture_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
+            buffer.GetTemporaryRT(_BentNormal_Texture_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            AO_BentNormal_ID[0] = _GTAO_Texture_ID;
+            AO_BentNormal_ID[1] = _BentNormal_Texture_ID;
             //Resolve GTAO 
-            buffer.SetGlobalTexture(_GTAO_Texture_ID, historyData.AO_BentNormal_RT[0]);
-            buffer.SetGlobalTexture(_BentNormal_Texture_ID, historyData.AO_BentNormal_RT[1]);
-            buffer.BlitMRT(historyData.AO_BentNormal_ID, cam.targets.renderTargetIdentifier, GTAOMaterial, 0);
+            buffer.BlitMRT(AO_BentNormal_ID, cam.targets.renderTargetIdentifier, GTAOMaterial, 0);
 
             //Spatial filter
             //------//XBlur
             buffer.GetTemporaryRT(_GTAO_Spatial_Texture_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Point, RenderTextureFormat.RGHalf);
             buffer.BlitSRTWithDepth(_GTAO_Spatial_Texture_ID, cam.targets.depthBuffer, GTAOMaterial, 1);
             //------//YBlur
-            buffer.CopyTexture(_GTAO_Spatial_Texture_ID, historyData.AO_BentNormal_RT[0]);
+            buffer.CopyTexture(_GTAO_Spatial_Texture_ID, AO_BentNormal_ID[0]);
             buffer.BlitSRTWithDepth(_GTAO_Spatial_Texture_ID, cam.targets.depthBuffer, GTAOMaterial, 2);
 
             //Temporal filter
@@ -242,6 +244,8 @@ namespace MPipeline
             buffer.ReleaseTemporaryRT(_GTAO_Spatial_Texture_ID);
             buffer.ReleaseTemporaryRT(_CurrRT_ID);
             buffer.ReleaseTemporaryRT(_Combien_AO_RT_ID);
+            buffer.ReleaseTemporaryRT(_GTAO_Texture_ID);
+            buffer.ReleaseTemporaryRT(_BentNormal_Texture_ID);
             buffer.SetGlobalTexture(ShaderIDs._AOROTexture, historyData.prev_Texture);
         }
     }
@@ -249,21 +253,11 @@ namespace MPipeline
     public class AOHistoryData : IPerCameraData
     {
         public RenderTexture prev_Texture { get; private set; }
-        public RenderTexture[] AO_BentNormal_RT { get; private set; }
-        public RenderTargetIdentifier[] AO_BentNormal_ID { get; private set; }
         public AOHistoryData(int width, int height)
         {
-            AO_BentNormal_RT = new RenderTexture[2];
-            AO_BentNormal_ID = new RenderTargetIdentifier[2];
             prev_Texture = new RenderTexture(width, height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
             prev_Texture.filterMode = FilterMode.Bilinear;
             prev_Texture.Create();
-            AO_BentNormal_RT[0] = new RenderTexture(width, height, 0, RenderTextureFormat.RGHalf);
-            AO_BentNormal_RT[1] = new RenderTexture(width, height, 0, RenderTextureFormat.ARGBHalf);
-            AO_BentNormal_ID[0] = AO_BentNormal_RT[0].colorBuffer;
-            AO_BentNormal_ID[1] = AO_BentNormal_RT[1].colorBuffer;
-            AO_BentNormal_RT[0].Create();
-            AO_BentNormal_RT[1].Create();
         }
 
         public void UpdateSize(int width, int height)
@@ -274,14 +268,7 @@ namespace MPipeline
                 prev_Texture.width = width;
                 prev_Texture.height = height;
                 prev_Texture.Create();
-                AO_BentNormal_RT[0].Release();
-                AO_BentNormal_RT[1].Release();
-                AO_BentNormal_RT[0].width = width;
-                AO_BentNormal_RT[1].width = width;
-                AO_BentNormal_RT[0].height = height;
-                AO_BentNormal_RT[1].height = height;
-                AO_BentNormal_RT[0].Create();
-                AO_BentNormal_RT[1].Create();
+              
             }
         }
 
@@ -296,17 +283,7 @@ namespace MPipeline
                 Object.DestroyImmediate(prev_Texture);
             }
 
-            if (AO_BentNormal_RT[0] != null)
-            {
-                AO_BentNormal_RT[0].Release();
-                AO_BentNormal_RT[0] = null;
-            }
-
-            if (AO_BentNormal_RT[1] != null)
-            {
-                AO_BentNormal_RT[1].Release();
-                AO_BentNormal_RT[1] = null;
-            }
+           
         }
     }
 }

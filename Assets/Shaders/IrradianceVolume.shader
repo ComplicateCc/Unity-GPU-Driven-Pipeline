@@ -61,7 +61,7 @@
                 if(offset > 1e-6) return 0;
 
                 SHColor sh = GetSHFromTex(shUV);                
-                return GetSHColor(sh.c, normal_mask.xyz * 2 - 1); 
+                return GetSHColor(sh.c, normal_mask.xyz * 2 - 1) * albedo_occ.rgb * albedo_occ.w; 
             }
             ENDCG
         }

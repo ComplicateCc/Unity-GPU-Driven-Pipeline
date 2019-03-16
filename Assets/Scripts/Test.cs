@@ -9,7 +9,6 @@ using static Unity.Collections.LowLevel.Unsafe.UnsafeUtility;
 using Unity.Mathematics;
 public unsafe class Test : MonoBehaviour
 {
-
     public UnityEngine.UI.Text txt;
     float deltaAcc = 0;
     float count = 0;
@@ -25,5 +24,4 @@ public unsafe class Test : MonoBehaviour
             deltaAcc = 0;
         }
     }
-
 }

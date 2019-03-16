@@ -114,6 +114,7 @@ namespace MPipeline
                 }
             }
             if (Enabled) OnEnable();
+            else OnDisable();
         }
 
         protected virtual void OnEnable()
