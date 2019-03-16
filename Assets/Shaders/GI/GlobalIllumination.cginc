@@ -67,36 +67,6 @@ float Y2_2    = 1.092548 * normal.y*normal.x;\
 float Y20     = 0.946176 * normal.z * normal.z - 0.315392;\
 float Y22     = 0.546274 * (normal.x*normal.x - normal.y*normal.y);
 
-float3 DirFromCube(uint face, float2 uv){
-    float3 targetDir[4];
-    switch(face)
-    {
-        case 0:
-        targetDir[0] = float3(-1, -1, -1);  targetDir[1] = float3(-1, 1, -1);  targetDir[2] = float3(-1, 1, 1);  targetDir[3] = float3(-1, -1, 1);
-        break;
-        case 1:
-        targetDir[0] = float3(1, -1, 1);  targetDir[1] = float3(1, 1, 1);  targetDir[2] = float3(1, 1, -1);  targetDir[3] = float3(1, -1, -1);
-        break;
-        case 2:
-        targetDir[0] = float3(1, 1, -1);  targetDir[1] = float3(1, 1, 1);  targetDir[2] = float3(-1, 1, 1);  targetDir[3] = float3(-1, 1, -1);
-        break;
-        case 3:
-        targetDir[0] = float3(1, -1, 1);  targetDir[1] = float3(1, -1, -1);  targetDir[2] = float3(-1, -1, -1);  targetDir[3] = float3(-1, -1, 1);
-        break;
-        case 4:
-        targetDir[0] = float3(1, -1, -1);  targetDir[1] = float3(1, 1, -1);  targetDir[2] = float3(-1, 1, -1);  targetDir[3] = float3(-1, -1, -1);
-        break;
-        case 5:
-        targetDir[0] = float3(-1, -1, 1);  targetDir[1] = float3(-1, 1, 1);  targetDir[2] = float3(1, 1, 1);  targetDir[3] = float3(1, -1, 1);
-        break;
-    }
-    float3 down = lerp(targetDir[0], targetDir[1], uv.x);
-    float3 up = lerp(targetDir[3], targetDir[2], uv.x);
-    float3 dir = lerp(down, up, uv.y);
-    return normalize(dir);
-}
-
-
     int DownDimension(int3 coord, int2 xysize)
     {
         int3 multi = int3(xysize.y * xysize.x, xysize.x, 1);

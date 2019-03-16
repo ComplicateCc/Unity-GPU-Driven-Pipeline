@@ -2,33 +2,72 @@
 #pragma kernel Scatter
 #pragma kernel SetToTex3D
 #include "GlobalIllumination.cginc"
-Texture2DArray<float3> _SourceCubemap; SamplerState sampler_SourceCubemap;
-RWStructuredBuffer<int3> _CoeffTemp;
+#include "Montcalo_Library.cginc"
+struct Vertex
+{
+    float3 normal;
+    float3 tangent;
+    float3 binormal;
+    uint2 p;
+};
+TextureCube<float3> _SourceCubemap; SamplerState sampler_SourceCubemap;
+RWStructuredBuffer<float3> _CoeffTemp;
+StructuredBuffer<Vertex> _AllVertex;
 RWStructuredBuffer<float3> _Coeff;
 uint _OffsetIndex;
-[numthreads(32, 32, 1)]
-void Collect (uint3 id : SV_DispatchThreadID)
+uint _Count;
+[numthreads(64, 1, 1)]
+void Collect (uint id : SV_DispatchThreadID)
 {
-    float2 uv = (float2)id.xy / RESOLUTION;
-    float3 dir = DirFromCube(id.z, uv);
-    float3 radians = _SourceCubemap.SampleLevel(sampler_SourceCubemap, float3(uv, id.z), 5);
-    SH9 sh = SHCosineLobe(dir);
-    [unroll]
-    for(uint i = 0; i < 9; ++i)
-    {
-        int3 value = (int3)(sh.c[i] * radians * 256.0);
-        InterlockedAdd(_CoeffTemp[i].x, value.x);
-        InterlockedAdd(_CoeffTemp[i].y, value.y);
-        InterlockedAdd(_CoeffTemp[i].z, value.z);
-    }
-}
+    if(id >= _Count) return;
+    Vertex vert = _AllVertex[id];
+    float3x3 TangentToWorld = float3x3(vert.tangent, vert.binormal, vert.normal);
+    float3 normalDir = vert.normal;
+    uint2 p = vert.p;
+    const uint NumPrefilter = 512; 
+    float3 Coeff[9];
+                Coeff[0] = 0.0; Coeff[1] = 0.0; Coeff[2] = 0.0;
+                Coeff[3] = 0.0; Coeff[4] = 0.0; Coeff[5] = 0.0;
+                Coeff[6] = 0.0; Coeff[7] = 0.0; Coeff[8] = 0.0;
+                [loop]
+				for (uint i = 0; i < NumPrefilter; i++) {
 
+                    float2 random = Hammersley(i, NumPrefilter, p); 
+                    float3 v = mul(CosineSampleHemisphere(random).xyz, TangentToWorld);
+
+                    float r = sqrt( (v.x * v.x) + (v.y * v.y) + (v.z * v.z) );
+                    float sqrt_r = r * r;
+                    float SH_RBasis[9];
+                    SH_RBasis[0] = 1.0 / 2.0 * sqrt(1.0 /  UNITY_PI);
+                    SH_RBasis[1] = sqrt( 3.0 / (4.0 *  UNITY_PI) ) * (v.y / r);
+                    SH_RBasis[2] = sqrt( 3.0 / (4.0 *  UNITY_PI) ) * (v.z / r);
+                    SH_RBasis[3] = sqrt( 3.0 / (4.0 *  UNITY_PI) ) * (v.x / r);
+                    SH_RBasis[4] = 1.0 / 2.0 * sqrt(15.0 /  UNITY_PI) * (v.x * v.y / sqrt_r);
+                    SH_RBasis[5] = 1.0 / 2.0 * sqrt(15.0 /  UNITY_PI) * (v.y * v.z / sqrt_r);
+                    SH_RBasis[6] = 1.0 / 4.0 * sqrt(5.0 /  UNITY_PI) * ( ( (-v.x * v.x) - (v.y * v.y) + 2 * (v.z * v.z) ) / sqrt_r );
+                    SH_RBasis[7] = 1.0 / 2.0 * sqrt(15.0 /  UNITY_PI) * (v.z * v.x / sqrt_r);
+                    SH_RBasis[8] = 1.0 / 4.0 * sqrt(15.0 /  UNITY_PI) * ( ( (v.x * v.x) - (v.y * v.y) ) / sqrt_r );
+
+                    for (uint j = 0; j < 9; j++) {
+                        float3 enviroColor = _SourceCubemap.SampleLevel(sampler_SourceCubemap, v, 2).xyz;
+                        Coeff[j] += enviroColor * SH_RBasis[j];
+                    }
+				}
+
+                for (uint k = 0; k < 9; k++) {
+                    Coeff[k] /= NumPrefilter;
+                    _CoeffTemp[9 * id + k] = Coeff[k];
+                }
+}
 [numthreads(9, 1, 1)]
 void Scatter(uint id : SV_DISPATCHTHREADID)
 {
-    const float count = RESOLUTION * RESOLUTION * 6;
-    _Coeff[id + _OffsetIndex * 9] = (_CoeffTemp[id] / 256.0) * ((4.0 * Pi) / count);
-    _CoeffTemp[id] = 0;
+    float3 coeff = 0;
+    for(uint i = 0; i < _Count; ++i)
+    {
+         coeff += _CoeffTemp[i * 9 + id];
+    }
+    _Coeff[id + _OffsetIndex * 9] = coeff *  (4.0 *  UNITY_PI) / (float)_Count;
 }
 RWTexture3D<float4> _CoeffTexture0;
 RWTexture3D<float4> _CoeffTexture1;
@@ -38,7 +77,6 @@ RWTexture3D<float4> _CoeffTexture4;
 RWTexture3D<float4> _CoeffTexture5;
 RWTexture3D<float4> _CoeffTexture6;
 float3 _Tex3DSize;
-uint _Count;
 [numthreads(64, 1, 1)]
 void SetToTex3D(uint id : SV_DISPATCHTHREADID)
 {

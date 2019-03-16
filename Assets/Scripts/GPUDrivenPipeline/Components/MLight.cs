@@ -16,6 +16,7 @@ public class MLightEditor : Editor
     }
     public override void OnInspectorGUI()
     {
+        if (!target.enabled || !target.gameObject.activeSelf) return;
         target.useShadow = EditorGUILayout.Toggle("Use Shadow", target.useShadow);
         target.useShadowCache = EditorGUILayout.Toggle("Use Shadow Cache", target.useShadowCache);
         target.spotNearClip = EditorGUILayout.Slider("Spot Nearclip", target.spotNearClip, 0, target.light.range);

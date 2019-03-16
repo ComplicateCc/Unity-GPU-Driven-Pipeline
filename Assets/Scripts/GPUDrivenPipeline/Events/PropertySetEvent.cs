@@ -22,7 +22,7 @@ namespace MPipeline
             ref Matrix4x4 lastVp = ref lastData.lastVP;
             lastViewProjection = lastVp;
             CommandBuffer buffer = data.buffer;
-            buffer.SetKeyword("RENDERING_EDITOR", RenderPipeline.renderingEditor);
+            buffer.SetKeyword("RENDERING_TEXTURE", cam.cam.targetTexture != null);
             buffer.SetGlobalMatrix(ShaderIDs._LastVp, lastVp);
             buffer.SetGlobalMatrix(ShaderIDs._NonJitterVP, nonJitterVP);
             buffer.SetGlobalMatrix(ShaderIDs._NonJitterTextureVP, GL.GetGPUProjectionMatrix(cam.cam.nonJitteredProjectionMatrix, true) * cam.cam.worldToCameraMatrix);

@@ -9,8 +9,8 @@ float4x4 _InvVP;
 
 RWTexture3D<float4> _XYPlaneTexture;
 RWTexture2D<float4> _ZPlaneTexture;
-RWStructuredBuffer<PointLight> _AllPointLight;
-RWStructuredBuffer<SpotLight> _AllSpotLight;
+StructuredBuffer<PointLight> _AllPointLight;
+StructuredBuffer<SpotLight> _AllSpotLight;
 RWStructuredBuffer<uint> _PointLightIndexBuffer;
 RWStructuredBuffer<uint> _SpotLightIndexBuffer;
 int _PointLightCount;

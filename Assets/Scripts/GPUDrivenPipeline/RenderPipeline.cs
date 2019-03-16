@@ -21,7 +21,7 @@ namespace MPipeline
             public Action<object> func;
         }
         public PipelineResources resources;
-        public static bool renderingEditor = false;
+        public static bool renderingEditor { get; private set; }
         private static List<Command> afterRenderFrame = new List<Command>(10);
         private static List<Command> beforeRenderFrame = new List<Command>(10);
         public static PipelineResources.CameraRenderingPath currentPath { get; private set; }
@@ -161,7 +161,8 @@ namespace MPipeline
                 {
                     pipelineCam.cam.worldToCameraMatrix = pair.worldToCamera[i];
                     pipelineCam.cam.projectionMatrix = pair.projection[i];
-                    Render(pipelineCam, new RenderTargetIdentifier(pair.tempTex), ref renderContext, pipelineCam.cam, propertyCheckedFlags);
+                    Render(pipelineCam, ref renderContext, pipelineCam.cam, propertyCheckedFlags);
+                    data.buffer.Blit(pipelineCam.targets.renderTargetIdentifier, pair.tempTex);
                     PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
                     data.buffer.CopyTexture(pair.tempTex, 0, 0, pair.texArray, i, 0);
                     data.ExecuteCommandBuffer();
@@ -182,7 +183,7 @@ namespace MPipeline
             {
                 PipelineCamera pipelineCam;
                 UIntPtr pipelineCamPtr;
-                if(!PipelineCamera.allCamera.Get(cam.gameObject.GetInstanceID(), out pipelineCamPtr))
+                if (!PipelineCamera.allCamera.Get(cam.gameObject.GetInstanceID(), out pipelineCamPtr))
                 {
 #if UNITY_EDITOR
                     renderingEditor = true;
@@ -197,7 +198,7 @@ namespace MPipeline
                     renderingEditor = false;
                 }
                 pipelineCam = MUnsafeUtility.GetObject<PipelineCamera>(pipelineCamPtr.ToPointer());
-                Render(pipelineCam, BuiltinRenderTextureType.CameraTarget, ref renderContext, cam, propertyCheckedFlags);
+                Render(pipelineCam, ref renderContext, cam, propertyCheckedFlags);
                 PipelineFunctions.ReleaseRenderTarget(data.buffer, ref pipelineCam.targets);
                 data.ExecuteCommandBuffer();
                 renderContext.Submit();
@@ -219,7 +220,7 @@ namespace MPipeline
             }
         }
 
-        private void Render(PipelineCamera pipelineCam, RenderTargetIdentifier dest, ref ScriptableRenderContext context, Camera cam, bool* pipelineChecked)
+        private void Render(PipelineCamera pipelineCam, ref ScriptableRenderContext context, Camera cam, bool* pipelineChecked)
         {
             PipelineResources.CameraRenderingPath path = pipelineCam.renderingPath;
             currentPath = path;
@@ -273,6 +274,7 @@ namespace MPipeline
                     e.FrameUpdate(pipelineCam, ref data);
                 }
             }
+            data.buffer.SetInvertCulling(false);
         }
     }
 }

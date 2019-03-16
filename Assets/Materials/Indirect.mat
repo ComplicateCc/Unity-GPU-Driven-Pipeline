@@ -83,7 +83,7 @@ Material:
     - _DstBlend: 0
     - _EmissionMultiplier: 1
     - _GlossMapScale: 1
-    - _Glossiness: 1
+    - _Glossiness: 0.54
     - _GlossyReflections: 1
     - _Metallic: 0
     - _MetallicIntensity: 0.38

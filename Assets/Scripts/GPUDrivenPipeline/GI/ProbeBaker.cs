@@ -10,6 +10,7 @@ using static Unity.Mathematics.math;
 using UnityEngine.Rendering;
 using System;
 using System.Linq;
+using Random = Unity.Mathematics.Random;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -18,6 +19,13 @@ namespace MPipeline
 #if UNITY_EDITOR
     public unsafe sealed class ProbeBaker : MonoBehaviour
     {
+        struct Vertex
+        {
+            public float3 normal;
+            public float3 tangent;
+            public float3 binormal;
+            public uint2 p;
+        }
         public int3 probeCount = new int3(10, 10, 10);
         public float considerRange = 5;
         public PipelineResources resources;
@@ -27,12 +35,32 @@ namespace MPipeline
         private PipelineCamera targetCamera;
         private const int RESOLUTION = 128;
         private CommandBuffer cbuffer;
+        private ComputeBuffer vertexBuffer;
         private ComputeBuffer coeffTemp;
         private ComputeBuffer coeff;
+        public Mesh sampleMesh;
 
         private RenderTexture[] coeffTextures;
         private bool isRendering = false;
         private int indexInList;
+        private NativeArray<Vertex> InitializeVertexBuffer()
+        {
+            Vector3[] normal = sampleMesh.normals;
+            Vector4[] tangent = sampleMesh.tangents;
+            NativeArray<Vertex> verts = new NativeArray<Vertex>(normal.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            Vertex* ptr = verts.Ptr();
+            int seed = Guid.NewGuid().GetHashCode();
+            Random rand = new Random(*(uint*)UnsafeUtility.AddressOf(ref seed));
+            for (int i = 0; i < verts.Length; ++i)
+            {
+                ref Vertex vert = ref ptr[i];
+                vert.tangent = normalize((Vector3)tangent[i]);
+                vert.normal = normalize(normal[i]);
+                vert.p = rand.NextUInt2();
+                vert.binormal = normalize(cross(vert.normal, vert.tangent) * tangent[i].w);
+            }
+            return verts;
+        }
         private void Init()
         {
             isRendered = false;
@@ -61,7 +89,10 @@ namespace MPipeline
                 });
                 coeffTextures[i].Create();
             }
-            coeffTemp = new ComputeBuffer(9, 12);
+            NativeArray<Vertex> verts = InitializeVertexBuffer();
+            vertexBuffer = new ComputeBuffer(verts.Length, sizeof(Vertex));
+            vertexBuffer.SetData(verts);
+            coeffTemp = new ComputeBuffer(verts.Length * 9, sizeof(float3));
             coeff = new ComputeBuffer(probeCount.x * probeCount.y * probeCount.z * 9, 12);
             if (!targetCamera)
             {
@@ -188,13 +219,13 @@ namespace MPipeline
                 bindMS = false,
                 colorFormat = RenderTextureFormat.ARGBHalf,
                 depthBufferBits = 16,
-                dimension = TextureDimension.Tex2DArray,
+                dimension = TextureDimension.Cube,
                 enableRandomWrite = false,
                 height = 128,
                 width = 128,
-                volumeDepth = 6,
+                volumeDepth = 1,
                 msaaSamples = 1,
-                useMipMap = true
+                useMipMap = false
             });
             rt.filterMode = FilterMode.Trilinear;
             rt.Create();
@@ -213,7 +244,6 @@ namespace MPipeline
             });
             cbuffer.Clear();
             cbuffer.SetGlobalTexture("_Cubemap", rt);
-            cbuffer.GenerateMips(rt);
             RenderPipeline.AddRenderingMissionInEditor(worldToCameras, projection, targetCamera, rt, tempRT, cbuffer);
         }
         private IEnumerator RunCubemap()
@@ -266,9 +296,9 @@ namespace MPipeline
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                colorFormat = RenderTextureFormat.ARGB32,
+                colorFormat = RenderTextureFormat.ARGBHalf,
                 depthBufferBits = 16,
-                dimension = TextureDimension.Tex2DArray,
+                dimension = TextureDimension.Cube,
                 enableRandomWrite = false,
                 height = RESOLUTION,
                 width = RESOLUTION,
@@ -277,11 +307,12 @@ namespace MPipeline
                 shadowSamplingMode = ShadowSamplingMode.None,
                 sRGB = false,
                 useMipMap = true,
-                volumeDepth = 6,
+                volumeDepth = 1,
                 vrUsage = VRTextureUsage.None
             };
 
-            RenderTexture rt = RenderTexture.GetTemporary(texArrayDescriptor); rt.filterMode = FilterMode.Trilinear;
+            RenderTexture rt = RenderTexture.GetTemporary(texArrayDescriptor);
+            rt.filterMode = FilterMode.Trilinear;
             rt.Create();
             texArrayDescriptor.volumeDepth = 1;
             texArrayDescriptor.dimension = TextureDimension.Tex2D;
@@ -290,6 +321,7 @@ namespace MPipeline
             ComputeShader shader = resources.shaders.probeCoeffShader;
             Action<CommandBuffer> func = (cb) =>
             {
+                cb.SetComputeBufferParam(shader, 0, "_AllVertex", vertexBuffer);
                 cb.SetComputeBufferParam(shader, 0, "_CoeffTemp", coeffTemp);
                 cb.SetComputeBufferParam(shader, 1, "_CoeffTemp", coeffTemp);
                 cb.SetComputeBufferParam(shader, 1, "_Coeff", coeff);
@@ -311,7 +343,7 @@ namespace MPipeline
                         BakeMap(int3(x, y, z), rt, tempRT);
                         cbuffer.GenerateMips(rt);
                         cbuffer.SetComputeIntParam(shader, "_OffsetIndex", PipelineFunctions.DownDimension(int3(x, y, z), probeCount.xy));
-                        cbuffer.DispatchCompute(shader, 0, RESOLUTION / 32, RESOLUTION / 32, 6);
+                        ComputeShaderUtility.Dispatch(shader, cbuffer, 0, vertexBuffer.count, 64);
                         cbuffer.DispatchCompute(shader, 1, 1, 1, 1);
                         yield return null;
                     }

@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1a49654a285f6645961f5fdf60ff457, type: 3}
   m_Name: AO
   m_EditorClassIdentifier: 
-  enabled: 0
-  DirSampler: 4
-  SliceSampler: 8
+  enabled: 1
+  DirSampler: 2
+  SliceSampler: 4
   Radius: 2.5
   Intensity: 0.7
   Power: 2.5
