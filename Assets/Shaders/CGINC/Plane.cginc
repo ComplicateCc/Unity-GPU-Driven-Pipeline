@@ -62,49 +62,19 @@ float BoxIntersect(float3 extent, float3x3 boxLocalToWorld, float3 position, flo
 
 float SphereIntersect(float4 sphere, float4 planes[6])
 {
-    float result = 1;
+    [unroll]
     for(uint i = 0; i < 6; ++i)
     {
-        result *= (GetDistanceToPlane(planes[i], sphere.xyz) < sphere.w);
+        if (GetDistanceToPlane(planes[i], sphere.xyz) > sphere.w) return 0;
     }
-    return result;
+    return 1;
 }
 
-
-float BoxIntersect(float3 extent, float3x3 localToWorld, float3 position, RWTexture3D<float4> tex, uint2 uv, const uint count){
-    float result = 1;
-    [unroll]
-    for(uint i = 0; i < count; ++i)
-    {
-        float4 plane = tex[uint3(uv, i)];
-        float3 absNormal = abs(mul(plane.xyz, localToWorld));
-        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w);
-    }
-    return result;
-}
-
-float BoxIntersect(float3 extent, float3 position, RWTexture3D<float4> tex, uint2 uv, const uint count){
-    float result = 1;
-    [unroll]
-    for(uint i = 0; i < count; ++i)
-    {
-        float4 plane = tex[uint3(uv, i)];
-        float3 absNormal = abs(plane.xyz);
-        result *= ((dot(position, plane.xyz) - dot(absNormal, extent)) < -plane.w);
-    }
-    return result;
-}
-
-float SphereIntersect(float4 sphere, RWTexture3D<float4> tex, uint2 uv, const uint count)
+inline float SphereIntersect(float4 sphere, float4 plane)
 {
-    float result = 1;
-    [unroll]
-    for(uint i = 0; i < count; ++i)
-    {
-        result *= (GetDistanceToPlane(tex[uint3(uv, i)], sphere.xyz) < sphere.w);
-    }
-    return result;
+    return (GetDistanceToPlane(plane, sphere.xyz) < sphere.w);
 }
+
 
     inline float PointInsidePlane(float3 vertex, float4 plane)
     {
@@ -130,27 +100,19 @@ float SphereIntersect(float4 sphere, RWTexture3D<float4> tex, uint2 uv, const ui
         return SphereInsidePlane(sphere0, plane) + SphereInsidePlane(sphere1, plane);
     }
 
-    float ConeIntersect(Cone cone, RWTexture3D<float4> tex, uint2 uv, const uint count)
-{
-    float result = 1;
-    [unroll]
-    for(uint i = 0; i < count; ++i)
-    {
-        result *= ConeInsidePlane(cone, tex[uint3(uv, i)]);
-    }
-    return result;
-}
-
-
     float ConeIntersect(Cone cone, float4 planes[6])
 {
-    float result = 1;
     [unroll]
     for(uint i = 0; i < 6; ++i)
     {
-        result *= ConeInsidePlane(cone, planes[i]);
+        if(ConeInsidePlane(cone, planes[i]) < 0.5) return 0;
     }
-    return result;
+    return 1;
+}
+
+    inline float ConeIntersect(Cone cone, float4 plane)
+{
+    return ConeInsidePlane(cone, plane);
 }
 
 #endif

@@ -26,10 +26,7 @@ namespace MPipeline
         public const int SetXYPlaneKernel = 0;
         public const int SetZPlaneKernel = 1;
         public const int DeferredCBDR = 2;
-        public const int TBDRPointKernel = 3;
 
-        public const int ClearKernel = 4;
-        public const int TBDRSpotKernel = 5;
         
         public const int MAXIMUMPOINTLIGHTCOUNT = 4;
         public const int MAXIMUMSPOTLIGHTCOUNT = 8;
@@ -120,7 +117,6 @@ namespace MPipeline
             spotlightIndexBuffer = new ComputeBuffer(XRES * YRES * ZRES * (MAXLIGHTPERCLUSTER + 1), sizeof(int));
             allPointLightBuffer = new ComputeBuffer(pointLightInitCapacity, sizeof(PointLightStruct));
             allSpotLightBuffer = new ComputeBuffer(pointLightInitCapacity, sizeof(SpotLight));
-
             allFogVolumeBuffer = new ComputeBuffer(30, sizeof(FogVolume));
         }
         public static void ResizeBuffer(ref ComputeBuffer buffer, int newCapacity)

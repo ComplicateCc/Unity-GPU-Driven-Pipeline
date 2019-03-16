@@ -17,7 +17,7 @@ namespace MPipeline
     [RequireEvent(typeof(PropertySetEvent))]
     public unsafe sealed class LightingEvent : PipelineEvent
     {
-        
+        public float localLightDistance = 50;
         #region DIR_LIGHT
         private static int[] _Count = new int[2];
         private Matrix4x4[] cascadeShadowMapVP = new Matrix4x4[SunLight.CASCADELEVELCOUNT];
@@ -44,6 +44,7 @@ namespace MPipeline
         private Material irradianceVolumeMat;
         [SerializeField]
         public IrradianceCuller culler;
+        
         public override bool CheckProperty()
         {
             if (!cbdr.CheckAvailiable())
@@ -132,7 +133,8 @@ namespace MPipeline
             LightFilter.spotLightArray = spotLightArray;
             LightFilter.cubemapVPMatrices = cubemapVPMatrices;
             LightFilter.spotLightMatrices = spotLightMatrices;
-            lightingHandle = (new LightFilter()).Schedule(allLights.Count, 1);
+            Transform camTrans = cam.cam.transform;
+            lightingHandle = (new LightFilter { cullPlane = VectorUtility.GetPlane(camTrans.forward, camTrans.position + camTrans.forward * localLightDistance) }).Schedule(allLights.Count, 1);
             if (SunLight.current != null && SunLight.current.enabled && SunLight.current.enableShadow)
             {
                 clipDistances = (float*)UnsafeUtility.Malloc(SunLight.CASCADECLIPSIZE * sizeof(float), 16, Allocator.Temp);
@@ -166,6 +168,7 @@ namespace MPipeline
                     DrawGI(data.buffer, ref coefTex, new Matrix4x4(float4(irr.localToWorld.c0, 0), float4(irr.localToWorld.c1, 0), float4(irr.localToWorld.c2, 0), float4(irr.position, 1)));
                 }
             }
+            localLightDistance = clamp(localLightDistance, 0, cam.cam.farClipPlane);
             DirLight(cam, ref data);
             PointLight(cam, ref data);
             LightFilter.Clear();
@@ -450,6 +453,7 @@ namespace MPipeline
             public static NativeList<SpotLightMatrix> spotLightMatrices;
             public static int pointLightCount = 0;
             public static int spotLightCount = 0;
+            public float4 cullPlane;
             public static void Clear()
             {
                 pointLightCount = 0;
@@ -555,7 +559,7 @@ namespace MPipeline
                         currentPtr->lightColor = new float3(col.r, col.g, col.b) / (4 * Mathf.PI);
                         currentPtr->sphere = i.localToWorldMatrix.GetColumn(3);
                         currentPtr->sphere.w = i.range;
-                        if (mlight.useShadow)
+                        if (mlight.useShadow && VectorUtility.SphereIntersect(currentPtr->sphere, cullPlane))
                         {
                             currentPtr->shadowIndex = cubemapVPMatrices.ConcurrentAdd(new CubemapViewProjMatrix
                             {
@@ -592,7 +596,7 @@ namespace MPipeline
                         currentSpot->lightRight = normalize((Vector3)i.localToWorldMatrix.GetColumn(1));
                         currentSpot->smallAngle = Mathf.Deg2Rad * mlight.smallSpotAngle * 0.5f;
                         currentSpot->nearClip = mlight.spotNearClip;
-                        if (mlight.useShadow)
+                        if (mlight.useShadow && VectorUtility.ConeIntersect(currentSpot->lightCone, cullPlane))
                         {
                             currentSpot->vpMatrix = i.localToWorldMatrix;
                             currentSpot->shadowIndex = spotLightMatrices.ConcurrentAdd(new SpotLightMatrix

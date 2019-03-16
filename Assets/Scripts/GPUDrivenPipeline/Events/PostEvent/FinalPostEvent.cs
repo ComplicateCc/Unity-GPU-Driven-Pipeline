@@ -17,6 +17,7 @@ namespace MPipeline
         }
         public PostProcessProfile profile;
         public PostProcessResources resources;
+        public bool enableInEditor = true;
         private Dictionary<Type, PostEffect> allEvents;
         private PostProcessRenderContext postContext;
         private MotionBlurRenderer motionBlurRenderer;
@@ -65,6 +66,13 @@ namespace MPipeline
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+#if UNITY_EDITOR
+            if (!enableInEditor && RenderPipeline.renderingEditor)
+            {
+                data.buffer.Blit(cam.targets.renderTargetIdentifier, BuiltinRenderTextureType.CameraTarget);
+                return;
+            }
+#endif
             postContext.camera = cam.cam;
             postContext.command = data.buffer;
             postContext.bloomBufferNameID = -1;
@@ -91,7 +99,7 @@ namespace MPipeline
                     ef.renderer.Render(postContext);
                 }
             };
-           // data.buffer.Blit(cam.targets.renderTargetIdentifier, BuiltinRenderTextureType.CameraTarget);
+            // data.buffer.Blit(cam.targets.renderTargetIdentifier, BuiltinRenderTextureType.CameraTarget);
             data.buffer.BlitSRT(cam.targets.renderTargetIdentifier, BuiltinRenderTextureType.CameraTarget, postContext.uberSheet.material, 0, postContext.uberSheet.properties);
             if (postContext.bloomBufferNameID > -1) data.buffer.ReleaseTemporaryRT(postContext.bloomBufferNameID);
         }
