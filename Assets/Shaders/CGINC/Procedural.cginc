@@ -1,8 +1,8 @@
 #ifndef PROCEDURAL
 #define PROCEDURAL
 
-#define CLUSTERCLIPCOUNT 384
-#define CLUSTERVERTEXCOUNT 384
+#define CLUSTERCLIPCOUNT 255
+#define CLUSTERVERTEXCOUNT 255
 #define PLANECOUNT 6
     struct PropertyValue
     {

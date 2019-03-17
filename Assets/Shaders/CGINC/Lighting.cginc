@@ -57,7 +57,7 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		
 		if(dot(Energy, 1) < 1e-5) continue;
 		//////Shadow
-		const float ShadowResolution = 512.0;
+		const float ShadowResolution = 1024.0;
 		
 		if (Light.shadowIndex >= 0)
 		{

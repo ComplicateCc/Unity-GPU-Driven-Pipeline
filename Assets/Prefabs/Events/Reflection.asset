@@ -15,12 +15,12 @@ MonoBehaviour:
   enabled: 1
   unitedResolution: 512
   ssrEvents:
-    enabled: 0
+    enabled: 1
     TraceMethod: 0
     RayCastingResolution: 1
     Denoise: 1
     RayNums: 1
-    BRDFBias: 0.56
+    BRDFBias: 0.7
     Thickness: 0.05
     ScreenFade: 0
     HiZ_RaySteps: 64

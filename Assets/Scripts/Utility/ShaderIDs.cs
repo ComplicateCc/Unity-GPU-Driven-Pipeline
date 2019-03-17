@@ -35,6 +35,7 @@ public static partial class ShaderIDs
     public static readonly int _OutputTex = Shader.PropertyToID("_OutputTex");
     public static readonly int _Width = Shader.PropertyToID("_Width");
     public static readonly int _Scale = Shader.PropertyToID("_Scale");
+    public static readonly int _LastFrameModel = Shader.PropertyToID("_LastFrameModel");
 
     public static readonly int _Jitter = Shader.PropertyToID("_Jitter");
     public static readonly int _Sharpness = Shader.PropertyToID("_Sharpness");

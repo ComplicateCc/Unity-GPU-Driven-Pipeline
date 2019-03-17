@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clusterProperties:
   - name: TestFile
-    clusterCount: 478
+    clusterCount: 719
     properties:
     - _SpecularIntensity: 0.3
       _MetallicIntensity: 0.1
@@ -66,11 +66,11 @@ MonoBehaviour:
       detailTextureIndex: {x: 43, y: 47}
       mainScaleOffset: {x: 3, y: 3, z: 0, w: 0}
       detailScaleOffset: {x: 50, y: 50, z: 0, w: 0}
-    - _SpecularIntensity: 0
+    - _SpecularIntensity: 0.47
       _MetallicIntensity: 0.38
       _EmissionColor: {x: 0, y: 0, z: 0, w: 1}
       _Occlusion: 1
-      _Glossiness: 1
+      _Glossiness: 0.54
       _Color: {x: 1, y: 1, z: 1, w: 1}
       textureIndex: {x: -1, y: -1, z: -1}
       detailTextureIndex: {x: -1, y: -1}

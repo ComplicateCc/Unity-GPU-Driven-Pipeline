@@ -22,7 +22,6 @@ namespace MPipeline
         public Camera mainCamera;
         public Transform transformParents;
         private TransformAccessArray transformArray;
-        public IrradianceVolumeController irradianceController;
         private static void Count(Transform trans, ref int length)
         {
             if (trans.childCount > 0)
@@ -63,7 +62,6 @@ namespace MPipeline
             }
             current = this;
             SceneController.Awake(resources, resolution, texArrayCapacity, lightmapAtlasSize, lightmapCapacity, propertyCapacity, mapResources);
-            irradianceController.Init(resources);
             loadingThread = new LoadingThread();
             int length = 0;
             Count(transformParents, ref length);
@@ -89,30 +87,6 @@ namespace MPipeline
            // RenderPipeline.AddCommandBeforeFrame(this, (o) => ((GPURPScene)o).QueueJob());
         }
         public int targetVolume = 0;
-        [EasyButtons.Button]
-        public void LoadVolume()
-        {
-            if(irradianceController.LoadVolume(targetVolume))
-            {
-                Debug.Log("Successfully loaded " + targetVolume);
-            }else
-            {
-                Debug.LogError("Loading failed!");
-            }
-        }
-
-        [EasyButtons.Button]
-        public void RemoveVolume()
-        {
-            if(irradianceController.RemoveVolume(targetVolume))
-            {
-                Debug.Log("Sucessfully removed " + targetVolume);
-            }else
-            {
-                Debug.LogError("Remove failed!s");
-            }
-        }
-
         private void Update()
         {
             SceneController.Update(this);
@@ -124,7 +98,6 @@ namespace MPipeline
             transformArray.Dispose();
             SceneController.Dispose();
             loadingThread.Dispose();
-            irradianceController.Dispose();
             current = null;
         }
         [Unity.Burst.BurstCompile]
