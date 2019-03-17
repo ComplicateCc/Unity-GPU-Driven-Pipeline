@@ -2,6 +2,7 @@
 #include "SSRCommon.cginc"
 #include "SSRBSDF.cginc"
 #include "SSRLibrary.cginc"
+#include "../CGINC/Random.cginc"
 
 sampler2D _SSR_SceneColor_RT, _SSR_Noise, _SSR_RayCastRT, _SSR_RayMask_RT, _SSR_Spatial_RT, _SSR_TemporalPrev_RT, _SSR_TemporalCurr_RT, _SSR_CombienReflection_RT, _SSAO_GTOTexture2SSR_RT,
 		  _CameraDepthTexture, _CameraMotionVectorsTexture, _CameraGBufferTexture0, _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraReflectionsTexture;
@@ -14,7 +15,9 @@ half _SSR_BRDFBias, _SSR_ScreenFade, _SSR_TemporalScale, _SSR_TemporalWeight, _S
 
 half3 _SSR_CameraClipInfo;
 
-half4 _SSR_ScreenSize, _SSR_RayCastSize, _SSR_NoiseSize, _SSR_Jitter, _SSR_RandomSeed, _SSR_ProjInfo;
+half4 _SSR_ScreenSize, _SSR_RayCastSize, _SSR_Jitter, _SSR_RandomSeed, _SSR_ProjInfo;
+
+static const float2 _SSR_NoiseSize = float2(1024, 1024);
 
 half4x4 _SSR_ProjectionMatrix, _SSR_InverseProjectionMatrix, _VP, _InvVP, _LastVp, _SSR_WorldToCameraMatrix, _SSR_CameraToWorldMatrix, _SSR_ProjectToPixelMatrix;
 
@@ -154,9 +157,7 @@ void Linear_2DTrace_MultiSPP(PixelInput i, out half4 SSRColor_PDF : SV_Target0, 
 	//UNITY_LOOP
 	for (uint i = 0; i < (uint)_SSR_NumRays; i++)
 	{
-		//-----Trace Dir-----------------------------------------------------------------------------
-		float2 Random = float2((float)i / (float)_SSR_NumRays, sin(i));
-		float2 BlueNoise = tex2Dlod(_SSR_Noise, half4((UV + _SSR_Jitter.zw + Random) * _SSR_RayCastSize.xy / _SSR_NoiseSize.xy, 0, 0)).xy;
+		float2 BlueNoise = cellNoise(UV) * 0.5 + 0.5;
 
 		float2 Hash = BlueNoise;
 		Hash.y = lerp(Hash.y, 0.0, _SSR_BRDFBias);
@@ -232,8 +233,8 @@ void Hierarchical_ZTrace_SingleSPP(PixelInput i, out half4 RayHit_PDF : SV_Targe
 	float4 ViewPos = mul(_SSR_InverseProjectionMatrix, float4(ScreenPos, 1));
 	ViewPos /= ViewPos.w;
 
-	half2 BlueNoise = tex2Dlod(_SSR_Noise, half4((UV + _SSR_Jitter.zw) * _SSR_RayCastSize.xy / _SSR_NoiseSize.xy, 0, 0)).xy;
-	float2 E = BlueNoise;
+	//half2 BlueNoise = tex2Dlod(_SSR_Noise, half4((UV + _SSR_Jitter.zw) * _SSR_RayCastSize.xy / _SSR_NoiseSize.xy, 0, 0)).xy;
+	float2 E = cellNoise(UV) * 0.5 + 0.5;
 	E.y = lerp(E.y, 0.0, _SSR_BRDFBias);
 	float4 H = TangentToWorld( ImportanceSampleGGX(E, Roughness), half4(ViewNormal, 1.0) );
 	float3 ReflectionDir = reflect(normalize(ViewPos.xyz), H.xyz);
@@ -274,8 +275,7 @@ void Hierarchical_ZTrace_MultiSPP(PixelInput i, out half4 SSRColor_PDF : SV_Targ
 	for (uint i = 0; i < (uint)_SSR_NumRays; i++)
 	{
 		//-----Trace Dir-----------------------------------------------------------------------------
-		float2 Random = float2((float)i / (float)_SSR_NumRays, sin(i));
-		float2 Hash = tex2Dlod(_SSR_Noise, half4((UV + _SSR_Jitter.zw + Random) * _SSR_RayCastSize.xy / _SSR_NoiseSize.xy, 0, 0)).xy;
+		float2 Hash = cellNoise(UV) * 0.5 + 0.5;//TODO
 		Hash.y = lerp(Hash.y, 0.0, _SSR_BRDFBias);
 		half4 H = TangentToWorld(ImportanceSampleGGX(Hash, Roughness), half4(ViewNormal, 1.0));
 		half3 ReflectionDir = reflect(normalize(ViewPos), H.xyz);
@@ -406,19 +406,18 @@ half4 Temporalfilter_SingleSPP(PixelInput i) : SV_Target
 	half2 Ray_Velocity = GetRayMotionVector(HitDepth, UV, _InvVP, _LastVp, _VP);
 	half Velocity_Weight = saturate(dot(WorldNormal, half3(0, 1, 0)));
 	half2 Velocity = lerp(Depth_Velocity, Ray_Velocity, Velocity_Weight);
-
 	/////Get AABB ClipBox
-	half SSR_Variance = 0;
 	half4 SSR_CurrColor = 0;
 	half4 SSR_MinColor, SSR_MaxColor;
-	ResolverAABB(_SSR_Spatial_RT, 0, 10, _SSR_TemporalScale, UV, _SSR_ScreenSize.xy, SSR_Variance, SSR_MinColor, SSR_MaxColor, SSR_CurrColor);
-
+	ResolverAABB(_SSR_Spatial_RT, 0, 10, _SSR_TemporalScale, UV, _SSR_ScreenSize.xy, SSR_MinColor, SSR_MaxColor, SSR_CurrColor);
+	float2 PrevUV = UV - Velocity;
+	if(abs(dot(PrevUV - saturate(PrevUV), 1)) > 1e-5) return SSR_CurrColor;
 	/////Clamp TemporalColor
-	half4 SSR_PrevColor = tex2D(_SSR_TemporalPrev_RT, UV - Velocity);
+	half4 SSR_PrevColor = tex2D(_SSR_TemporalPrev_RT, PrevUV);
 	SSR_PrevColor = clamp(SSR_PrevColor, SSR_MinColor, SSR_MaxColor);
 
 	/////Combine TemporalColor
-	half Temporal_BlendWeight = saturate(_SSR_TemporalWeight * (1 - length(Velocity) * 8));
+	half Temporal_BlendWeight = saturate(_SSR_TemporalWeight);
 	half4 ReflectionColor = lerp(SSR_CurrColor, SSR_PrevColor, Temporal_BlendWeight);
 
 	return ReflectionColor;
@@ -437,10 +436,9 @@ half4 Temporalfilter_MultiSPP(PixelInput i) : SV_Target
 	half2 Velocity = lerp(Depth_Velocity, Ray_Velocity, Velocity_Weight);
 	
 	/////Get AABB ClipBox
-	half SSR_Variance = 0;
 	half4 SSR_CurrColor = 0;
 	half4 SSR_MinColor, SSR_MaxColor;
-	ResolverAABB(_SSR_Spatial_RT, 0, 10, _SSR_TemporalScale, UV, _SSR_ScreenSize.xy, SSR_Variance, SSR_MinColor, SSR_MaxColor, SSR_CurrColor);
+	ResolverAABB(_SSR_Spatial_RT, 0, 10, _SSR_TemporalScale, UV, _SSR_ScreenSize.xy, SSR_MinColor, SSR_MaxColor, SSR_CurrColor);
 
 	/////Clamp TemporalColor
 	half4 SSR_PrevColor = tex2D(_SSR_TemporalPrev_RT, UV - Velocity);

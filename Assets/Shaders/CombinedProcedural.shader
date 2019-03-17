@@ -147,12 +147,12 @@ float3 _SceneOffset;
 
 // fragment shader
 void frag_surf (v2f_surf IN,
-    out float4 outGBuffer0 : SV_Target0,
-    out float4 outGBuffer1 : SV_Target1,
-    out float4 outGBuffer2 : SV_Target2,
-    out float4 outEmission : SV_Target3,
-	out float2 outMotionVector : SV_Target4,
-  out float depth : SV_TARGET5
+    out half4 outGBuffer0 : SV_Target0,
+    out half4 outGBuffer1 : SV_Target1,
+    out half4 outGBuffer2 : SV_Target2,
+    out half4 outEmission : SV_Target3,
+	out half2 outMotionVector : SV_Target4,
+  out half depth : SV_TARGET5
 ) {
   depth = IN.pos.z;
   // prepare and unpack data

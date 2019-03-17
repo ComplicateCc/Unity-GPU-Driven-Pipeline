@@ -7,60 +7,68 @@
 #define TRANSMISSION_WRAP_ANGLE (PI/12)             
 #define TRANSMISSION_WRAP_LIGHT cos(PI/2 - TRANSMISSION_WRAP_ANGLE)
 
-inline void ResolverAABB(sampler2D currColor, half Sharpness, half ExposureScale, half AABBScale, half2 uv, half2 TexelSize, inout half Variance, inout half4 MinColor, inout half4 MaxColor, inout half4 FilterColor)
+void ResolverAABB(sampler2D currColor, half Sharpness, half ExposureScale, half AABBScale, half2 uv, half2 screenSize, inout half4 minColor, inout half4 maxColor, inout half4 filterColor)
 {
-    const int2 SampleOffset[9] = {int2(-1.0, -1.0), int2(0.0, -1.0), int2(1.0, -1.0), int2(-1.0, 0.0), int2(0.0, 0.0), int2(1.0, 0.0), int2(-1.0, 1.0), int2(0.0, 1.0), int2(1.0, 1.0)};
-
-    half4 SampleColors[9];
-
-    for(uint i = 0; i < 9; i++) {
-        #if AA_BicubicFilter
-            SampleColors[i] = Texture2DSampleBicubic(currColor, uv + ( SampleOffset[i] / TexelSize), BicubicSize.xy, BicubicSize.zw);
-        #else
-            SampleColors[i] = tex2D( currColor, uv + ( SampleOffset[i] / TexelSize) );
-        #endif
-    }
-
+    half4 TopLeft = tex2D(currColor, uv + (int2(-1, -1) / screenSize));
+    half4 TopCenter = tex2D(currColor, uv + (int2(0, -1) / screenSize));
+    half4 TopRight = tex2D(currColor, uv + (int2(1, -1) / screenSize));
+    half4 MiddleLeft = tex2D(currColor, uv + (int2(-1,  0) / screenSize));
+    half4 MiddleCenter = tex2D(currColor, uv + (int2(0,  0) / screenSize));
+    half4 MiddleRight = tex2D(currColor, uv + (int2(1,  0) / screenSize));
+    half4 BottomLeft = tex2D(currColor, uv + (int2(-1,  1) / screenSize));
+    half4 BottomCenter = tex2D(currColor, uv + (int2(0,  1) / screenSize));
+    half4 BottomRight = tex2D(currColor, uv + (int2(1,  1) / screenSize));
+    
+    // Resolver filtter 
     #if AA_Filter
         half SampleWeights[9];
-        for(uint j = 0; j < 9; j++) {
-            SampleWeights[j] = HdrWeight4(SampleColors[j].rgb, ExposureScale);
-        }
+        SampleWeights[0] = HdrWeight4(TopLeft.rgb, ExposureScale);
+        SampleWeights[1] = HdrWeight4(TopCenter.rgb, ExposureScale);
+        SampleWeights[2] = HdrWeight4(TopRight.rgb, ExposureScale);
+        SampleWeights[3] = HdrWeight4(MiddleLeft.rgb, ExposureScale);
+        SampleWeights[4] = HdrWeight4(MiddleCenter.rgb, ExposureScale);
+        SampleWeights[5] = HdrWeight4(MiddleRight.rgb, ExposureScale);
+        SampleWeights[6] = HdrWeight4(BottomLeft.rgb, ExposureScale);
+        SampleWeights[7] = HdrWeight4(BottomCenter.rgb, ExposureScale);
+        SampleWeights[8] = HdrWeight4(BottomRight.rgb, ExposureScale);
 
-        half TotalWeight = 0;
-        for(uint k = 0; k < 9; k++) {
-            TotalWeight += SampleWeights[k];
-        }  
-
-        SampleColors[4] = (SampleColors[0] * SampleWeights[0] + SampleColors[1] * SampleWeights[1] + SampleColors[2] * SampleWeights[2] 
-                        +  SampleColors[3] * SampleWeights[3] + SampleColors[4] * SampleWeights[4] + SampleColors[5] * SampleWeights[5] 
-                        +  SampleColors[6] * SampleWeights[6] + SampleColors[7] * SampleWeights[7] + SampleColors[8] * SampleWeights[8]) / TotalWeight;
+        half TotalWeight = SampleWeights[0] + SampleWeights[1] + SampleWeights[2] + SampleWeights[3] + SampleWeights[4] + SampleWeights[5] + SampleWeights[6] + SampleWeights[7] + SampleWeights[8];  
+        half4 Filtered = (TopLeft * SampleWeights[0] + TopCenter * SampleWeights[1] + TopRight * SampleWeights[2] + MiddleLeft * SampleWeights[3] + MiddleCenter * SampleWeights[4] + MiddleRight * SampleWeights[5] + BottomLeft * SampleWeights[6] + BottomCenter * SampleWeights[7] + BottomRight * SampleWeights[8]) / TotalWeight;
     #endif
 
-    half4 m1 = 0.0; half4 m2 = 0.0;
-    for(uint x = 0; x < 9; x++)
-    {
-        m1 += SampleColors[x];
-        m2 += SampleColors[x] * SampleColors[x];
-    }
+    half4 m1, m2, mean, stddev;
+	#if AA_VARIANCE
+	//
+        m1 = TopLeft + TopCenter + TopRight + MiddleLeft + MiddleCenter + MiddleRight + BottomLeft + BottomCenter + BottomRight;
+        m2 = TopLeft * TopLeft + TopCenter * TopCenter + TopRight * TopRight + MiddleLeft * MiddleLeft + MiddleCenter * MiddleCenter + MiddleRight * MiddleRight + BottomLeft * BottomLeft + BottomCenter * BottomCenter + BottomRight * BottomRight;
 
-    half4 mean = m1 / 9.0;
-    half4 stddev = sqrt( (m2 / 9.0) - pow2(mean) );
+        mean = m1 / 9;
+        stddev = sqrt(m2 / 9 - mean * mean);
         
-    MinColor = mean - AABBScale * stddev;
-    MaxColor = mean + AABBScale * stddev;
+        minColor = mean - AABBScale * stddev;
+        maxColor = mean + AABBScale * stddev;
+    //
+    #else 
+    //
+        minColor = min(TopLeft, min(TopCenter, min(TopRight, min(MiddleLeft, min(MiddleCenter, min(MiddleRight, min(BottomLeft, min(BottomCenter, BottomRight))))))));
+        maxColor = max(TopLeft, max(TopCenter, max(TopRight, max(MiddleLeft, max(MiddleCenter, max(MiddleRight, max(BottomLeft, max(BottomCenter, BottomRight))))))));
+            
+        half4 center = (minColor + maxColor) * 0.5;
+        minColor = (minColor - center) * AABBScale + center;
+        maxColor = (maxColor - center) * AABBScale + center;
 
-    FilterColor = SampleColors[4];
-    MinColor = min(MinColor, FilterColor);
-    MaxColor = max(MaxColor, FilterColor);
+    //
+    #endif
 
-    half4 TotalVariance = 0;
-    for(uint z = 0; z < 9; z++)
-    {
-        TotalVariance += pow2(SampleColors[z] - mean);
-    }
-    Variance = saturate( Luminance(TotalVariance / 4) * 256 );
-    Variance *= FilterColor.a;
+    #if AA_Filter
+        filterColor = Filtered;
+        minColor = min(minColor, Filtered);
+        maxColor = max(maxColor, Filtered);
+    #else 
+        filterColor = MiddleCenter;
+        minColor = min(minColor, MiddleCenter);
+        maxColor = max(maxColor, MiddleCenter);
+    #endif
 }
 float3 ImportanceSampleGGX(float2 E, float3 N, float Roughness)
 {

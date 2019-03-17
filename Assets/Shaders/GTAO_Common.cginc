@@ -172,9 +172,9 @@ float4 GTAO(float2 uv, int NumCircle, int NumSlice, inout float Depth)
 
 	float stepRadius = max(min((radius * _AO_HalfProjScale) / vPos.b, 512), (float)NumSlice);
 	stepRadius /= ((float)NumSlice + 1);
-
-	float noiseOffset = GTAO_Offsets(uv);
-	float noiseDirection = cellNoise(uv) * 0.5 + 0.5;
+	float2 rand = cellNoise(uv) * 0.25 + 0.25;
+	float noiseOffset = GTAO_Offsets(uv) ;
+	float noiseDirection = rand.x + rand.y;
 
 	float initialRayStep = frac(noiseOffset + _AO_TemporalOffsets);
 

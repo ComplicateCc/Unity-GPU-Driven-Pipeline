@@ -116,9 +116,6 @@ namespace MPipeline
 
         [Header("Filtter Property")]
 
-        [SerializeField]
-        Texture2D BlueNoise_LUT = null;
-
 
         [Range(1, 4)]
         [SerializeField]
@@ -175,7 +172,6 @@ namespace MPipeline
         private static int SSR_TemporalWeight_ID = Shader.PropertyToID("_SSR_TemporalWeight");
         private static int SSR_ScreenSize_ID = Shader.PropertyToID("_SSR_ScreenSize");
         private static int SSR_RayCastSize_ID = Shader.PropertyToID("_SSR_RayCastSize");
-        private static int SSR_NoiseSize_ID = Shader.PropertyToID("_SSR_NoiseSize");
         private static int SSR_RayStepSize_ID = Shader.PropertyToID("_SSR_RayStepSize");
         private static int SSR_ProjInfo_ID = Shader.PropertyToID("_SSR_ProjInfo");
         private static int SSR_CameraClipInfo_ID = Shader.PropertyToID("_SSR_CameraClipInfo");
@@ -187,10 +183,6 @@ namespace MPipeline
         private static int SSR_HiZ_MaxLevel_ID = Shader.PropertyToID("_SSR_HiZ_MaxLevel");
         private static int SSR_HiZ_StartLevel_ID = Shader.PropertyToID("_SSR_HiZ_StartLevel");
         private static int SSR_HiZ_StopLevel_ID = Shader.PropertyToID("_SSR_HiZ_StopLevel");
-
-
-
-        private static int SSR_Noise_ID = Shader.PropertyToID("_SSR_Noise");
 
         private static int SSR_HierarchicalDepth_ID = Shader.PropertyToID("_SSR_HierarchicalDepth_RT");
         private static int SSR_SceneColor_ID = Shader.PropertyToID("_SSR_SceneColor_RT");
@@ -262,8 +254,6 @@ namespace MPipeline
 
         private void SSR_UpdateUniformVariable(CommandBuffer buffer)
         {
-            buffer.SetGlobalTexture(SSR_Noise_ID, BlueNoise_LUT);
-            buffer.SetGlobalVector(SSR_NoiseSize_ID, new Vector2(1024, 1024));
             buffer.SetGlobalFloat(SSR_BRDFBias_ID, BRDFBias);
             buffer.SetGlobalFloat(SSR_ScreenFade_ID, ScreenFade);
             buffer.SetGlobalFloat(SSR_Thickness_ID, Thickness);
@@ -298,7 +288,7 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             cameraData.UpdateCameraSize(CameraSize, (int)RayCastingResolution);
             SSR_UpdateUniformVariable(data.buffer);
- 
+
             buffer.SetGlobalVector(SSR_ScreenSize_ID, new Vector2(CameraSize.x, CameraSize.y));
             buffer.SetGlobalVector(SSR_RayCastSize_ID, new Vector2(CameraSize.x, CameraSize.y) / (int)RayCastingResolution);
 
@@ -355,18 +345,18 @@ namespace MPipeline
             //////RayCasting//////
             if (TraceMethod == TraceApprox.HiZTrace)
             {
-                ScreenSpaceReflectionBuffer.BlitMRT(SSR_TraceMask_ID,cam.targets.depthBuffer , StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_HiZ3D_MultiSpp : RenderPass_HiZ3D_SingelSpp);
+                ScreenSpaceReflectionBuffer.BlitMRT(SSR_TraceMask_ID, SSR_TraceMask_ID[0], StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_HiZ3D_MultiSpp : RenderPass_HiZ3D_SingelSpp);
             }
             else
             {
-                ScreenSpaceReflectionBuffer.BlitMRT(SSR_TraceMask_ID, cam.targets.depthBuffer, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Linear2D_MultiSPP : RenderPass_Linear2D_SingelSPP);
+                ScreenSpaceReflectionBuffer.BlitMRT(SSR_TraceMask_ID, SSR_TraceMask_ID[0], StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Linear2D_MultiSPP : RenderPass_Linear2D_SingelSPP);
             }
             ScreenSpaceReflectionBuffer.GetTemporaryRT(SSR_Spatial_ID, resolution.x, resolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
-            ScreenSpaceReflectionBuffer.BlitSRT(SSR_Spatial_ID, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Spatiofilter_MultiSPP : RenderPass_Spatiofilter_SingleSPP);
+            ScreenSpaceReflectionBuffer.BlitSRTWithDepth(SSR_Spatial_ID, cam.targets.depthBuffer, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Spatiofilter_MultiSPP : RenderPass_Spatiofilter_SingleSPP);
             //////Temporal filter//////
             ScreenSpaceReflectionBuffer.GetTemporaryRT(SSR_TemporalCurr_ID, resolution.x, resolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             ScreenSpaceReflectionBuffer.SetGlobalTexture(SSR_TemporalPrev_ID, camData.SSR_TemporalPrev_RT);
-            ScreenSpaceReflectionBuffer.BlitSRT(SSR_TemporalCurr_ID, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Temporalfilter_MultiSpp : RenderPass_Temporalfilter_SingleSPP);
+            ScreenSpaceReflectionBuffer.BlitSRTWithDepth(SSR_TemporalCurr_ID, cam.targets.depthBuffer, StochasticScreenSpaceReflectionMaterial, (RayNums > 1) ? RenderPass_Temporalfilter_MultiSpp : RenderPass_Temporalfilter_SingleSPP);
             ScreenSpaceReflectionBuffer.CopyTexture(SSR_TemporalCurr_ID, 0, 0, camData.SSR_TemporalPrev_RT, 0, 0);
         }
 
@@ -374,7 +364,7 @@ namespace MPipeline
         {
             public Vector2 CameraSize { get; private set; }
             public int RayCastingResolution { get; private set; }
-            public RenderTexture SSR_TemporalPrev_RT,  SSR_HierarchicalDepth_RT, SSR_HierarchicalDepth_BackUp_RT;
+            public RenderTexture SSR_TemporalPrev_RT, SSR_HierarchicalDepth_RT, SSR_HierarchicalDepth_BackUp_RT;
             private static void CheckAndRelease(RenderTexture targetRT)
             {
                 if (targetRT && targetRT.IsCreated())
