@@ -1,0 +1,180 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
+using System.IO;
+using Unity.Mathematics;
+using Debug = UnityEngine.Debug;
+using MStudio;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+namespace MPipeline
+{
+    [Serializable]
+    public struct Pair<T, V>
+    {
+        public T key;
+        public V value;
+        public Pair(T key, V value)
+        {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    [Serializable]
+    public struct Pair
+    {
+        public string key;
+        public Texture2DArray value;
+        public Pair(string key, Texture2DArray value)
+        {
+            this.key = key;
+            this.value = value;
+        }
+    }
+    public unsafe class MeshCombiner : MonoBehaviour
+    {
+#if UNITY_EDITOR
+        string[] textureName = new string[]{"_MainTex",
+    "_BumpMap",
+    "_SpecularMap",
+        "_DetailAlbedo",
+        "_DetailNormal"};
+        public ComputeShader lightmapShader;
+        const int texToBufferKernel = 0;
+        const int bufferToTexKernel = 1;
+        const int texToBufferARGBKernel = 2;
+        const int bufferTotexARGBKernel = 3;
+        public void GetPoints(NativeList<float3> points, NativeList<int> triangles, Mesh targetMesh, Transform transform)
+        {
+            int originLength = points.Length;
+            Vector3[] vertices = targetMesh.vertices;
+            points.AddRange(vertices.Length);
+            for (int i = originLength; i < vertices.Length + originLength; ++i)
+            {
+                ref float3 pt = ref points[i];
+                int len = i - originLength;
+                pt = transform.localToWorldMatrix.MultiplyPoint(vertices[len]);
+            }
+            for (int subCount = 0; subCount < targetMesh.subMeshCount; ++subCount)
+            {
+                int[] triangleArray = targetMesh.GetTriangles(subCount);
+                for (int i = 0; i < triangleArray.Length; ++i)
+                {
+                    triangleArray[i] += originLength;
+                    ref float3 pt = ref points[triangleArray[i]];
+                }
+                triangles.AddRange(triangleArray);
+            }
+
+        }
+        public CombinedModel ProcessCluster(params MeshRenderer[] allRenderers)
+        {
+            MeshFilter[] allFilters = new MeshFilter[allRenderers.Length];
+            int sumVertexLength = 0;
+            int sumTriangleLength = 0;
+
+            for (int i = 0; i < allFilters.Length; ++i)
+            {
+                allFilters[i] = allRenderers[i].GetComponent<MeshFilter>();
+                sumVertexLength += allFilters[i].sharedMesh.vertexCount;
+            }
+            sumTriangleLength = (int)(sumVertexLength * 1.5);
+            NativeList<float3> points = new NativeList<float3>(sumVertexLength, Allocator.Temp);
+            NativeList<int> triangles = new NativeList<int>(sumTriangleLength, Allocator.Temp);
+            for (int i = 0; i < allFilters.Length; ++i)
+            {
+                Mesh mesh = allFilters[i].sharedMesh;
+                GetPoints(points, triangles, mesh, allFilters[i].transform);
+            }
+            float3 less = points[0];
+            float3 more = points[0];
+
+            for (int i = 1; i < points.Length; ++i)
+            {
+                float3 current = points[i];
+                if (less.x > current.x) less.x = current.x;
+                if (more.x < current.x) more.x = current.x;
+                if (less.y > current.y) less.y = current.y;
+                if (more.y < current.y) more.y = current.y;
+                if (less.z > current.z) less.z = current.z;
+                if (more.z < current.z) more.z = current.z;
+            }
+
+            float3 center = (less + more) / 2;
+            float3 extent = more - center;
+            Bounds b = new Bounds(center, extent * 2);
+            CombinedModel md;
+            md.bound = b;
+            md.allPoints = points;
+            md.triangles = triangles;
+
+            return md;
+        }
+
+        public struct CombinedModel
+        {
+            public NativeList<float3> allPoints;
+            public NativeList<int> triangles;
+            public Bounds bound;
+        }
+        public TextureFormat mainTexFormat = TextureFormat.ARGB32;
+        public TextureFormat bumpMapFormat = TextureFormat.ARGB32;
+        public TextureFormat specularFormat = TextureFormat.RGB24;
+        public string modelName = "TestFile";
+
+        [EasyButtons.Button]
+        public void TryThis()
+        {
+            bool save = false;
+            ClusterMatResources res = Resources.Load<ClusterMatResources>("MapMat/SceneManager");
+            if (res == null)
+            {
+                save = true;
+                res = ScriptableObject.CreateInstance<ClusterMatResources>();
+                res.name = "SceneManager";
+                res.clusterProperties = new List<ClusterProperty>();
+            }
+            Func<ClusterProperty, ClusterProperty, bool> equalCompare = (a, b) =>
+            {
+                return a.name == b.name;
+            };
+            ClusterProperty property = new ClusterProperty();
+            property.name = modelName;
+            foreach (var i in res.clusterProperties)
+            {
+                if (equalCompare(property, i))
+                {
+                    Debug.LogError("Already Contained Scene " + modelName);
+                    return;
+                }
+            }
+            CombinedModel model = ProcessCluster(GetComponentsInChildren<MeshRenderer>());
+            property.clusterCount = ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName);
+            res.clusterProperties.Add(property);
+            if (save)
+                AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/SceneManager.asset");
+            else
+                EditorUtility.SetDirty(res);
+        }
+#endif
+    }
+    [Serializable]
+    public struct PropertyValue
+    {
+        public float _SpecularIntensity;
+        public float _MetallicIntensity;
+        public Vector4 _EmissionColor;
+        public float _Occlusion;
+        public float _Glossiness;
+        public Vector4 _Color;
+        public Vector3Int textureIndex;
+        public Vector2Int detailTextureIndex;
+        public Vector4 mainScaleOffset;
+        public Vector4 detailScaleOffset;
+    }
+}

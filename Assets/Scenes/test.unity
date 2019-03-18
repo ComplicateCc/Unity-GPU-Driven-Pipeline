@@ -228,6 +228,8 @@ GameObject:
   m_Component:
   - component: {fileID: 237902041}
   - component: {fileID: 237902040}
+  - component: {fileID: 237902042}
+  - component: {fileID: 237902043}
   m_Layer: 0
   m_Name: PipelineSetting
   m_TagString: Untagged
@@ -249,6 +251,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   res: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
   resources: {fileID: 11400000, guid: 64bb376764f5c9848bbb1a526b40051d, type: 2}
+  loadCount: 0
 --- !u!4 &237902041
 Transform:
   m_ObjectHideFlags: 0
@@ -263,6 +266,42 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &237902042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 237902039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f172505f0a682e40a2b9d34853b9951, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &237902043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 237902039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4924195e9cdcaaa4b97d7cc01f77187a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
+  resolution: 1024
+  texArrayCapacity: 30
+  propertyCapacity: 500
+  lightmapCapacity: 15
+  lightmapAtlasSize: 4096
+  mapResources: SceneManager
+  offset:
+    x: 0
+    y: 0
+    z: 0
+  targetVolume: 0
 --- !u!1 &251894596
 GameObject:
   m_ObjectHideFlags: 0
@@ -388,6 +427,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   renderingPath: 0
   inverseRender: 0
+  layerCullDistance:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
 --- !u!81 &330718101
 AudioListener:
   m_ObjectHideFlags: 0
@@ -592,8 +664,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   probeCount:
     x: 3
-    y: 3
-    z: 3
+    y: 2
+    z: 4
   considerRange: 30
   resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
   saveTarget: {fileID: 11400000, guid: 64bb376764f5c9848bbb1a526b40051d, type: 2}
@@ -1081,7 +1153,7 @@ Camera:
   far clip plane: 300
   field of view: 60
   orthographic: 1
-  orthographic size: 64.222786
+  orthographic size: 64.224686
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -1196,7 +1268,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!135 &1940677796
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1460,7 +1532,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8124619871088453079}
   - component: {fileID: 8124619871088453073}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Static
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1533,7 +1605,7 @@ GameObject:
   - component: {fileID: 8124619871160674836}
   - component: {fileID: 8124619871160674842}
   - component: {fileID: 8124619871160674843}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: acad_polyFaceMesh315
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1742,7 +1814,7 @@ GameObject:
   - component: {fileID: 8124619871395713985}
   - component: {fileID: 8124619871395713991}
   - component: {fileID: 8124619871395713984}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: polySurface2074
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1827,7 +1899,7 @@ GameObject:
   - component: {fileID: 8124619871681970658}
   - component: {fileID: 8124619871681970656}
   - component: {fileID: 8124619871681970657}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: pCube155
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1896,7 +1968,7 @@ GameObject:
   - component: {fileID: 8124619871742005249}
   - component: {fileID: 8124619871742005255}
   - component: {fileID: 8124619871742005248}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: pCube154
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2072,7 +2144,7 @@ GameObject:
   - component: {fileID: 8124619871814978810}
   - component: {fileID: 8124619871814978808}
   - component: {fileID: 8124619871814978809}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: pCube157
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2286,7 +2358,7 @@ GameObject:
   - component: {fileID: 8124619872533618376}
   - component: {fileID: 8124619872533618382}
   - component: {fileID: 8124619872533618383}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: acad_polyFaceMesh619
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2662,7 +2734,7 @@ GameObject:
   - component: {fileID: 8124619872816839243}
   - component: {fileID: 8124619872816839241}
   - component: {fileID: 8124619872816839242}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: pCube156
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2739,7 +2811,7 @@ GameObject:
   - component: {fileID: 8124619872829955591}
   - component: {fileID: 8124619872829955589}
   - component: {fileID: 8124619872829955590}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: acad_polyFaceMesh78
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2834,7 +2906,7 @@ GameObject:
   - component: {fileID: 8124619872846625128}
   - component: {fileID: 8124619872846625134}
   - component: {fileID: 8124619872846625135}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: polySurface2069
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2900,7 +2972,7 @@ GameObject:
   - component: {fileID: 8124619873062135351}
   - component: {fileID: 8124619873062135349}
   - component: {fileID: 8124619873062135350}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: acad_polyFaceMesh314
   m_TagString: Untagged
   m_Icon: {fileID: 0}
