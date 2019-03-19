@@ -57,7 +57,6 @@ ENDCG
 			#include "UnityCG.cginc"
 			#include "CGINC/Procedural.cginc"
 			float4x4 _ShadowMapVP;
-			float4 _NormalBiases;
 			struct appdata_shadow
 			{
 				float4 vertex : POSITION;
@@ -70,7 +69,7 @@ ENDCG
 
 			v2f vert (appdata_shadow v)
 			{
-				float4 worldPos = float4(mul(unity_ObjectToWorld, v.vertex) - _NormalBiases.x * mul((float3x3)unity_ObjectToWorld, v.normal), 1);
+				float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
 				v2f o;
 				o.vertex = mul(_ShadowMapVP, worldPos);
 				return o;

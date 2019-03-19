@@ -15,7 +15,6 @@
 			#include "UnityCG.cginc"
 			#include "CGINC/Procedural.cginc"
 			float4x4 _ShadowMapVP;
-			float4 _NormalBiases;
 			struct v2f
 			{
 				float4 vertex : SV_POSITION;
@@ -24,7 +23,7 @@
 			v2f vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 			{
 				Point v = getVertex(vertexID, instanceID); 
-				float4 worldPos = float4(v.vertex - _NormalBiases.x * normalize(v.vertex), 1);
+				float4 worldPos = float4(v.vertex, 1);
 				v2f o;
 				o.vertex = mul(_ShadowMapVP, worldPos);
 				return o;

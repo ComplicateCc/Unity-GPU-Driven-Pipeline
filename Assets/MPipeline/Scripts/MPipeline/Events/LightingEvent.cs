@@ -193,7 +193,6 @@ namespace MPipeline
                     command = buffer,
                     cullingShader = data.resources.shaders.gpuFrustumCulling,
                 };
-                buffer.SetGlobalVector(ShaderIDs._NormalBiases, SunLight.current.normalBias);   //Only Depth
                 buffer.SetGlobalVector(ShaderIDs._ShadowDisableDistance, new Vector4(SunLight.current.firstLevelDistance,
                     SunLight.current.secondLevelDistance,
                     SunLight.current.thirdLevelDistance,

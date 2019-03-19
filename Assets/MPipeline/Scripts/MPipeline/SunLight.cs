@@ -20,7 +20,6 @@ public class SunLight : MonoBehaviour
     public float thirdLevelDistance = 55;
     public float farestDistance = 100;
     public float bias = 0.1f;
-    public Vector4 normalBias = new Vector4(0.001f, 0.002f, 0.003f, 0.005f);
     public Vector4 cascadeSoftValue = new Vector4(1.5f, 1.2f, 0.9f, 0.7f);
     [System.NonSerialized] public Material shadowDepthMaterial;
     [System.NonSerialized] public RenderTexture shadowmapTexture;

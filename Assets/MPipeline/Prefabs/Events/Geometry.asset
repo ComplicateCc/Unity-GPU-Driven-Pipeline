@@ -13,4 +13,3 @@ MonoBehaviour:
   m_Name: Geometry
   m_EditorClassIdentifier: 
   enabled: 1
-  enableOcclusionCulling: 0

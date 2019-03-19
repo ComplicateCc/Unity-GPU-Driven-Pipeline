@@ -82,12 +82,6 @@ float4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, flo
 float4x4 _LastVp;
 float4x4 _NonJitterVP;
 float3 _SceneOffset;
-inline float2 CalculateMotionVector(float4x4 lastvp, float3 worldPos, float2 screenUV)
-{
-	float4 lastScreenPos = mul(lastvp, float4(worldPos, 1));
-	float2 lastScreenUV = GetScreenPos(lastScreenPos);
-	return screenUV - lastScreenUV;
-}
 
 struct v2f_surf {
   UNITY_POSITION(pos);
@@ -101,9 +95,8 @@ struct v2f_surf {
 	float2 lightmapUV : TEXCOORD5;
 	#endif
 	#endif
-    #ifdef MOTION_VECTOR
-    float3 lastWorldPos : TEXCOORD6;
-    #endif
+  float3 lastScreenPos : TEXCOORD6;
+	float3 nonJitterScreenPos : TEXCOORD7;
 };
 struct appdata
 {
@@ -140,9 +133,14 @@ v2f_surf vert_surf (appdata v)
 		o.lightmapUV = v.lightmapUV * unity_LightmapST.xy + unity_LightmapST.zw;
 		#endif
 		#endif
-        #ifdef MOTION_VECTOR
-        o.lastWorldPos = mul(_LastFrameModel, v.vertex);
-        #endif
+				o.nonJitterScreenPos = ComputeScreenPos(mul(_NonJitterVP, worldPos)).xyw;
+				#ifdef MOTION_VECTOR
+				float4 lastWorldPos =  mul(_LastFrameModel, v.vertex);
+				lastWorldPos = lerp(worldPos, lastWorldPos, _LastFrameModel[3][3]);
+        o.lastScreenPos = ComputeScreenPos(mul(_LastVp, lastWorldPos)).xyw;
+        #else
+				o.lastScreenPos = ComputeScreenPos(mul(_LastVp, worldPos)).xyw;
+				#endif
   	return o;
 }
 
@@ -172,14 +170,11 @@ void frag_surf (v2f_surf IN,
   outEmission.xyz += unity_Lightmap.Sample(samplerunity_Lightmap, IN.lightmapUV).xyz* o.Albedo;
 	#endif
 	#endif
-    float4 screenPos = mul(_NonJitterVP, float4(worldPos, 1));
-  float2 screenUV = GetScreenPos(screenPos);
-    #ifdef MOTION_VECTOR
-    float3 lastPos = lerp(worldPos, IN.lastWorldPos, _LastFrameModel[3][3]);
-    #else
-    float3 lastPos = worldPos;
-    #endif
-    outMotionVector = CalculateMotionVector(_LastVp, lastPos - _SceneOffset, screenUV);
+	float4 velocity = float4(IN.nonJitterScreenPos.xy, IN.lastScreenPos.xy) / float4(IN.nonJitterScreenPos.zz, IN.lastScreenPos.zz);
+	outMotionVector = velocity.xy - velocity.zw;
+  #if UNITY_UV_STARTS_AT_TOP
+	outMotionVector.y = -outMotionVector.y;
+	#endif
 }
 
 #endif

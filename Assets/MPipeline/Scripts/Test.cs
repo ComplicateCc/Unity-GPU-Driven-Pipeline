@@ -31,6 +31,6 @@ public unsafe class Test : MonoBehaviour
     }
     private void Update()
     {
-        transform.position = new Vector3(transform.position.x, initHeight + Mathf.Sin(Time.time * 50), transform.position.z);
+        transform.position = new Vector3(transform.position.x, initHeight + Mathf.Sin(Time.time * 10), transform.position.z);
     }
 }
