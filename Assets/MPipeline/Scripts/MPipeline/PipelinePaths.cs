@@ -19,6 +19,7 @@ namespace MPipeline
         public Shader taaShader;
         public Shader ssrShader;
         public Shader indirectDepthShader;
+        public Shader depthDownSample;
         public Shader HizLodShader;
         public Shader motionVectorShader;
         public Shader shadowMaskShader;

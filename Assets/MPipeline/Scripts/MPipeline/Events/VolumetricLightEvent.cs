@@ -83,7 +83,6 @@ namespace MPipeline
             //Enable fourth bit as Global Illumination
 
             buffer.SetGlobalFloat(ShaderIDs._MaxDistance, availableDistance);
-            buffer.SetGlobalInt(ShaderIDs._FrameCount, Time.frameCount);
             HistoryVolumetric historyVolume = IPerCameraData.GetProperty(cam, () => new HistoryVolumetric(), this);
             //Volumetric Light
             RenderTextureDescriptor desc = new RenderTextureDescriptor

@@ -41,12 +41,6 @@ namespace MPipeline
         [Range(1, 8)]
         float Power = 2.5f;
 
-
-        [SerializeField]
-        bool MultiBounce = true;
-
-
-
         [Header("Filtter Property")]
 
         [Range(0, 1)]
@@ -101,7 +95,6 @@ namespace MPipeline
         private static int _AO_Sharpeness_ID = Shader.PropertyToID("_AO_Sharpeness");
         private static int _AO_TemporalScale_ID = Shader.PropertyToID("_AO_TemporalScale");
         private static int _AO_TemporalResponse_ID = Shader.PropertyToID("_AO_TemporalResponse");
-        private static int _AO_MultiBounce_ID = Shader.PropertyToID("_AO_MultiBounce");
 
 
         ///Private
@@ -119,9 +112,13 @@ namespace MPipeline
         private static int _Combien_AO_RT_ID = Shader.PropertyToID("_Combien_AO_RT");
         private RenderTargetIdentifier[] AO_BentNormal_ID = new RenderTargetIdentifier[2];
         /* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* */
-
+        public Shader shader;
+        private Material debugMat;
+        private Material downSampleDepthMat;
         protected override void Init(PipelineResources resources)
         {
+            debugMat = new Material(shader);
+            downSampleDepthMat = new Material(resources.shaders.depthDownSample);
             GTAOMaterial = new Material(resources.shaders.gtaoShader);
             propertySetEvent = RenderPipeline.GetEvent<PropertySetEvent>();
         }
@@ -140,12 +137,24 @@ namespace MPipeline
         {
             RenderPipeline.ExecuteBufferAtFrameEnding((cb) => cb.DisableShaderKeyword("EnableGTAO"));
         }
-
+        private struct GetDataEvent : IGetCameraData
+        {
+            public int2 res;
+            public IPerCameraData Run()
+            {
+                return new AOHistoryData(res.x, res.y);
+            }
+        }
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
-            AOHistoryData historyData = IPerCameraData.GetProperty(cam, (c) => new AOHistoryData(c.cam.pixelWidth, c.cam.pixelHeight), this);
-            UpdateVariable_SSAO(historyData, cam, ref data);
-            RenderSSAO(historyData, cam, ref data);
+            int2 res = int2(cam.cam.pixelWidth / 2, cam.cam.pixelHeight / 2);
+            GetDataEvent evt = new GetDataEvent
+            {
+                res = res
+            };
+            AOHistoryData historyData = IPerCameraData.GetProperty<AOHistoryData, IGetCameraData>(cam, evt, this);
+            UpdateVariable_SSAO(historyData, cam, ref data, res);
+            RenderSSAO(historyData, cam, ref data, res);
         }
 
         protected override void Dispose()
@@ -153,20 +162,21 @@ namespace MPipeline
             if (Application.isPlaying)
             {
                 Destroy(GTAOMaterial);
+                Destroy(downSampleDepthMat);
             }
             else
             {
                 DestroyImmediate(GTAOMaterial);
+                DestroyImmediate(downSampleDepthMat);
             }
             propertySetEvent = null;
         }
 
 
         ////////////////////////SSAO Function////////////////////////
-        private void UpdateVariable_SSAO(AOHistoryData historyData, PipelineCamera cam, ref PipelineCommandData data)
+        private void UpdateVariable_SSAO(AOHistoryData historyData, PipelineCamera cam, ref PipelineCommandData data, int2 renderResolution)
         {
             CommandBuffer buffer = data.buffer;
-            int2 renderResolution = int2(cam.cam.pixelWidth, cam.cam.pixelHeight);
             buffer.SetGlobalMatrix(ShaderIDs._VP, data.vp);
             buffer.SetGlobalMatrix(_WorldToCameraMatrix_ID, cam.cam.worldToCameraMatrix);
             buffer.SetGlobalMatrix(_CameraToWorldMatrix_ID, cam.cam.cameraToWorldMatrix);
@@ -184,8 +194,6 @@ namespace MPipeline
             buffer.SetGlobalFloat(_AO_Sharpeness_ID, Sharpeness);
             buffer.SetGlobalFloat(_AO_TemporalScale_ID, TemporalScale);
             buffer.SetGlobalFloat(_AO_TemporalResponse_ID, TemporalResponse);
-            buffer.SetGlobalInt(_AO_MultiBounce_ID, MultiBounce ? 1 : 0);
-
 
             //----------------------------------------------------------------------------------
             float fovRad = cam.cam.fieldOfView * Mathf.Deg2Rad;
@@ -216,38 +224,40 @@ namespace MPipeline
             historyData.UpdateSize(renderResolution.x, renderResolution.y);
         }
 
-        private void RenderSSAO(AOHistoryData historyData, PipelineCamera cam, ref PipelineCommandData data)
+        private void RenderSSAO(AOHistoryData historyData, PipelineCamera cam, ref PipelineCommandData data, int2 renderResolution)
         {
             CommandBuffer buffer = data.buffer;
-            int2 renderResolution = int2(cam.cam.pixelWidth, cam.cam.pixelHeight);
-
+            buffer.GetTemporaryRT(ShaderIDs._DownSampledDepthTexture, renderResolution.x, renderResolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.RHalf, RenderTextureReadWrite.Linear);
+            buffer.BlitSRT(ShaderIDs._DownSampledDepthTexture, downSampleDepthMat, 0);
             buffer.GetTemporaryRT(_GTAO_Texture_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
             buffer.GetTemporaryRT(_BentNormal_Texture_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Bilinear, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             AO_BentNormal_ID[0] = _GTAO_Texture_ID;
             AO_BentNormal_ID[1] = _BentNormal_Texture_ID;
             //Resolve GTAO 
-            buffer.BlitMRT(AO_BentNormal_ID, cam.targets.renderTargetIdentifier, GTAOMaterial, 0);
+            buffer.BlitMRT(AO_BentNormal_ID, _GTAO_Texture_ID, GTAOMaterial, 0);
 
             //Spatial filter
             //------//XBlur
             buffer.GetTemporaryRT(_GTAO_Spatial_Texture_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Point, RenderTextureFormat.RGHalf);
-            buffer.BlitSRTWithDepth(_GTAO_Spatial_Texture_ID, cam.targets.depthBuffer, GTAOMaterial, 1);
+            buffer.BlitSRT(_GTAO_Spatial_Texture_ID, GTAOMaterial, 1);
             //------//YBlur
             buffer.CopyTexture(_GTAO_Spatial_Texture_ID, AO_BentNormal_ID[0]);
-            buffer.BlitSRTWithDepth(_GTAO_Spatial_Texture_ID, cam.targets.depthBuffer, GTAOMaterial, 2);
+            buffer.BlitSRT(_GTAO_Spatial_Texture_ID, GTAOMaterial, 2);
 
             //Temporal filter
             buffer.SetGlobalTexture(_PrevRT_ID, historyData.prev_Texture);
             buffer.GetTemporaryRT(_CurrRT_ID, renderResolution.x, renderResolution.y, 0, FilterMode.Point, RenderTextureFormat.RGHalf);
-            buffer.BlitSRTWithDepth(_CurrRT_ID, cam.targets.depthBuffer, GTAOMaterial, 3);
+            buffer.BlitSRT(_CurrRT_ID, GTAOMaterial, 3);
             buffer.CopyTexture(_CurrRT_ID, historyData.prev_Texture);
 
+            buffer.ReleaseTemporaryRT(ShaderIDs._DownSampledDepthTexture);
             buffer.ReleaseTemporaryRT(_GTAO_Spatial_Texture_ID);
             buffer.ReleaseTemporaryRT(_CurrRT_ID);
             buffer.ReleaseTemporaryRT(_Combien_AO_RT_ID);
             buffer.ReleaseTemporaryRT(_GTAO_Texture_ID);
             buffer.ReleaseTemporaryRT(_BentNormal_Texture_ID);
             buffer.SetGlobalTexture(ShaderIDs._AOROTexture, historyData.prev_Texture);
+            buffer.Blit(historyData.prev_Texture, BuiltinRenderTextureType.CameraTarget, debugMat);
         }
     }
 
@@ -269,7 +279,7 @@ namespace MPipeline
                 prev_Texture.width = width;
                 prev_Texture.height = height;
                 prev_Texture.Create();
-              
+
             }
         }
 
@@ -284,7 +294,7 @@ namespace MPipeline
                 Object.DestroyImmediate(prev_Texture);
             }
 
-           
+
         }
     }
 }

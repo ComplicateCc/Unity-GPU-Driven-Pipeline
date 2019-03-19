@@ -31,7 +31,7 @@ float2 SpatialGTAO_Y_frag(PixelInput IN) : SV_Target
 	float4 Specular = tex2D(_CameraGBufferTexture1, uv);
 	float Roughness = 1 - Specular.a;
 
-	float Depth = tex2D(_CameraDepthTexture, uv).r;
+	float Depth = tex2D(_DownSampledDepthTexture, uv).r;
 	float4 worldPos = mul(_Inverse_View_ProjectionMatrix, float4(float3(uv * 2 - 1, Depth), 1));
 	worldPos.xyz /= worldPos.w;
 

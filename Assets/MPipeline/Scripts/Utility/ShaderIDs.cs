@@ -84,7 +84,6 @@ public static partial class ShaderIDs
     public static readonly int _AllSpotLight = Shader.PropertyToID("_AllSpotLight");
     public static readonly int _PointLightIndexBuffer = Shader.PropertyToID("_PointLightIndexBuffer");
     public static readonly int _SpotLightIndexBuffer = Shader.PropertyToID("_SpotLightIndexBuffer");
-    public static readonly int _FrameCount = Shader.PropertyToID("_FrameCount");
 
     public static readonly int heightMapBuffer = Shader.PropertyToID("heightMapBuffer");
     public static readonly int triangleBuffer = Shader.PropertyToID("triangleBuffer");
@@ -112,6 +111,7 @@ public static partial class ShaderIDs
     public static readonly int _ReflectionTextures = Shader.PropertyToID("_ReflectionTextures");
 
     public static readonly int _AOROTexture = Shader.PropertyToID("_AOROTexture");
+    public static readonly int _DownSampledDepthTexture = Shader.PropertyToID("_DownSampledDepthTexture");
     public static readonly int _Coeff = Shader.PropertyToID("_Coeff");
     public static readonly int _Tex3DSize = Shader.PropertyToID("_Tex3DSize");
     public static readonly int _WorldToLocalMatrix = Shader.PropertyToID("_WorldToLocalMatrix");

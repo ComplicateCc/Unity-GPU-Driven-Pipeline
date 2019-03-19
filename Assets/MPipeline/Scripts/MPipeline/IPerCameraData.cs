@@ -2,6 +2,10 @@
 using Unity.Collections.LowLevel.Unsafe;
 namespace MPipeline
 {
+    public interface IGetCameraData
+    {
+        IPerCameraData Run();
+    }
     public unsafe abstract class IPerCameraData
     {
         public static T GetProperty<T>(PipelineCamera camera, Func<T> initFunc, PipelineEvent evt) where T : IPerCameraData
@@ -31,6 +35,17 @@ namespace MPipeline
             if (!camera.allDatas.TryGetValue(evt, out data))
             {
                 data = initFunc(camera);
+                camera.allDatas.Add(evt, data);
+            }
+            return (T)data;
+        }
+
+        public static T GetProperty<T, R>(PipelineCamera camera, R runnable, PipelineEvent evt) where T : IPerCameraData where R : IGetCameraData 
+        {
+            IPerCameraData data;
+            if (!camera.allDatas.TryGetValue(evt, out data))
+            {
+                data = runnable.Run();
                 camera.allDatas.Add(evt, data);
             }
             return (T)data;

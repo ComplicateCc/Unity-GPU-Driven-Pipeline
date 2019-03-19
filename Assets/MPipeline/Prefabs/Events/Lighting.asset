@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d03bb786d57c3c4db2c26301cedb05b, type: 3}
   m_Name: Lighting
   m_EditorClassIdentifier: 
-  enabled: 1
+  enabled: 0
   localLightDistance: 10
   shadowLayer:
     serializedVersion: 2

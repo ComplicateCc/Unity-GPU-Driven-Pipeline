@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1a49654a285f6645961f5fdf60ff457, type: 3}
   m_Name: AO
   m_EditorClassIdentifier: 
-  enabled: 0
-  DirSampler: 3
-  SliceSampler: 2
-  Radius: 2.5
-  Intensity: 0.7
-  Power: 2.5
-  MultiBounce: 1
+  enabled: 1
+  DirSampler: 4
+  SliceSampler: 3
+  Radius: 2
+  Intensity: 1
+  Power: 1
   Sharpeness: 0.25
   TemporalScale: 5
   TemporalResponse: 1
+  shader: {fileID: 4800000, guid: c28b28b8ae9887645b7ea83498201e85, type: 3}

@@ -3,12 +3,11 @@
 #include "CGINC/Random.cginc"
 
 #define KERNEL_RADIUS 8
-int _AO_MultiBounce;
 float _AO_DirSampler, _AO_SliceSampler, _AO_Intensity, _AO_Radius, _AO_Power, _AO_Sharpeness, _AO_TemporalScale, _AO_TemporalResponse, _AO_HalfProjScale, _AO_TemporalOffsets, _AO_TemporalDirections;
 float2 _AO_FadeParams;
 float4	_AO_UVToView, _AO_RT_TexelSize, _AO_FadeValues;
 float4x4	_WorldToCameraMatrix, _CameraToWorldMatrix, _ProjectionMatrix, _LastFrameViewProjectionMatrix, _View_ProjectionMatrix, _Inverse_View_ProjectionMatrix;
-sampler2D _CameraGBufferTexture0, _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraMotionVectorsTexture, _CameraDepthTexture, _BentNormal_Texture, _GTAO_Texture, _GTAO_Spatial_Texture, _PrevRT, _CurrRT;
+sampler2D  _CameraGBufferTexture1, _CameraGBufferTexture2, _CameraMotionVectorsTexture, _DownSampledDepthTexture, _BentNormal_Texture, _GTAO_Texture, _GTAO_Spatial_Texture, _PrevRT, _CurrRT;
 struct VertexInput
 {
 	float4 vertex : POSITION;
@@ -129,7 +128,7 @@ inline float ComputeDistanceFade(const float distance)
 
 inline float3 GetPosition(float2 uv)
 {
-	float depth = tex2Dlod(_CameraDepthTexture, float4(uv, 0, 0)).r; 
+	float depth = tex2Dlod(_DownSampledDepthTexture, float4(uv, 0, 0)).r; 
 	float viewDepth = LinearEyeDepth(depth);
 	return float3((uv * _AO_UVToView.xy + _AO_UVToView.zw) * viewDepth, viewDepth);
 }

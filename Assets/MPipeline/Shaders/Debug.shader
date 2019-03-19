@@ -1,5 +1,9 @@
 ﻿Shader "Unlit/Debug"
 {
+    Properties
+    {
+        _MainTex("maintex", 2D) = "white"{}
+    }
     SubShader
     {
         Pass
@@ -30,14 +34,12 @@
                 return o;
             }
 
-            Texture2DArray _MainTex;
+            Texture2D _MainTex;
             SamplerState sampler_MainTex;
 
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 col = _MainTex.Sample(sampler_MainTex, float3(i.uv, 0));
-
-                return col;
+                return _MainTex.Sample(sampler_MainTex, i.uv).x;
             }
             ENDCG
         }

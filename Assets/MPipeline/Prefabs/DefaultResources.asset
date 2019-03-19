@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2dbd0823b00f58a4caf0bda5f81b5c91, type: 3}
   m_Name: DefaultResources
   m_EditorClassIdentifier: 
-  useSRPBatcher: 0
+  useSRPBatcher: 1
   availiableEvents:
   - {fileID: 11400000, guid: cfd7bbc3e9481ec458e874a8577ee260, type: 2}
   - {fileID: 11400000, guid: 2b92438e0f21bc94abd6c4972ddb265a, type: 2}
@@ -43,6 +43,7 @@ MonoBehaviour:
     ssrShader: {fileID: 4800000, guid: 18704a45733ea43459834cc74c454ac8, type: 3}
     indirectDepthShader: {fileID: 4800000, guid: 2896c2d5ef5101b46942a11a481cb2d6,
       type: 3}
+    depthDownSample: {fileID: 4800000, guid: 7061b45a41a45a8439883f503be20210, type: 3}
     HizLodShader: {fileID: 4800000, guid: 26c0c9d0c19bd4f4d958db01aa775f53, type: 3}
     motionVectorShader: {fileID: 4800000, guid: af8fd14c9f7a6d941b247fe88b7e37f6,
       type: 3}
