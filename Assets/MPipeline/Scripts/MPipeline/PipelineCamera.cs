@@ -25,7 +25,9 @@ namespace MPipeline
         public void EnableThis(PipelineResources res)
         {
             if (!targets.initialized)
+            {
                 targets = RenderTargets.Init();
+            }
         }
 
         private void OnEnable()
@@ -51,7 +53,7 @@ namespace MPipeline
         {
             foreach (var i in allDatas.Values)
                 i.DisposeProperty();
-            allDatas = null;
+            allDatas.Clear();
             cam = null;
         }
     }

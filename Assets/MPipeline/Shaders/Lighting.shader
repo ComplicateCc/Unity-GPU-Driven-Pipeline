@@ -48,47 +48,6 @@
             }
 
         ENDCG
-        Pass
-        {
-            Cull Off ZWrite Off ZTest Greater
-            Blend one one
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-	
-            float3 frag (v2f i) : SV_Target
-            {
-                float4 gbuffer0 = _CameraGBufferTexture0.Sample(sampler_CameraGBufferTexture0, i.uv);
-    			float4 gbuffer1 = _CameraGBufferTexture1.Sample(sampler_CameraGBufferTexture1, i.uv);
-    			float4 gbuffer2 = _CameraGBufferTexture2.Sample(sampler_CameraGBufferTexture2, i.uv);
-				float depth = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, i.uv);
-                
-				float4 wpos = mul(_InvVP, float4(i.uv * 2 - 1, depth, 1));
-                wpos /= wpos.w;
-                float2 aoro = gbuffer0.a;
-				#if EnableGTAO
-				aoro = min(aoro, _AOROTexture.Sample(sampler_AOROTexture, i.uv));
-                #endif
-				float3 viewDir = normalize(wpos.xyz - _WorldSpaceCameraPos);
-				UnityStandardData data = UnityStandardDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
-                float roughness = clamp(1 - data.smoothness, 0.02, 1);
-                float linearEyeDepth = LinearEyeDepth(depth);
-                float3 finalColor = 0;
-                #if ENABLE_SUN
-				#if ENABLE_SUNSHADOW
-					finalColor += CalculateSunLight(data, depth, wpos, viewDir);
-				#else
-					finalColor += CalculateSunLight_NoShadow(data, viewDir);
-				#endif
-                #endif
-                #if SPOTLIGHT || POINTLIGHT
-				finalColor += CalculateLocalLight(i.uv, wpos, linearEyeDepth, data.diffuseColor, data.normalWorld, gbuffer1, roughness, -viewDir);
-                #endif
-                
-                return finalColor;
-            }
-            ENDCG
-        }
 
         Pass
         {

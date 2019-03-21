@@ -1,10 +1,7 @@
 #ifndef __MPIPEDEFERRED_INCLUDE__
-#define __VOXELLIGHT_INCLUDE__
+#define __MPIPEDEFERRED_INCLUDE__
 
 #define UNITY_PASS_DEFERRED
-#include "UnityCG.cginc"
-#include "UnityDeferredLibrary.cginc"
-#include "UnityPBSLighting.cginc"
 
 		struct Input {
 			float2 uv_MainTex;
@@ -59,7 +56,7 @@ float4 _DetailAlbedo_ST;
 #define GetScreenPos(pos) ((float2(pos.x, pos.y) * 0.5) / pos.w + 0.5)
 
 
-float4 ProceduralStandardSpecular_Deferred (SurfaceOutputStandardSpecular s, float3 viewDir, out float4 outGBuffer0, out float4 outGBuffer1, out float4 outGBuffer2)
+float4 ProceduralStandardSpecular_Deferred (inout SurfaceOutputStandardSpecular s, float3 viewDir, out float4 outGBuffer0, out float4 outGBuffer1, out float4 outGBuffer2)
 {
     // energy conservation
     float oneMinusReflectivity;
@@ -97,6 +94,7 @@ struct v2f_surf {
 	#endif
   float3 lastScreenPos : TEXCOORD6;
 	float3 nonJitterScreenPos : TEXCOORD7;
+	float3 screenPos : TEXCOORD8;
 };
 struct appdata
 {
@@ -141,6 +139,7 @@ v2f_surf vert_surf (appdata v)
         #else
 				o.lastScreenPos = ComputeScreenPos(mul(_LastVp, worldPos)).xyw;
 				#endif
+				o.screenPos = ComputeScreenPos(o.pos).xyw;
   	return o;
 }
 
@@ -170,11 +169,32 @@ void frag_surf (v2f_surf IN,
   outEmission.xyz += unity_Lightmap.Sample(samplerunity_Lightmap, IN.lightmapUV).xyz* o.Albedo;
 	#endif
 	#endif
+
 	float4 velocity = float4(IN.nonJitterScreenPos.xy, IN.lastScreenPos.xy) / float4(IN.nonJitterScreenPos.zz, IN.lastScreenPos.zz);
 	outMotionVector = velocity.xy - velocity.zw;
   #if UNITY_UV_STARTS_AT_TOP
 	outMotionVector.y = -outMotionVector.y;
 	#endif
+
+	UnityStandardData standardData;
+	standardData.occlusion = o.Occlusion;
+	standardData.diffuseColor = o.Albedo;
+	standardData.specularColor = o.Specular;
+	standardData.smoothness = o.Smoothness;
+	standardData.normalWorld = o.Normal;
+	#if ENABLE_SUN
+					#if ENABLE_SUNSHADOW
+					outEmission.xyz +=max(0,  CalculateSunLight(standardData, depth, float4(worldPos, 1), -worldViewDir));
+					#else
+					outEmission.xyz +=max(0,  CalculateSunLight_NoShadow(standardData, -worldViewDir));
+					#endif
+					#endif
+					float linearEyeDepth = LinearEyeDepth(depth);
+					float Roughness = clamp(1 - standardData.smoothness, 0.02, 1);
+					float2 screenUV = IN.screenPos.xy / IN.screenPos.z;
+					#if SPOTLIGHT || POINTLIGHT
+					outEmission.xyz += max(0, CalculateLocalLight(screenUV, float4(worldPos, 1), linearEyeDepth, standardData.diffuseColor, o.Normal, outGBuffer1, Roughness, worldViewDir));
+					#endif
 }
 
 #endif

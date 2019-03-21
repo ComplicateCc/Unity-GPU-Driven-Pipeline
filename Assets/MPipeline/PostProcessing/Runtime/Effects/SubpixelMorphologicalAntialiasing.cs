@@ -26,12 +26,14 @@ namespace UnityEngine.Rendering.PostProcessing
         {
             return !RuntimeUtilities.isSinglePassStereoEnabled;
         }
-
-        internal void Render(PostProcessRenderContext context)
+        private static int _AreaTex = Shader.PropertyToID("_AreaTex");
+        private static int _SearchTex = Shader.PropertyToID("_SearchTex");
+        private static int _BlendTex = Shader.PropertyToID("_BlendTex");
+        public void Render(PostProcessRenderContext context)
         {
             var sheet = context.propertySheets.Get(context.resources.shaders.subpixelMorphologicalAntialiasing);
-            sheet.properties.SetTexture("_AreaTex", context.resources.smaaLuts.area);
-            sheet.properties.SetTexture("_SearchTex", context.resources.smaaLuts.search);
+            sheet.properties.SetTexture(_AreaTex, context.resources.smaaLuts.area);
+            sheet.properties.SetTexture(_SearchTex, context.resources.smaaLuts.search);
 
             var cmd = context.command;
             cmd.BeginSample("SubpixelMorphologicalAntialiasing");
@@ -41,7 +43,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             cmd.BlitFullscreenTriangle(context.source, ShaderIDs.SMAA_Flip, sheet, (int)Pass.EdgeDetection + (int)quality, true);
             cmd.BlitFullscreenTriangle(ShaderIDs.SMAA_Flip, ShaderIDs.SMAA_Flop, sheet, (int)Pass.BlendWeights + (int)quality);
-            cmd.SetGlobalTexture("_BlendTex", ShaderIDs.SMAA_Flop);
+            cmd.SetGlobalTexture(_BlendTex, ShaderIDs.SMAA_Flop);
             cmd.BlitFullscreenTriangle(context.source, context.destination, sheet, (int)Pass.NeighborhoodBlending);
 
             cmd.ReleaseTemporaryRT(ShaderIDs.SMAA_Flip);

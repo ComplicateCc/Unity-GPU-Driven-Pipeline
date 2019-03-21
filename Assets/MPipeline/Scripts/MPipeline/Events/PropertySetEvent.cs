@@ -14,6 +14,7 @@ namespace MPipeline
         public Matrix4x4 nonJitterVP { get; private set; }
        // public Matrix4x4 inverseNonJitterVP { get; private set; }
         private System.Func<PipelineCamera, LastVPData> getLastVP = (c) => new LastVPData(GL.GetGPUProjectionMatrix(c.cam.projectionMatrix, false) * c.cam.worldToCameraMatrix);
+        
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             LastVPData lastData = IPerCameraData.GetProperty(cam, getLastVP, this);

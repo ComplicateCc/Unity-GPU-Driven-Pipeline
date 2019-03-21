@@ -26,15 +26,18 @@ namespace MPipeline
         private NativeArray<FogVolume> resultVolume;
         private int fogCount = 0;
         private LightingEvent lightingData;
+        private ReflectionEvent reflectData;
+        private Material lightingMat;
 
         public override bool CheckProperty()
         {
-            return true;
+            return lightingMat;
         }
         protected override void Init(PipelineResources resources)
         {
             lightingData = RenderPipeline.GetEvent<LightingEvent>();
-            
+            reflectData = RenderPipeline.GetEvent<ReflectionEvent>();
+            lightingMat = new Material(resources.shaders.lightingShader);
         }
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
@@ -67,11 +70,6 @@ namespace MPipeline
             CommandBuffer buffer = data.buffer;
             ComputeShader scatter = data.resources.shaders.volumetricScattering;
             ref CBDRSharedData cbdr = ref lightingData.cbdr;
-            if (cbdr.lightFlag == 0 && (!lightingData.culler.cullingResult.isCreated || lightingData.culler.cullingResult.Length == 0))
-            {
-                cbdr.dirLightShadowmap = null;
-                return;
-            }
             int pass = 0;
             if (cbdr.dirLightShadowmap != null)
                 pass |= 0b010;
@@ -146,7 +144,7 @@ namespace MPipeline
             buffer.SetComputeIntParam(scatter, ShaderIDs._LightFlag, (int)cbdr.lightFlag);
             int3 dispatchCount = int3(downSampledSize.x / 2, downSampledSize.y / 2, downSampledSize.z / marchStep);
             buffer.DispatchCompute(scatter, clearPass, dispatchCount.x, dispatchCount.y, dispatchCount.z);
-            NativeList<int> cullingResult = lightingData.culler.cullingResult;
+            NativeList<int> cullingResult = reflectData.culler.cullingResult;
             if (cullingResult.isCreated && cullingResult.Length > 0)
             {
                 buffer.SetComputeTextureParam(scatter, calculateGI, ShaderIDs._VolumeTex, ShaderIDs._VolumeTex);
@@ -171,7 +169,7 @@ namespace MPipeline
             buffer.CopyTexture(ShaderIDs._VolumeTex, historyVolume.lastVolume);
             buffer.DispatchCompute(scatter, scatterPass, downSampledSize.x / 32, downSampledSize.y / 2, 1);
             cbdr.lightFlag = 0;
-            buffer.BlitSRT(cam.targets.renderTargetIdentifier, lightingData.lightingMat, 1);
+            buffer.BlitSRT(cam.targets.renderTargetIdentifier, lightingMat, 0);
         }
 
         protected override void OnEnable()
@@ -192,7 +190,7 @@ namespace MPipeline
 
         protected override void Dispose()
         {
-
+            DestroyImmediate(lightingMat);
         }
         [Unity.Burst.BurstCompile]
         public unsafe struct FogVolumeCalculate : IJobParallelFor

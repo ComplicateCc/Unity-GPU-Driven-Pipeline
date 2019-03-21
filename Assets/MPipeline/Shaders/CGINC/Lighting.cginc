@@ -8,15 +8,7 @@ float2 _CameraClipDistance; //X: Near Y: Far - Near
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
 //UNITY_SAMPLE_SHADOW
 Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
-static const int _ShadowSampler = 20;
-	static const float3 Offsets[20] = 
-	{
-	float3( 1.0,  1.0,  1.0), float3( 1.0, -1.0,  1.0), float3(-1.0, -1.0,  1.0), float3(-1.0,  1.0,  1.0), 
-	float3( 1.0,  1.0, -1.0), float3( 1.0, -1.0, -1.0), float3(-1.0, -1.0, -1.0), float3(-1.0,  1.0, -1.0),
-	float3( 1.0,  1.0,  0.0), float3( 1.0, -1.0,  0.0), float3(-1.0, -1.0,  0.0), float3(-1.0,  1.0,  0.0),
-	float3( 1.0,  0.0,  1.0), float3(-1.0,  0.0,  1.0), float3( 1.0,  0.0, -1.0), float3(-1.0,  0.0, -1.0),
-	float3( 0.0,  1.0,  1.0), float3( 0.0, -1.0,  1.0), float3( 0.0, -1.0, -1.0), float3( 0.0,  1.0, -1.0)
-	};
+static const int _ShadowSampler = 12;
 float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3 AlbedoColor, float3 WorldNormal, float4 SpecularColor, float Roughness, float3 ViewDir)
 {
 	float ShadowTrem = 0;
@@ -68,8 +60,10 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 			[loop]
 			for(int i = 0; i < _ShadowSampler; ++i)
 			{
-				JitterSpot = cellNoise(JitterSpot);
-				ShadowTrem += _SpotMapArray.SampleCmpLevelZero( sampler_SpotMapArray, float3( (clipPos.xy * 0.5 + 0.5) + ( JitterSpot / (ShadowResolution / 3) ) + ( (Offsets[i]) / ShadowResolution ), Light.shadowIndex), clipPos.z);
+				JitterSpot = cellNoise(JitterSpot) * 3.1415927;
+				float2 angle;
+				sincos(JitterSpot.x, angle.x, angle.y);
+				ShadowTrem += _SpotMapArray.SampleCmpLevelZero( sampler_SpotMapArray, float3( (clipPos.xy * 0.5 + 0.5) + ( (angle * JitterSpot.y) / (ShadowResolution) ), Light.shadowIndex), clipPos.z);
 
 			}
 			ShadowTrem /= float(_ShadowSampler);
@@ -104,7 +98,7 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 		if(dot(Energy, 1) < 1e-5) continue;
 		//////Shadow
 		
-		const float ShadowResolution = 384;
+		const float ShadowResolution = 192;
 		
 		if (Light.shadowIndex >= 0) {
 			
@@ -113,7 +107,7 @@ float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3
 			for(int i = 0; i < _ShadowSampler; ++i)
 			{
 				JitterPoint = cellNoise(JitterPoint);
-				float ShadowMap = _CubeShadowMapArray.Sample( sampler_CubeShadowMapArray, float4( ( LightDir + ( JitterPoint /  ShadowResolution) + ( (Offsets[i] * 2) / ShadowResolution ) ), Light.shadowIndex ) );
+				float ShadowMap = _CubeShadowMapArray.Sample( sampler_CubeShadowMapArray, float4( ( LightDir + ( JitterPoint /  ShadowResolution) ), Light.shadowIndex ) );
 				ShadowTrem += DepthMap < ShadowMap;
 			}
 			ShadowTrem /= float(_ShadowSampler);

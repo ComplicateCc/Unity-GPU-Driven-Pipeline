@@ -21,4 +21,3 @@ MonoBehaviour:
   Sharpeness: 0.25
   TemporalScale: 5
   TemporalResponse: 1
-  shader: {fileID: 4800000, guid: c28b28b8ae9887645b7ea83498201e85, type: 3}

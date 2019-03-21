@@ -32,10 +32,11 @@
 	#include "CGINC/Sunlight.cginc"
 	#pragma multi_compile __ ENABLE_SUN
 	#pragma multi_compile __ ENABLE_SUNSHADOW
+	#pragma multi_compile __ POINTLIGHT
+	#pragma multi_compile __ SPOTLIGHT
 	#pragma multi_compile __ ENABLE_VOLUMETRIC
 	#pragma multi_compile __ ENABLE_REFLECTION
-	#pragma multi_compile _ POINTLIGHT
-	#pragma multi_compile _ SPOTLIGHT
+
 	float4 _Color;
 	sampler2D _MainTex; float4 _MainTex_ST;
 	sampler2D _SpecularTex;
@@ -90,15 +91,15 @@
 					float3 finalColor = 0;
 					#if ENABLE_SUN
 					#if ENABLE_SUNSHADOW
-					finalColor += CalculateSunLight(standardData, i.pos.z, float4(i.worldPos, 1), viewDir);
+					finalColor += max(0, CalculateSunLight(standardData, i.pos.z, float4(i.worldPos, 1), viewDir));
 					#else
-					finalColor += CalculateSunLight_NoShadow(standardData, viewDir);
+					finalColor += max(0, CalculateSunLight_NoShadow(standardData, viewDir));
 					#endif
 					#endif
 					#if ENABLE_REFLECTION
 					finalColor += CalculateReflection(linearEyeDepth, i.worldPos, viewDir, specular, normal, 1, screenUV);
 					#endif
-					finalColor += CalculateLocalLight(screenUV, float4(i.worldPos, 1), linearEyeDepth, standardData.diffuseColor, normal, specular, Roughness, -viewDir);
+					finalColor += max(0, CalculateLocalLight(screenUV, float4(i.worldPos, 1), linearEyeDepth, standardData.diffuseColor, normal, specular, Roughness, -viewDir));
 					#if ENABLE_VOLUMETRIC
 					float4 fogColor = Fog(linear01Depth, screenUV);
 					finalColor = lerp(fogColor.rgb, finalColor, fogColor.a);

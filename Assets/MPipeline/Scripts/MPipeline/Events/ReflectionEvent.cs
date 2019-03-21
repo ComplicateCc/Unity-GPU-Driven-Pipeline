@@ -7,6 +7,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using UnityEngine.Rendering;
 using Unity.Mathematics;
+using static Unity.Mathematics.math;
 namespace MPipeline
 {
     [CreateAssetMenu(menuName = "GPURP Events/Reflection")]
@@ -28,12 +29,17 @@ namespace MPipeline
         private ComputeBuffer reflectionIndices;
         private Material reflectionMat;
         private NativeList<int> reflectionCubemapIDs;
+        private Material irradianceVolumeMat;
+       
+        [SerializeField]
+        public IrradianceCuller culler;
         [SerializeField]
         private StochasticScreenSpaceReflection ssrEvents;
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
+
         public override bool CheckProperty()
         {
-            return reflectionIndices.IsValid() && ssrEvents.MaterialEnabled();
+            return reflectionIndices.IsValid() && ssrEvents.MaterialEnabled()&& irradianceVolumeMat;
         }
         protected override void OnEnable()
         {
@@ -59,6 +65,7 @@ namespace MPipeline
             string old = "_ReflectionCubeMap";
             string newStr = new string(' ', old.Length + 1);
             reflectionCubemapIDs = new NativeList<int>(maximumProbe, maximumProbe, Allocator.Persistent);
+            irradianceVolumeMat = new Material(resources.shaders.irradianceVolumeShader);
             fixed (char* ctr = old)
             {
                 fixed (char* newCtr = newStr)
@@ -79,6 +86,7 @@ namespace MPipeline
         }
         protected override void Dispose()
         {
+            DestroyImmediate(irradianceVolumeMat);
             probeBuffer.Dispose();
             reflectionIndices.Dispose();
             reflectionCubemapIDs.Dispose();
@@ -88,6 +96,7 @@ namespace MPipeline
 
         public override void PreRenderFrame(PipelineCamera cam, ref PipelineCommandData data)
         {
+            culler.PreRenderFrame(ref data);
             reflectProbes = data.cullResults.visibleReflectionProbes;
             int count = Mathf.Min(maximumProbe, reflectProbes.Length);
             reflectionData = new NativeArray<ReflectionData>(count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
@@ -97,9 +106,31 @@ namespace MPipeline
                 allProbes = reflectProbes.Ptr()
             }.Schedule(count, 32);
         }
-
+        private void DrawGI(CommandBuffer buffer, ref CoeffTexture currentTexture, Matrix4x4 localToWorld)
+        {
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[0], currentTexture.coeff0);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[1], currentTexture.coeff1);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[2], currentTexture.coeff2);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[3], currentTexture.coeff3);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[4], currentTexture.coeff4);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[5], currentTexture.coeff5);
+            buffer.SetGlobalTexture(IrradianceVolumeController.current._CoeffIDs[6], currentTexture.coeff6);
+            buffer.SetGlobalMatrix(ShaderIDs._WorldToLocalMatrix, localToWorld.inverse);
+            buffer.DrawMesh(GraphicsUtility.cubeMesh, localToWorld, irradianceVolumeMat, 0, 0);
+        }
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
+            culler.FrameUpdate();
+            if (culler.cullingResult.isCreated && culler.cullingResult.Length > 0)
+            {
+                data.buffer.SetRenderTarget(color: cam.targets.renderTargetIdentifier, depth: cam.targets.depthBuffer);
+                foreach (var i in culler.cullingResult)
+                {
+                    ref LoadedIrradiance irr = ref IrradianceVolumeController.current.loadedIrradiance[i];
+                    CoeffTexture coefTex = IrradianceVolumeController.current.coeffTextures[irr.renderTextureIndex];
+                    DrawGI(data.buffer, ref coefTex, new Matrix4x4(float4(irr.localToWorld.c0, 0), float4(irr.localToWorld.c1, 0), float4(irr.localToWorld.c2, 0), float4(irr.position, 1)));
+                }
+            }
             storeDataHandler.Complete();
             int count = Mathf.Min(maximumProbe, reflectProbes.Length);
             reflectionEnabled = (count > 0);
@@ -124,8 +155,8 @@ namespace MPipeline
             if (ssrEvents.enabled)
             {
                 ssrEvents.Render(ref data, cam, this);
-                //buffer.Blit(rt, cam.targets.renderTargetIdentifier);
                 buffer.EnableShaderKeyword("ENABLE_SSR");
+
             }
             else
             {

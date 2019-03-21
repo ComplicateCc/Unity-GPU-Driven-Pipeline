@@ -43,9 +43,9 @@ namespace MPipeline
         public static readonly Type[] gpuDeferredType =
         {
        typeof(PropertySetEvent),
+       typeof(LightingEvent),
        typeof(GeometryEvent),
        typeof(AOEvents),
-       typeof(LightingEvent),
        typeof(SkyboxEvent),
        typeof(ReflectionEvent),
        typeof(VolumetricLightEvent),

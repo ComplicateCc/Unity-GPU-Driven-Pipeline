@@ -112,12 +112,9 @@ namespace MPipeline
         private static int _Combien_AO_RT_ID = Shader.PropertyToID("_Combien_AO_RT");
         private RenderTargetIdentifier[] AO_BentNormal_ID = new RenderTargetIdentifier[2];
         /* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* *//* */
-        public Shader shader;
-        private Material debugMat;
         private Material downSampleDepthMat;
         protected override void Init(PipelineResources resources)
         {
-            debugMat = new Material(shader);
             downSampleDepthMat = new Material(resources.shaders.depthDownSample);
             GTAOMaterial = new Material(resources.shaders.gtaoShader);
             propertySetEvent = RenderPipeline.GetEvent<PropertySetEvent>();
@@ -257,7 +254,6 @@ namespace MPipeline
             buffer.ReleaseTemporaryRT(_GTAO_Texture_ID);
             buffer.ReleaseTemporaryRT(_BentNormal_Texture_ID);
             buffer.SetGlobalTexture(ShaderIDs._AOROTexture, historyData.prev_Texture);
-            buffer.Blit(historyData.prev_Texture, BuiltinRenderTextureType.CameraTarget, debugMat);
         }
     }
 

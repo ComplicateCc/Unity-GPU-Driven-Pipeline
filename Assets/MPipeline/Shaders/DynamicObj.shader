@@ -22,8 +22,21 @@
 CGINCLUDE
 #pragma shader_feature DETAIL_ON
 #pragma target 5.0
+#pragma multi_compile __ ENABLE_SUN
+			#pragma multi_compile __ ENABLE_SUNSHADOW
+			#pragma multi_compile __ POINTLIGHT
+			#pragma multi_compile __ SPOTLIGHT
 //#define LIGHTMAP
 #define MOTION_VECTOR
+#include "UnityCG.cginc"
+#include "UnityDeferredLibrary.cginc"
+#include "UnityPBSLighting.cginc"
+#include "CGINC/VoxelLight.cginc"
+#include "CGINC/Shader_Include/Common.hlsl"
+#include "CGINC/Shader_Include/BSDF_Library.hlsl"
+#include "CGINC/Shader_Include/AreaLight.hlsl"
+#include "CGINC/Sunlight.cginc"
+#include "CGINC/Lighting.cginc"
 #include "CGINC/MPipeDeferred.cginc"
 ENDCG
 
@@ -55,6 +68,7 @@ ENDCG
 			#pragma exclude_renderers gles
 			#include "UnityCG.cginc"
 			#include "CGINC/Procedural.cginc"
+			
 			float4x4 _ShadowMapVP;
 			struct appdata_shadow
 			{

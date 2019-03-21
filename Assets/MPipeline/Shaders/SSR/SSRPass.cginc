@@ -411,14 +411,11 @@ half4 Temporalfilter_SingleSPP(PixelInput i) : SV_Target
 	half4 SSR_MinColor, SSR_MaxColor;
 	ResolverAABB(_SSR_Spatial_RT, 0, 10, _SSR_TemporalScale, UV, _SSR_ScreenSize.xy, SSR_MinColor, SSR_MaxColor, SSR_CurrColor);
 	float2 PrevUV = UV - Velocity;
-	if(abs(dot(PrevUV - saturate(PrevUV), 1)) > 1e-5) return SSR_CurrColor;
+	if(abs(dot(PrevUV - saturate(PrevUV), 1)) > 1e-5) return float4(SSR_CurrColor.rgb, SSR_CurrColor.a / 2);
 	/////Clamp TemporalColor
 	half4 SSR_PrevColor = tex2D(_SSR_TemporalPrev_RT, PrevUV);
-	SSR_PrevColor = clamp(SSR_PrevColor, SSR_MinColor, SSR_MaxColor);
-
-	/////Combine TemporalColor
-	half Temporal_BlendWeight = saturate(_SSR_TemporalWeight);
-	half4 ReflectionColor = lerp(SSR_CurrColor, SSR_PrevColor, Temporal_BlendWeight);
+	SSR_PrevColor = clamp(SSR_PrevColor, SSR_MinColor * 0.8 , SSR_MaxColor * (1.0 / 0.8));
+	half4 ReflectionColor = lerp(SSR_CurrColor, SSR_PrevColor, _SSR_TemporalWeight);
 
 	return ReflectionColor;
 }

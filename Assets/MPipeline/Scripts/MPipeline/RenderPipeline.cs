@@ -137,6 +137,16 @@ namespace MPipeline
                     }
                 }
             }
+            foreach (var i in PipelineCamera.allCamera)
+            {
+                PipelineCamera cam = MUnsafeUtility.GetObject<PipelineCamera>(i.ToPointer());
+                var values = cam.allDatas.Values;
+                foreach (var j in values)
+                {
+                    j.DisposeProperty();
+                }
+                cam.allDatas.Clear();
+            }
         }
         protected override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
