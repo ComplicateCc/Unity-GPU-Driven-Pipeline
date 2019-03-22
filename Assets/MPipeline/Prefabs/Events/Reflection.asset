@@ -20,7 +20,7 @@ MonoBehaviour:
     enabled: 0
     TraceMethod: 0
     RayCastingResolution: 1
-    Denoise: 1
+    Denoise: 0
     RayNums: 1
     BRDFBias: 0.92
     Thickness: 0.05

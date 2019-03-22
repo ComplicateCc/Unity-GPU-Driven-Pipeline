@@ -177,28 +177,11 @@ inline uint From3DTo1D(uint3 id, const uint3 size){
     const uint3 multiValue = uint3(1, size.x, size.x * size.y);
     return dot(id, multiValue);
 }
+#include "CGINC/Random.cginc"
 
-float4 _RandomSeed;
-
-inline uint ihash(uint n)
+float4 RenderVoxel(uint3 id, float3 currentColor, inout float3 jitterCoord, const float offset)
 {
-	n = (n << 13) ^ n;
-	return (n*(n*n * 15731 + 789221) + 1376312589) & 2147483647;
-}
-
-inline float3 getRandomFloat3(inout uint index)
-{
-    uint3 value;
-    value.x = ihash(index);
-    value.y = ihash(value.x);
-    value.z = ihash(value.y);
-    index = value.z;
-    return frac(sin( value * float3(9.313225746154785e-9, 2.8616876848645469e-9, 4.4687613857687e-9) * _RandomSeed.xyz + _RandomSeed.w));
-}
-
-float4 RenderVoxel(uint3 id, float3 currentColor, inout uint value, const float offset)
-{
-    float3 jitterCoord = getRandomFloat3(value);
+    jitterCoord = frac(cellNoise(jitterCoord));
     jitterCoord.z *= 0.5;
     jitterCoord.z += offset;
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
@@ -221,7 +204,7 @@ float4 RenderVoxel(uint3 id, float3 currentColor, inout uint value, const float 
 [numthreads(2, 2, VOXELZ)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    uint value = From3DTo1D(id, _ScreenSize);
+    float3 value = (float3)id / (float3)_ScreenSize;
     float3 currentColor = _VolumeTex[id].xyz;
     _VolumeTex[id] = (RenderVoxel(id, currentColor, value, 0) + RenderVoxel(id, currentColor, value, 0.5) ) * 0.5;
 }
@@ -235,8 +218,8 @@ void Clear(uint3 id : SV_DISPATCHTHREADID)
 [numthreads(2, 2, VOXELZ)]
 void CalculateGI(uint3 id : SV_DISPATCHTHREADID)
 {
-    uint value = From3DTo1D(id, _ScreenSize);
-    float3 jitterCoord = getRandomFloat3(value);
+    float3 value = (float3)id / (float3)_ScreenSize;
+    float3 jitterCoord = frac(cellNoise(value));
     jitterCoord *= float3(0.7, 0.7, 0.5);
     jitterCoord += float3(0.15, 0.15, 0.25);
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
@@ -271,4 +254,3 @@ void Scatter(uint2 id : SV_DISPATCHTHREADID)
 		_VolumeTex[pos] = accum;
 	}
 }
-

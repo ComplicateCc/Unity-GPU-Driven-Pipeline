@@ -17,7 +17,6 @@ float3 _DirLightFinalColor;
 float _ShadowOffset;
 float GetShadow(float4 worldPos, float depth)
 {
-	float3 seed = normalize(worldPos);
 	float eyeDistance = LinearEyeDepth(depth);
 	float4 eyeRange = eyeDistance < _ShadowDisableDistance;
 	eyeRange.yzw -= eyeRange.xyz;
@@ -26,6 +25,7 @@ float GetShadow(float4 worldPos, float depth)
 	float4 shadowPos = mul(vpMat, worldPos);
 	float2 shadowUV = shadowPos.xy;
 	shadowUV = shadowUV * 0.5 + 0.5;
+	float2 seed = shadowUV;
 	float softValue = dot(_SoftParam, eyeRange);
 	#if UNITY_REVERSED_Z
 	float dist = shadowPos.z + _ShadowOffset;
@@ -36,8 +36,9 @@ float GetShadow(float4 worldPos, float depth)
 	for (int i = 0; i < SAMPLECOUNT; ++i)
 	{
 		seed = cellNoise(seed);
-		seed.xy = normalize(seed.xy);
-		atten += _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV + seed.xy * seed.z * softValue, zAxisUV + 0.01), dist);
+		float2 angle;
+		sincos(seed.x, angle.x, angle.y);
+		atten += _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV + angle * seed.y * softValue, zAxisUV + 0.01), dist);
 	}
 	atten /= SAMPLECOUNT;
 	float fadeDistance = saturate((_ShadowDisableDistance.w - eyeDistance) / (_ShadowDisableDistance.w * 0.05));

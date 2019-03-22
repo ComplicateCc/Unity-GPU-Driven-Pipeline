@@ -28,7 +28,7 @@ namespace MPipeline
             buffer.SetGlobalMatrix(ShaderIDs._NonJitterVP, nonJitterVP);
             buffer.SetGlobalMatrix(ShaderIDs._NonJitterTextureVP, GL.GetGPUProjectionMatrix(cam.cam.nonJitteredProjectionMatrix, true) * cam.cam.worldToCameraMatrix);
             buffer.SetGlobalMatrix(ShaderIDs._InvVP, data.inverseVP);
-            buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 1000 + 100));
+            buffer.SetGlobalVector(ShaderIDs._RandomSeed, (float4)(rand.NextDouble4() * 10000 + 1000));
             lastVp = nonJitterVP;
         }
         protected override void Init(PipelineResources resources)
