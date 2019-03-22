@@ -6,7 +6,7 @@
 		//64 for PC
 		//#define SAMPLECOUNT 16
 		//#define SAMPLECOUNT 32
-#define SAMPLECOUNT 16
+#define SAMPLECOUNT 12
 
 float4 _SoftParam;
 float4x4 _ShadowMapVPs[4];

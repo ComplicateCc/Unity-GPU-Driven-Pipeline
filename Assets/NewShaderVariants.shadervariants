@@ -21,6 +21,8 @@ ShaderVariantCollection:
   - first: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
+      - keywords: DIRECTIONAL LIGHTMAP_ON
+        passType: 4
       - keywords: DIRECTIONAL LIGHTPROBE_SH
         passType: 4
       - keywords: DIRECTIONAL LIGHTPROBE_SH _EMISSION
@@ -29,8 +31,15 @@ ShaderVariantCollection:
         passType: 5
       - keywords: SHADOWS_DEPTH
         passType: 8
+      - keywords: LIGHTMAP_ON UNITY_HDR_ON
+        passType: 10
       - keywords: LIGHTPROBE_SH UNITY_HDR_ON
         passType: 10
+  - first: {fileID: 47, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: INSTANCING_ON SHADOWS_DEPTH
+        passType: 8
   - first: {fileID: 64, guid: 0000000000000000f000000000000000, type: 0}
     second:
       variants:
@@ -121,11 +130,6 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
-  - first: {fileID: 4800000, guid: 59587a2c9dce614429a67657b3058d89, type: 3}
-    second:
-      variants:
-      - keywords: 
-        passType: 0
   - first: {fileID: 4800000, guid: 570f61f4159173a449116b777a6d5480, type: 3}
     second:
       variants:
@@ -155,11 +159,6 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 0
-  - first: {fileID: 4800000, guid: b18907693260b7442b86918d80df23f8, type: 3}
-    second:
-      variants:
-      - keywords: 
-        passType: 0
   - first: {fileID: 4800000, guid: bed89509ad0b6d844a4a9086fbabac3c, type: 3}
     second:
       variants:
@@ -174,6 +173,12 @@ ShaderVariantCollection:
     second:
       variants:
       - keywords: 
+        passType: 0
+      - keywords: COLOR_GRADING_HDR_3D
+        passType: 0
+      - keywords: BLOOM COLOR_GRADING_HDR_3D
+        passType: 0
+      - keywords: BLOOM CHROMATIC_ABERRATION COLOR_GRADING_HDR_3D
         passType: 0
       - keywords: BLOOM CHROMATIC_ABERRATION COLOR_GRADING_HDR_3D DISTORT
         passType: 0
@@ -230,9 +235,17 @@ ShaderVariantCollection:
   - first: {fileID: 4800000, guid: f7f0d8bc677efcc44b8b3ea293d2b74f, type: 3}
     second:
       variants:
-      - keywords: 
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW LIGHTMAP_ON
         passType: 13
-      - keywords: LIGHTMAP_ON
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW LIGHTMAP_ON SPOTLIGHT
+        passType: 13
+      - keywords: DETAIL_ON ENABLE_SUN ENABLE_SUNSHADOW LIGHTMAP_ON
+        passType: 13
+      - keywords: DETAIL_ON ENABLE_SUN ENABLE_SUNSHADOW LIGHTMAP_ON SPOTLIGHT
+        passType: 13
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW LIGHTMAP_ON POINTLIGHT
+        passType: 13
+      - keywords: DETAIL_ON ENABLE_SUN ENABLE_SUNSHADOW LIGHTMAP_ON POINTLIGHT
         passType: 13
   - first: {fileID: 4800000, guid: f997a3dc9254c44459323cced085150c, type: 3}
     second:
@@ -252,13 +265,11 @@ ShaderVariantCollection:
   - first: {fileID: 4800000, guid: b10a195e54d72984783eb1f2f49aa43f, type: 3}
     second:
       variants:
-      - keywords: ENABLE_SUNSHADOW EnableGTAO
-        passType: 0
       - keywords: ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO
         passType: 0
-      - keywords: ENABLE_SUNSHADOW EnableGTAO SPOTLIGHT
-        passType: 0
       - keywords: ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO SPOTLIGHT
+        passType: 0
+      - keywords: ENABLE_SUN ENABLE_SUNSHADOW EnableGTAO POINTLIGHT
         passType: 0
   - first: {fileID: 4800000, guid: a4b6cd62c2a13814d993be22ee50d68d, type: 3}
     second:
@@ -277,21 +288,11 @@ ShaderVariantCollection:
       variants:
       - keywords: 
         passType: 13
-  - first: {fileID: 4800000, guid: 18704a45733ea43459834cc74c454ac8, type: 3}
-    second:
-      variants:
-      - keywords: 
-        passType: 0
   - first: {fileID: 4800000, guid: 2e72d662f1ade4d4793cb016a15b5b17, type: 3}
     second:
       variants:
       - keywords: 
         passType: 0
-  - first: {fileID: 4800000, guid: ccefdd4cfe6d5f843b027cb2b1ca6776, type: 3}
-    second:
-      variants:
-      - keywords: 
-        passType: 13
   - first: {fileID: 4800000, guid: 7061b45a41a45a8439883f503be20210, type: 3}
     second:
       variants:

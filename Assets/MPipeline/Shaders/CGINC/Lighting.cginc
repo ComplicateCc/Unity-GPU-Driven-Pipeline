@@ -8,7 +8,7 @@ float2 _CameraClipDistance; //X: Near Y: Far - Near
 TextureCubeArray<float> _CubeShadowMapArray; SamplerState sampler_CubeShadowMapArray;
 //UNITY_SAMPLE_SHADOW
 Texture2DArray<float> _SpotMapArray; SamplerComparisonState sampler_SpotMapArray;
-static const float _ShadowSampler = 12;
+static const float _ShadowSampler = 8.0;
 float3 CalculateLocalLight(float2 uv, float4 WorldPos, float linearDepth, float3 AlbedoColor, float3 WorldNormal, float4 SpecularColor, float Roughness, float3 ViewDir)
 {
 	float ShadowTrem = 0;
