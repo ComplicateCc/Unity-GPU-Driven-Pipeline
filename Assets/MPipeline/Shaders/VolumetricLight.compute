@@ -179,7 +179,7 @@ inline uint From3DTo1D(uint3 id, const uint3 size){
 }
 #include "CGINC/Random.cginc"
 
-float4 RenderVoxel(uint3 id, float3 currentColor, inout float3 jitterCoord, const float offset)
+float4 RenderVoxel(uint3 id, inout float3 jitterCoord, const float offset)
 {
     jitterCoord = frac(cellNoise(jitterCoord));
     jitterCoord.z *= 0.5;
@@ -187,26 +187,32 @@ float4 RenderVoxel(uint3 id, float3 currentColor, inout float3 jitterCoord, cons
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
-    float linearDepth = lerp(_NearFarClip.z, _MaxDistance, pow(lerpPos, 1.5));
+    float linearDepth = lerp(_NearFarClip.z, _MaxDistance, pow(lerpPos, FROXELRATE));
+    float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
+    targetWorldPos /= targetWorldPos.w;
+    float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
+    col.rgb *= col.a;
+    return col;
+}
+[numthreads(2, 2, VOXELZ)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float3 value = (float3)id / (float3)_ScreenSize;
+    float4 col = (RenderVoxel(id, value, 0) + RenderVoxel(id, value, 0.5) ) * 0.5;
+    float2 uv = saturate(float2(id.xy + 0.5) / (float2)(_ScreenSize.xy));
+    float2 projCoord = uv * 2 - 1;
+    float lerpPos = (id.z +  0.5) / ((float)_ScreenSize.z);
+    float linearDepth = lerp(_NearFarClip.z, _MaxDistance, pow(lerpPos, FROXELRATE));
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
     targetWorldPos /= targetWorldPos.w;
     float4 lastWorldPos = float4(targetWorldPos.xyz - _SceneOffset.xyz, 1);
     float4 lastFrameClip = mul(_LastVp, lastWorldPos);
     lastFrameClip /= lastFrameClip.w;
     float3 lastFrameUV = float3(lastFrameClip.xy * 0.5 + 0.5, (LinearEyeDepth(lastFrameClip.z) - _NearFarClip.z) / (_MaxDistance - _NearFarClip.z));
-    lastFrameUV.z = pow(lastFrameUV.z, 1 / 1.5);
+    lastFrameUV.z = pow(lastFrameUV.z, 1 / FROXELRATE);
     float4 lastFrameColor = _LastVolume.SampleLevel(sampler_LastVolume, lastFrameUV, 0);
-    float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
-    col.rgb *= col.a;
-   float reprojectionValid = lerp(_TemporalWeight * (abs(dot(lastFrameUV - saturate(lastFrameUV), 1)) < 1e-4), 0.999, _SceneOffset.w);
-    return float4(lerp(col.xyz + currentColor, lastFrameColor.xyz, reprojectionValid) , col.w);
-}
-[numthreads(2, 2, VOXELZ)]
-void CSMain (uint3 id : SV_DispatchThreadID)
-{
-    float3 value = (float3)id / (float3)_ScreenSize;
-    float3 currentColor = _VolumeTex[id].xyz;
-    _VolumeTex[id] = (RenderVoxel(id, currentColor, value, 0) + RenderVoxel(id, currentColor, value, 0.5) ) * 0.5;
+    float reprojectionValid = lerp(_TemporalWeight * (abs(dot(lastFrameUV - saturate(lastFrameUV), 1)) < 1e-4), 0.999, _SceneOffset.w);
+    _VolumeTex[id] = float4(lerp(col.xyz + _VolumeTex[id].xyz, lastFrameColor.xyz, reprojectionValid) , col.w);
 }
 
 [numthreads(2,2,VOXELZ)]
@@ -225,7 +231,7 @@ void CalculateGI(uint3 id : SV_DISPATCHTHREADID)
     float2 uv = saturate(float2(id.xy + jitterCoord.xy) / (float2)(_ScreenSize.xy));
     float2 projCoord = uv * 2 - 1;
     float lerpPos = (id.z+  jitterCoord.z) / ((float)_ScreenSize.z);
-    float linearDepth = lerp(_NearFarClip.z, _MaxDistance, pow(lerpPos, 1.5));
+    float linearDepth = lerp(_NearFarClip.z, _MaxDistance, pow(lerpPos, FROXELRATE));
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
     targetWorldPos /= targetWorldPos.w;
     float3 shUV = GetSHUV(targetWorldPos.xyz);
@@ -247,7 +253,7 @@ void Scatter(uint2 id : SV_DISPATCHTHREADID)
 		pos.z = z;
 		float4 slice = _VolumeTex[pos];
 		 float currentDist = (z + 1.0) / _ScreenSize.z;
-        currentDist = pow(currentDist, 1.5);
+        currentDist = pow(currentDist, FROXELRATE);
         slice *= (currentDist - lastDist) * _ScreenSize.z;
 		accum = ScatterStep(accum.rgb, accum.a, slice.rgb, slice.a);
         lastDist = currentDist;
