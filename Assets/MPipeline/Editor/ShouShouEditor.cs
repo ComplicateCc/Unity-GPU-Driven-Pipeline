@@ -15,5 +15,12 @@ public class ShouShouEditor : ShaderGUI
         {
             targetMat.EnableKeyword("DETAIL_ON");
         }
+        if(targetMat.GetFloat("_Cutoff") < 0.00001f)
+        {
+            targetMat.DisableKeyword("CUT_OFF");
+        }else
+        {
+            targetMat.EnableKeyword("CUT_OFF");
+        }
     }
 }

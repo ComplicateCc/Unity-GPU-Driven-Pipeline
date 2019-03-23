@@ -4,15 +4,17 @@
 		_Color ("Color", Color) = (1,1,1,1)
 		_Glossiness ("Smoothness", Range(0,1)) = 0.5
 		_Occlusion("Occlusion Scale", Range(0,1)) = 1
+		_Cutoff("Cut off", Range(0, 1)) = 0
 		_SpecularIntensity("Specular Intensity", Range(0,1)) = 0.3
 		_MetallicIntensity("Metallic Intensity", Range(0, 1)) = 0.1
-		_EmissionColor("Emission Color", Color) = (0,0,0,1)
-		_EmissionMap("Emission Map", 2D) = "white"{}
 		_MainTex ("Albedo (RGB)DetailMask(A)", 2D) = "white" {}
 		_BumpMap("Normal Map", 2D) = "bump" {}
 		_SpecularMap("R(Smoothness)G(Spec)B(AO)", 2D) = "white"{}
 		_DetailAlbedo("Detail Albedo", 2D) = "white"{}
 		_DetailNormal("Detail Normal", 2D) = "bump"{}
+		_EmissionColor("Emission Color", Color) = (0,0,0,1)
+		_EmissionMultiplier("Emission Multiplier", Range(0, 128)) = 1
+		_EmissionMap("Emission Map", 2D) = "white"{}
 	}
     SubShader
     {
@@ -29,12 +31,14 @@
             float2 uv_MainTex;
 			float2 uv_DetailAlbedo;
         };
-    float _SpecularIntensity;
-	float _MetallicIntensity;
-    float4 _EmissionColor;
+    	float _SpecularIntensity;
+		float _MetallicIntensity;
+    	float4 _EmissionColor;
 		float _Occlusion;
 		float _VertexScale;
 		float _VertexOffset;
+		float _Cutoff;
+		float _EmissionMultiplier;
 		sampler2D _BumpMap;
 		sampler2D _SpecularMap;
 		sampler2D _MainTex;
@@ -52,6 +56,9 @@
 			float2 detailUV = IN.uv_DetailAlbedo;
 			float4 spec = tex2D(_SpecularMap,uv);
 			float4 c = tex2D (_MainTex, uv);
+			#if CUT_OFF
+			clip(c.a * _Color.a - _Cutoff);
+			#endif
 #if DETAIL_ON
 			float3 detailNormal = UnpackNormal(tex2D(_DetailNormal, detailUV));
 			float4 detailColor = tex2D(_DetailAlbedo, detailUV);
@@ -68,7 +75,7 @@
 			o.Occlusion = lerp(1, spec.b, _Occlusion);
 			o.Specular = lerp(_SpecularIntensity * spec.g, o.Albedo * _SpecularIntensity * spec.g, _MetallicIntensity); 
 			o.Smoothness = _Glossiness * spec.r;
-			o.Emission = _EmissionColor * tex2D(_EmissionMap, uv);
+			o.Emission = _EmissionColor * tex2D(_EmissionMap, uv) * _EmissionMultiplier;
 		}
         ENDCG
     }

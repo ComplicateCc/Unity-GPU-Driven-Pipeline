@@ -132,7 +132,10 @@ namespace MPipeline
                 clipDistances = (float*)UnsafeUtility.Malloc(SunLight.CASCADECLIPSIZE * sizeof(float), 16, Allocator.Temp);
                 staticFit = DirectionalShadowStaticFit(cam.cam, SunLight.current, clipDistances);
                 sunShadowCams = MUnsafeUtility.Malloc<OrthoCam>(SunLight.CASCADELEVELCOUNT * sizeof(OrthoCam), Allocator.Temp);
+                Matrix4x4 proj = cam.cam.projectionMatrix;
+                cam.cam.projectionMatrix = cam.cam.nonJitteredProjectionMatrix;
                 PipelineFunctions.GetfrustumCorners(clipDistances, SunLight.CASCADELEVELCOUNT + 1, cam.cam, staticFit.frustumCorners.Ptr());
+                cam.cam.projectionMatrix = proj;
                 csmStruct = new CascadeShadowmap
                 {
                     cascadeShadowmapVPs = (float4x4*)cascadeShadowMapVP.Ptr(),

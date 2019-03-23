@@ -90,10 +90,10 @@ Material:
     m_Floats:
     - _AlbedoTextureBrigeness: 0
     - _BumpScale: 0.25
-    - _Cutoff: 0.5
+    - _Cutoff: 0
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _EmissionMultiplier: 1
+    - _EmissionMultiplier: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.635
     - _GlossyReflections: 1

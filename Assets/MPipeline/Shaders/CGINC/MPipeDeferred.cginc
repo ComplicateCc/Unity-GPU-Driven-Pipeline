@@ -9,15 +9,17 @@
 cbuffer UnityPerMaterial
 {
     float _SpecularIntensity;
-	float _MetallicIntensity;
+		float _MetallicIntensity;
     float4 _EmissionColor;
 		float _Occlusion;
 		float _VertexScale;
 		float _VertexOffset;
-float4 _MainTex_ST;
-float4 _DetailAlbedo_ST;
+		float4 _MainTex_ST;
+		float4 _DetailAlbedo_ST;
 		float _Glossiness;
 		float4 _Color;
+		float _EmissionMultiplier;
+		float _Cutoff;
 }
 		sampler2D _BumpMap;
 		sampler2D _SpecularMap;
@@ -34,6 +36,9 @@ float4 _DetailAlbedo_ST;
 			uv = TRANSFORM_TEX(uv, _MainTex);
 			float4 spec = tex2D(_SpecularMap,uv);
 			float4 c = tex2D (_MainTex, uv);
+			#if CUT_OFF
+			clip(c.a * _Color.a - _Cutoff);
+			#endif
 #if DETAIL_ON
 			float3 detailNormal = UnpackNormal(tex2D(_DetailNormal, detailUV));
 			float4 detailColor = tex2D(_DetailAlbedo, detailUV);
@@ -50,7 +55,7 @@ float4 _DetailAlbedo_ST;
 			o.Occlusion = lerp(1, spec.b, _Occlusion);
 			o.Specular = lerp(_SpecularIntensity * spec.g, o.Albedo * _SpecularIntensity * spec.g, _MetallicIntensity); 
 			o.Smoothness = _Glossiness * spec.r;
-			o.Emission = _EmissionColor * tex2D(_EmissionMap, uv);
+			o.Emission = _EmissionColor * tex2D(_EmissionMap, uv) * _EmissionMultiplier;
 		}
 
 

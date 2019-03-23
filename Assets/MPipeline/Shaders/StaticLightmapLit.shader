@@ -4,15 +4,17 @@
 		_Color ("Color", Color) = (1,1,1,1)
 		_Glossiness ("Smoothness", Range(0,1)) = 0.5
 		_Occlusion("Occlusion Scale", Range(0,1)) = 1
+		_Cutoff("Cut off", Range(0, 1)) = 0
 		_SpecularIntensity("Specular Intensity", Range(0,1)) = 0.3
 		_MetallicIntensity("Metallic Intensity", Range(0, 1)) = 0.1
-		_EmissionColor("Emission Color", Color) = (0,0,0,1)
-		_EmissionMap("Emission Map", 2D) = "white"{}
 		_MainTex ("Albedo (RGB)AO(A)", 2D) = "white" {}
 		_BumpMap("Normal Map", 2D) = "bump" {}
 		_SpecularMap("R(Spec)G(Smooth)B(DetailMask)", 2D) = "white"{}
 		_DetailAlbedo("Detail Albedo", 2D) = "white"{}
 		_DetailNormal("Detail Normal", 2D) = "bump"{}
+		_EmissionMultiplier("Emission Multiplier", Range(0, 128)) = 1
+		_EmissionColor("Emission Color", Color) = (0,0,0,1)
+		_EmissionMap("Emission Map", 2D) = "white"{}
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -29,6 +31,7 @@ CGINCLUDE
 			#pragma multi_compile __ ENABLE_SUNSHADOW
 			#pragma multi_compile __ POINTLIGHT
 			#pragma multi_compile __ SPOTLIGHT
+			#pragma multi_compile __ CUT_OFF
 //#define MOTION_VECTOR
 #include "UnityCG.cginc"
 #include "UnityDeferredLibrary.cginc"

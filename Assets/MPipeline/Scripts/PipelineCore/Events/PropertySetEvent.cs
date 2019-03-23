@@ -11,15 +11,19 @@ namespace MPipeline
     {
         private Random rand;
         public Matrix4x4 lastViewProjection { get; private set; }
-        public Matrix4x4 nonJitterVP { get; private set; }
        // public Matrix4x4 inverseNonJitterVP { get; private set; }
-        private System.Func<PipelineCamera, LastVPData> getLastVP = (c) => new LastVPData(GL.GetGPUProjectionMatrix(c.cam.projectionMatrix, false) * c.cam.worldToCameraMatrix);
+        private System.Func<PipelineCamera, LastVPData> getLastVP = (c) => {
+            Matrix4x4 p = GL.GetGPUProjectionMatrix(c.cam.projectionMatrix, false);
+            Matrix4x4 vp = p * c.cam.worldToCameraMatrix;
+            return new LastVPData(vp);
+        };
         
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)
         {
             LastVPData lastData = IPerCameraData.GetProperty(cam, getLastVP, this);
             //Calculate Last VP for motion vector and Temporal AA
-            nonJitterVP = GL.GetGPUProjectionMatrix(cam.cam.nonJitteredProjectionMatrix, false) * cam.cam.worldToCameraMatrix;
+            Matrix4x4 nonJitterP = GL.GetGPUProjectionMatrix(cam.cam.nonJitteredProjectionMatrix, false);
+            Matrix4x4 nonJitterVP = nonJitterP * cam.cam.worldToCameraMatrix;
             ref Matrix4x4 lastVp = ref lastData.lastVP;
             lastViewProjection = lastVp;
             CommandBuffer buffer = data.buffer;
