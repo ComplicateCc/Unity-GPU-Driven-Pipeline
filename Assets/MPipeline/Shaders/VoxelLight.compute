@@ -13,8 +13,8 @@ StructuredBuffer<PointLight> _AllPointLight;
 StructuredBuffer<SpotLight> _AllSpotLight;
 RWStructuredBuffer<uint> _PointLightIndexBuffer;
 RWStructuredBuffer<uint> _SpotLightIndexBuffer;
-int _PointLightCount;
-int _SpotLightCount;
+uint _PointLightCount;
+uint _SpotLightCount;
 
 
 [numthreads(XRES, YRES, 1)]

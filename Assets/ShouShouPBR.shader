@@ -7,6 +7,7 @@
 		_SpecularIntensity("Specular Intensity", Range(0,1)) = 0.3
 		_MetallicIntensity("Metallic Intensity", Range(0, 1)) = 0.1
 		_EmissionColor("Emission Color", Color) = (0,0,0,1)
+		_EmissionMap("Emission Map", 2D) = "white"{}
 		_MainTex ("Albedo (RGB)DetailMask(A)", 2D) = "white" {}
 		_BumpMap("Normal Map", 2D) = "bump" {}
 		_SpecularMap("R(Smoothness)G(Spec)B(AO)", 2D) = "white"{}
@@ -39,6 +40,7 @@
 		sampler2D _MainTex;
 		sampler2D _DetailAlbedo; 
 		sampler2D _DetailNormal;
+		sampler2D _EmissionMap;
 
 		float _Glossiness;
 		float4 _Color;
@@ -66,7 +68,7 @@
 			o.Occlusion = lerp(1, spec.b, _Occlusion);
 			o.Specular = lerp(_SpecularIntensity * spec.g, o.Albedo * _SpecularIntensity * spec.g, _MetallicIntensity); 
 			o.Smoothness = _Glossiness * spec.r;
-			o.Emission = _EmissionColor;
+			o.Emission = _EmissionColor * tex2D(_EmissionMap, uv);
 		}
         ENDCG
     }

@@ -16,7 +16,7 @@ float4 Fog(float linear01Depth, float2 screenuv)
 		return float4(0, 0, 0, 1);
     z = pow(z, 1 / FROXELRATE);
 	float3 uvw = float3(screenuv.x, screenuv.y, z);
-	uvw.xy += cellNoise(screenuv) / ((float2)_ScreenSize.xy) * 0.8;
+	uvw.xy += cellNoise(screenuv) / ((float2)_ScreenSize.xy) * 0.7;
 	return _VolumeTex.Sample(sampler_VolumeTex, uvw);
 }
 #endif

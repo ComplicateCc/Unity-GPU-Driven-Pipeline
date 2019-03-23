@@ -59,7 +59,22 @@ float _IndirectIntensity;
                 float atten = _DirShadowMap.SampleCmpLevelZero(sampler_DirShadowMap, float3(shadowUV, zAxisUV), dist);
 				return atten;
 			}
-#define MieScattering(cosAngle, g) g.w * (g.x / (pow(g.y - g.z * cosAngle, 1.5)))
+
+float3 RayleighScatter(float3 ray, float lengthRay, float HeightFalloff, float RayleighScale)
+{	
+	float Falloff = exp( -HeightFalloff * abs(_WorldSpaceCameraPos.y) );
+	float densityIntegral = lengthRay * Falloff;
+    [flatten]
+	if (abs(ray.y) > 0.001)
+	{
+		float t = HeightFalloff * ray.y;
+		t = abs(t) < 0.00001 ? 0.00001 : t;
+		densityIntegral *= ( 1.0 - exp(-t) ) / t;
+	}
+
+	return  ( RayleighScale * float3(0.00116, 0.0027, 0.00662) ) * densityIntegral * (1.0 / 4.0 * 3.14);
+}
+#define MieScattering(cosAngle, g) g.w * (g.x / (pow(g.y - g.z * cosAngle, 1.25)))
 // x: 1 - g^2, y: 1 + g^2, z: 2*g, w: 1/4pi   g = 0.36
 static const float4 _MieG = float4(0.8704, 1.1296,0.72,0.7853981633974483);
 float2 _CameraClipDistance; //X: Near Y: Far - Near
@@ -141,6 +156,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
             color.rgb += ShadowTrem * spotColor;
         }
     }
+    //color.rgb *= RayleighScatter(targetWorldPos, distance(targetWorldPos, _WorldSpaceCameraPos), 1, 0.001);
    // color.rgb += GetVolumetricColor(targetWorldPos);
     color.a = 0;
     [loop]
@@ -173,10 +189,6 @@ float4 ScatterStep(float3 accumulatedLight, float accumulatedTransmittance, floa
 }
 float _MaxDistance;
 
-inline uint From3DTo1D(uint3 id, const uint3 size){
-    const uint3 multiValue = uint3(1, size.x, size.x * size.y);
-    return dot(id, multiValue);
-}
 #include "CGINC/Random.cginc"
 
 float4 RenderVoxel(uint3 id, inout float3 jitterCoord, const float offset)
@@ -191,7 +203,6 @@ float4 RenderVoxel(uint3 id, inout float3 jitterCoord, const float offset)
     float4 targetWorldPos = mul(_InvVP, float4(projCoord, EyeDepthToProj(linearDepth), 1));
     targetWorldPos /= targetWorldPos.w;
     float4 col = GetColor(targetWorldPos.xyz, linearDepth, uv);
-    col.rgb *= col.a;
     return col;
 }
 [numthreads(2, 2, VOXELZ)]

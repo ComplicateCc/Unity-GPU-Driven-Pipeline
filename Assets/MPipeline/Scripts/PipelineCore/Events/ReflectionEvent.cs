@@ -34,7 +34,7 @@ namespace MPipeline
         [SerializeField]
         public IrradianceCuller culler;
         [SerializeField]
-        private StochasticScreenSpaceReflection ssrEvents;
+        private StochasticScreenSpaceReflection ssrEvents = new StochasticScreenSpaceReflection();
         private static readonly int _ReflectionCubeMap = Shader.PropertyToID("_ReflectionCubeMap");
 
         public override bool CheckProperty()

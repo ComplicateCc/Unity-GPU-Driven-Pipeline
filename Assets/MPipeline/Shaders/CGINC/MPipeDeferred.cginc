@@ -24,6 +24,7 @@ float4 _DetailAlbedo_ST;
 		sampler2D _MainTex; 
 		sampler2D _DetailAlbedo; 
 		sampler2D _DetailNormal;
+		sampler2D _EmissionMap;
 
 
 		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
@@ -49,7 +50,7 @@ float4 _DetailAlbedo_ST;
 			o.Occlusion = lerp(1, spec.b, _Occlusion);
 			o.Specular = lerp(_SpecularIntensity * spec.g, o.Albedo * _SpecularIntensity * spec.g, _MetallicIntensity); 
 			o.Smoothness = _Glossiness * spec.r;
-			o.Emission = _EmissionColor;
+			o.Emission = _EmissionColor * tex2D(_EmissionMap, uv);
 		}
 
 

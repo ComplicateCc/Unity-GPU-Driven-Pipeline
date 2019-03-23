@@ -7,6 +7,7 @@
 		_SpecularIntensity("Specular Intensity", Range(0,1)) = 0.3
 		_MetallicIntensity("Metallic Intensity", Range(0, 1)) = 0.1
 		_EmissionColor("Emission Color", Color) = (0,0,0,1)
+		_EmissionMap("Emission Map", 2D) = "white"{}
 		_MainTex ("Albedo (RGB)AO(A)", 2D) = "white" {}
 		_BumpMap("Normal Map", 2D) = "bump" {}
 		_SpecularMap("R(Spec)G(Smooth)B(DetailMask)", 2D) = "white"{}

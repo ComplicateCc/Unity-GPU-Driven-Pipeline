@@ -1,0 +1,34 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel ClusterCulling
+#include "CGINC/VoxelLight.cginc"
+#include "CGINC/Decal.cginc"
+Texture3D<float4> _XYPlaneTexture;
+Texture2D<float4> _ZPlaneTexture;
+//count + 1, 0, 1, 2, ..., count
+RWStructuredBuffer<uint> _DecalCountBuffer;
+StructuredBuffer<DecalData> _DecalBuffer;
+uint _Count;
+[numthreads(XRES,YRES,1)]
+void ClusterCulling (uint3 id : SV_DispatchThreadID)
+{
+    float4 planes[6];
+   	planes[0] = _ZPlaneTexture[uint2(id.z, 0)];
+	planes[1] = _ZPlaneTexture[uint2(id.z, 1)];
+	planes[2] = _XYPlaneTexture[uint3(id.xy, 0)];
+	planes[3] = _XYPlaneTexture[uint3(id.xy, 1)];
+	planes[4] = _XYPlaneTexture[uint3(id.xy, 2)];
+	planes[5] = _XYPlaneTexture[uint3(id.xy, 3)];
+    uint count = 1;
+    uint bufferID = From3DTo1D(id, uint2(XRES, YRES)) * (MAX_DECAL_PER_CLUSTER + 1);
+    [loop]
+    for(uint i = 0; i < _Count; ++i)
+    {
+        DecalData data = _DecalBuffer[i];
+        if(BoxIntersect(data.extent, data.rotation, data.position, planes) > 0.5)
+        {
+            _DecalCountBuffer[bufferID + count] = i;
+            count++;
+        }
+    }
+    _DecalCountBuffer[bufferID] = count;
+}

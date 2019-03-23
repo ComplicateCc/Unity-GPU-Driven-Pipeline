@@ -24,6 +24,11 @@ inline float4 GetPlane(float3 a, float3 b, float3 c)
     return float4(normal, -dot(normal, a));
 }
 
+inline uint From3DTo1D(uint3 id, const uint2 size){
+    const uint3 multiValue = uint3(1, size.x, size.x * size.y);
+    return dot(id, multiValue);
+}
+
 inline float4 GetPlane(float4 a, float4 b, float4 c)
 {
     a /= a.w;

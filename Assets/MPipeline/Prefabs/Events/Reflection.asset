@@ -20,9 +20,9 @@ MonoBehaviour:
     enabled: 0
     TraceMethod: 0
     RayCastingResolution: 1
-    Denoise: 0
+    Denoise: 1
     RayNums: 1
-    BRDFBias: 0.92
+    BRDFBias: 0.552
     Thickness: 0.05
     ScreenFade: 0
     HiZ_RaySteps: 64
@@ -37,4 +37,3 @@ MonoBehaviour:
     SpatioSampler: 4
     TemporalWeight: 0.97
     TemporalScale: 5
-    RunTimeDebugMod: 1
