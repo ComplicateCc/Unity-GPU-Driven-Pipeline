@@ -12,7 +12,8 @@ public class SunLight : MonoBehaviour
 
     public static SunLight current = null;
     public bool enableShadow = true;
-    public int resolution;
+    [Range(1, 8192)]
+    public int resolution = 2048;
     [Range(1, 1000)]
     public float farestZ = 500;
     public float firstLevelDistance = 10;
@@ -47,15 +48,35 @@ public class SunLight : MonoBehaviour
         shadCam.up = transform.up;
         shadCam.right = transform.right;
         light.enabled = false;
+        GameObject GetChild(string name)
+        {
+            for(int i = 0; i < transform.childCount; ++i)
+            {
+                if(transform.GetChild(i).name == name)
+                {
+                    return transform.GetChild(i).gameObject;
+                }
+            }
+            return null;
+        }
         if(!shadowCam)
         {
-            shadowCam = GetComponent<Camera>();
+            GameObject shadObj = GetChild("Sun_Shadow_Cam");
+            if(!shadObj)
+            {
+                shadObj = new GameObject("Sun_Shadow_Cam");
+            }
+            shadowCam = shadObj.GetComponent<Camera>();
             if(!shadowCam)
             {
-                shadowCam = gameObject.AddComponent<Camera>();
+                shadObj.transform.SetParent(transform);
+                shadObj.transform.localRotation = Quaternion.identity;
+                shadObj.transform.localPosition = Vector3.zero;
+                shadObj.transform.localScale = Vector3.one;
+                shadObj.hideFlags = HideFlags.HideAndDontSave;
+                shadowCam = shadObj.AddComponent<Camera>();
             }
             shadowCam.enabled = false;
-            shadowCam.hideFlags = HideFlags.HideInInspector;
             shadowCam.aspect = 1;
             shadowCam.orthographic = true;
             shadowCam.worldToCameraMatrix = Matrix4x4.identity;

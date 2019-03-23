@@ -10,12 +10,7 @@ namespace MPipeline
     public class GPURPScene : MonoBehaviour
     {
         public PipelineResources resources;
-        [Header("Material Settings:")]
-        public int resolution = 1024;
-        public int texArrayCapacity = 50;
-        public int propertyCapacity = 500;
-        public int lightmapCapacity = 5;
-        public int lightmapAtlasSize = 4096;
+       
         public string mapResources = "SceneManager";
         private GPURPScene current;
 
@@ -45,7 +40,7 @@ namespace MPipeline
                 return;
             }
             current = this;
-            SceneController.Awake(resources, resolution, texArrayCapacity, lightmapAtlasSize, lightmapCapacity, propertyCapacity, mapResources);
+            SceneController.Awake(resources, mapResources);
         }
 
         public int targetVolume = 0;

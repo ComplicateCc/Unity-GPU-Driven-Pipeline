@@ -45,7 +45,7 @@ namespace MPipeline
         }
         protected override void Dispose()
         {
-            UnityEngine.Object.DestroyImmediate(taaMat);
+            DestroyImmediate(taaMat);
         }
 
         public override void FrameUpdate(PipelineCamera cam, ref PipelineCommandData data)

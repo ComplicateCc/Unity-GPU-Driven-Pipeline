@@ -39,16 +39,6 @@ namespace MPipeline
     public unsafe class MeshCombiner : MonoBehaviour
     {
 #if UNITY_EDITOR
-        string[] textureName = new string[]{"_MainTex",
-    "_BumpMap",
-    "_SpecularMap",
-        "_DetailAlbedo",
-        "_DetailNormal"};
-        public ComputeShader lightmapShader;
-        const int texToBufferKernel = 0;
-        const int bufferToTexKernel = 1;
-        const int texToBufferARGBKernel = 2;
-        const int bufferTotexARGBKernel = 3;
         public void GetPoints(NativeList<float3> points, NativeList<int> triangles, Mesh targetMesh, Transform transform)
         {
             int originLength = points.Length;
@@ -122,9 +112,6 @@ namespace MPipeline
             public NativeList<int> triangles;
             public Bounds bound;
         }
-        public TextureFormat mainTexFormat = TextureFormat.ARGB32;
-        public TextureFormat bumpMapFormat = TextureFormat.ARGB32;
-        public TextureFormat specularFormat = TextureFormat.RGB24;
         public string modelName = "TestFile";
 
         [EasyButtons.Button]

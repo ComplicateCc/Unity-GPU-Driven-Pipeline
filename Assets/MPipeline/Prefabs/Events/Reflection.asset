@@ -19,7 +19,7 @@ MonoBehaviour:
   ssrEvents:
     enabled: 0
     TraceMethod: 0
-    RayCastingResolution: 1
+    RayCastingResolution: 2
     Denoise: 1
     RayNums: 1
     BRDFBias: 0.552

@@ -168,6 +168,7 @@ float4 GetColor(float3 targetWorldPos, float linearDepth, float2 uv)
         if(b.x && b.y && b.z)
             color.a += vol.targetVolume;
     }
+    color.rgb *= color.a;
     return min(color, 128);
 }
 

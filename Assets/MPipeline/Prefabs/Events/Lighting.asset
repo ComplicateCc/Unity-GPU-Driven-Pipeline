@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Lighting
   m_EditorClassIdentifier: 
   enabled: 1
-  localLightDistance: 10
+  localLightDistance: 20
   shadowLayer:
     serializedVersion: 2
     m_Bits: 55

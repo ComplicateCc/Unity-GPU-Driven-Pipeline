@@ -39,7 +39,6 @@ namespace MPipeline
         private static List<SceneStreaming> allScenes;
         public static NativeList<ulong> pointerContainer;
         public static NativeList<ulong> addList;
-        public static int resolution { get; private set; }
         private static Dictionary<int, ComputeBuffer> allTempBuffers = new Dictionary<int, ComputeBuffer>(11);
         public static void SetState()
         {
@@ -73,9 +72,8 @@ namespace MPipeline
                 return target;
             }
         }
-        public static void Awake(PipelineResources resources, int resolution, int texArrayCapacity, int lightmapResolution, int lightmapCapacity, int propertyCapacity, string mapResources)
+        public static void Awake(PipelineResources resources,  string mapResources)
         {
-            SceneController.resolution = resolution;
             singletonReady = true;
             SceneController.resources = resources;
             addList = new NativeList<ulong>(10, Allocator.Persistent);
@@ -90,24 +88,6 @@ namespace MPipeline
             }
             PipelineFunctions.InitBaseBuffer(baseBuffer, clusterResources, mapResources, clusterCount);
             pointerContainer = new NativeList<ulong>(clusterCount, Allocator.Persistent);
-            RenderTextureDescriptor desc = new RenderTextureDescriptor
-            {
-                autoGenerateMips = false,
-                bindMS = false,
-                colorFormat = RenderTextureFormat.ARGB32,
-                depthBufferBits = 0,
-                dimension = TextureDimension.Tex2DArray,
-                enableRandomWrite = true,
-                height = resolution,
-                width = resolution,
-                memoryless = RenderTextureMemoryless.None,
-                msaaSamples = 1,
-                vrUsage = VRTextureUsage.None,
-                volumeDepth = texArrayCapacity,
-                shadowSamplingMode = ShadowSamplingMode.None,
-                sRGB = false,
-                useMipMap = false
-            };
             
         }
 
@@ -262,6 +242,11 @@ namespace MPipeline
                 SunLight.shadowCam.orthographicSize = orthoCam.size;
                 SunLight.shadowCam.nearClipPlane = orthoCam.nearClipPlane;
                 SunLight.shadowCam.farClipPlane = orthoCam.farClipPlane;
+                Transform tr = SunLight.shadowCam.transform;
+                tr.position = orthoCam.position;
+                tr.up = orthoCam.up;
+                tr.right = orthoCam.right;
+                tr.forward = orthoCam.forward;
                 if (!SunLight.shadowCam.TryGetCullingParameters(out data.cullParams))
                     return;
                 for (int i = 0; i < 6; ++i)

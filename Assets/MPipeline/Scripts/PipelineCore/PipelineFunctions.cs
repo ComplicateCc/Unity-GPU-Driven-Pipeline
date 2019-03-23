@@ -95,7 +95,6 @@ public unsafe static class PipelineFunctions
             frustumCorners[2 + index] = cam.ViewportToWorldPoint(new Vector3(1, 1, p));
             frustumCorners[3 + index] = cam.ViewportToWorldPoint(new Vector3(1, 0, p));
         }
-
     }
 
     public static int DownDimension(int3 coord, int2 xysize)
@@ -162,10 +161,14 @@ public unsafe static class PipelineFunctions
 
     public static void Dispose(PipelineBaseBuffer baseBuffer)
     {
-        baseBuffer.verticesBuffer.Dispose();
-        baseBuffer.clusterBuffer.Dispose();
-        baseBuffer.instanceCountBuffer.Dispose();
-        baseBuffer.resultBuffer.Dispose();
+        void DisposeBuffer(ComputeBuffer bf)
+        {
+            if (bf.IsValid()) bf.Dispose();
+        }
+        DisposeBuffer(baseBuffer.verticesBuffer);
+        DisposeBuffer(baseBuffer.clusterBuffer);
+        DisposeBuffer(baseBuffer.instanceCountBuffer);
+        DisposeBuffer(baseBuffer.resultBuffer);
     }
     /// <summary>
     /// Set Basement buffers
