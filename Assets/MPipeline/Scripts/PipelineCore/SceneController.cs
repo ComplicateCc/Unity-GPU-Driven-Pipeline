@@ -384,3 +384,85 @@ namespace MPipeline
         }
     }
 }
+/*
+public static void DrawClusterOccDoubleCheck(ref RenderClusterOptions options, ref HizOptions hizOpts, ref RenderTargets rendTargets, ref PipelineCommandData data, Camera cam)
+        {
+            if (!gpurpEnabled)
+            {
+                RenderScene(ref data, cam);
+                return;
+            }
+            CommandBuffer buffer = options.command;
+            ComputeShader gpuFrustumShader = options.cullingShader;
+
+            PipelineFunctions.ClearOcclusionData(baseBuffer, buffer, gpuFrustumShader);
+            PipelineFunctions.UpdateOcclusionBuffer(
+baseBuffer, gpuFrustumShader,
+buffer,
+hizOpts.hizData,
+options.frustumPlanes);
+            //First Draw
+            buffer.SetGlobalBuffer(ShaderIDs._PropertiesBuffer, commonData.propertyBuffer);
+            buffer.SetGlobalTexture(ShaderIDs._MainTex, commonData.texArray);
+            buffer.SetGlobalTexture(ShaderIDs._LightMap, commonData.lightmapArray);
+            PipelineFunctions.DrawLastFrameCullResult(baseBuffer, buffer, commonData.clusterMaterial);
+            //Update Vector，Depth Mip Map
+            hizOpts.hizData.lastFrameCameraUp = hizOpts.currentCameraUpVec;
+            //TODO Draw others
+            RenderScene(ref data, cam);
+            //TODO
+            buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
+            hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
+            //double check
+            PipelineFunctions.OcclusionRecheck(baseBuffer, gpuFrustumShader, buffer, hizOpts.hizData);
+            //double draw
+            buffer.SetRenderTarget(rendTargets.gbufferIdentifier, rendTargets.depthIdentifier);
+            PipelineFunctions.DrawRecheckCullResult(baseBuffer, commonData.clusterMaterial, buffer);
+            buffer.Blit(hizOpts.currentDepthTex, hizOpts.hizData.historyDepth, hizOpts.linearLODMaterial, 0);
+            hizOpts.hizDepth.GetMipMap(hizOpts.hizData.historyDepth, buffer);
+        }
+
+
+        public static void UpdateOcclusionBuffer(
+        PipelineBaseBuffer basebuffer
+        , ComputeShader coreShader
+        , CommandBuffer buffer
+        , HizOcclusionData occlusionData
+        , Vector4[] frustumCullingPlanes)
+    {
+        buffer.SetComputeVectorArrayParam(coreShader, ShaderIDs.planes, frustumCullingPlanes);
+        buffer.SetComputeVectorParam(coreShader, ShaderIDs._CameraUpVector, occlusionData.lastFrameCameraUp);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.clusterBuffer, basebuffer.clusterBuffer);
+        buffer.SetComputeTextureParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs._HizDepthTex, occlusionData.historyDepth);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.dispatchBuffer, basebuffer.dispatchBuffer);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.resultBuffer, basebuffer.resultBuffer);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.instanceCountBuffer, basebuffer.instanceCountBuffer);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.FrustumFilter, ShaderIDs.reCheckResult, basebuffer.reCheckResult);
+        ComputeShaderUtility.Dispatch(coreShader, buffer, OcclusionBuffers.FrustumFilter, basebuffer.clusterCount, 64);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClearOcclusionData(
+        PipelineBaseBuffer baseBuffer, CommandBuffer buffer
+        , ComputeShader coreShader)
+    {
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.dispatchBuffer, baseBuffer.dispatchBuffer);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.instanceCountBuffer, baseBuffer.instanceCountBuffer);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.ClearOcclusionData, ShaderIDs.reCheckCount, baseBuffer.reCheckCount);
+        buffer.DispatchCompute(coreShader, OcclusionBuffers.ClearOcclusionData, 1, 1, 1);
+    }
+    public static void OcclusionRecheck(
+        PipelineBaseBuffer baseBuffer
+        , ComputeShader coreShader, CommandBuffer buffer
+        , HizOcclusionData hizData)
+    {
+        buffer.SetComputeVectorParam(coreShader, ShaderIDs._CameraUpVector, hizData.lastFrameCameraUp);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.OcclusionRecheck, ShaderIDs.dispatchBuffer, baseBuffer.dispatchBuffer);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.OcclusionRecheck, ShaderIDs.reCheckResult, baseBuffer.reCheckResult);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.OcclusionRecheck, ShaderIDs.clusterBuffer, baseBuffer.clusterBuffer);
+        buffer.SetComputeTextureParam(coreShader, OcclusionBuffers.OcclusionRecheck, ShaderIDs._HizDepthTex, hizData.historyDepth);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.OcclusionRecheck, ShaderIDs.reCheckCount, baseBuffer.reCheckCount);
+        buffer.SetComputeBufferParam(coreShader, OcclusionBuffers.OcclusionRecheck, ShaderIDs.resultBuffer, baseBuffer.resultBuffer);
+        buffer.DispatchCompute(coreShader, OcclusionBuffers.OcclusionRecheck, baseBuffer.dispatchBuffer, 0);
+    }
+
+ */

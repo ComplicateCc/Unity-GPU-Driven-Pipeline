@@ -16,6 +16,7 @@ namespace MPipeline
         public ComputeShader probeCoeffShader;
         public ComputeShader texCopyShader;
         public ComputeShader reflectionCullingShader;
+        public ComputeShader decalCullingShader;
         public Shader taaShader;
         public Shader ssrShader;
         public Shader indirectDepthShader;
@@ -44,13 +45,14 @@ namespace MPipeline
         {
        typeof(PropertySetEvent),
        typeof(LightingEvent),
+       typeof(DecalEvent),
        typeof(GeometryEvent),
        typeof(AOEvents),
        typeof(SkyboxEvent),
        typeof(ReflectionEvent),
        typeof(VolumetricLightEvent),
-       typeof(TemporalAAEvent),
        typeof(TransEvent),
+       typeof(TemporalAAEvent),
        typeof(FinalPostEvent)
         };
 

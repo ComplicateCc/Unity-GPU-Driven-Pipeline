@@ -102,8 +102,7 @@ public unsafe struct NativeList<T> : IEnumerable<T> where T : unmanaged
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveLast()
     {
-        data->count -= 1;
-        data->count = Mathf.Max(0, data->count);
+        data->count = Mathf.Max(0, data->count - 1);
     }
     public void RemoveAt(int index)
     {

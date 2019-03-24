@@ -4,6 +4,9 @@
 #pragma kernel UnsafeCull
 #pragma kernel MoveVertex
 #pragma kernel MoveCluster
+#pragma kernel FrustumFilter
+#pragma kernel OcclusionRecheck
+#pragma kernel ClearOcclusionData
 #define COMPUTESHADER
 #include "UnityCG.cginc"
 #include "CGINC/Procedural.cginc"
@@ -120,4 +123,54 @@ void MoveCluster(uint id : SV_DISPATCHTHREADID)
 {
     if(id >= _Count) return; 
     clusterBuffer[id + _OffsetIndex].position += _SceneOffset;
+}
+
+
+RWStructuredBuffer<uint> reCheckResult;
+RWStructuredBuffer<uint> reCheckCount;
+RWStructuredBuffer<uint> dispatchBuffer;
+float4x4 _LastVp;
+[numthreads(64, 1, 1)]
+void FrustumFilter(uint id : SV_DISPATCHTHREADID)
+{
+    if(id >= _Count) return; 
+    ClusterMeshData currentObject = clusterBuffer[id];
+    if(PlaneTest(currentObject) > 0.5)
+    {
+        uint currentIndex;
+        [branch]
+        if(OcclusionTest(currentObject, _LastVp) > 0.5){
+            InterlockedAdd(instanceCountBuffer[1], 1, currentIndex);
+            resultBuffer[currentIndex] = id;
+        } else{
+            InterlockedAdd(dispatchBuffer[4], 1, currentIndex);
+            reCheckResult[currentIndex] = id;
+        }
+    }
+}
+
+[numthreads(64, 1, 1)]
+void OcclusionRecheck(uint id : SV_DISPATCHTHREADID)
+{
+    if(id >= dispatchBuffer[3]) return;
+    int index = reCheckResult[id];
+    ClusterMeshData currentObject = clusterBuffer[index];
+    [branch]
+    if(OcclusionTest(currentObject, _NonJitterVP) > 0.5)
+    {
+        uint currentIndex;
+        InterlockedAdd(reCheckCount[1], 1, currentIndex);
+        resultBuffer[currentIndex] = index;
+    }
+}
+
+[numthreads(1,1,1)]
+void ClearOcclusionData(uint id : SV_DISPATCHTHREADID)
+{
+    uint threadCount = dispatchBuffer[4];
+    dispatchBuffer[0] = uint(ceil(threadCount / 64.0));
+    dispatchBuffer[3] = threadCount;
+    dispatchBuffer[4] = 0;
+    instanceCountBuffer[1] = 0;
+    reCheckCount[1] = 0;
 }

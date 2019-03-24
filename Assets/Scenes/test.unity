@@ -5,8 +5,8 @@ OcclusionCullingSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_OcclusionBakeSettings:
-    smallestOccluder: 5
-    smallestHole: 0.25
+    smallestOccluder: 0.2
+    smallestHole: 0.1
     backfaceThreshold: 100
   m_SceneGUID: 00000000000000000000000000000000
   m_OcclusionCullingData: {fileID: 0}
@@ -385,6 +385,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   modelName: TestFile
+  voxelCount: 200
 --- !u!1 &237902039
 GameObject:
   m_ObjectHideFlags: 0
@@ -681,8 +682,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330718099}
-  m_LocalRotation: {x: 0.10978774, y: -0.32020965, z: 0.037092082, w: 0.9402322}
-  m_LocalPosition: {x: 17.929781, y: 2.9075465, z: -34.8672}
+  m_LocalRotation: {x: 0.19518045, y: 0.24443573, z: -0.051026784, w: 0.9484472}
+  m_LocalPosition: {x: 14.331497, y: 3.1831, z: -37.69578}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -846,7 +847,7 @@ MonoBehaviour:
   resources: {fileID: 11400000, guid: ff676bd8e36713d49b98c69d61c6ac0e, type: 2}
   saveTarget: {fileID: 11400000, guid: 64bb376764f5c9848bbb1a526b40051d, type: 2}
   volumeName: TestIrr
-  sampleMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  sampleMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 3}
 --- !u!4 &945518186
 Transform:
   m_ObjectHideFlags: 0
@@ -1070,7 +1071,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!135 &1223279705
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1136,9 +1137,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1223279704}
-  m_LocalRotation: {x: 0.28404424, y: -0.7067111, z: 0.37816405, w: 0.5261847}
-  m_LocalPosition: {x: 11.408, y: 3.305945, z: -32.145973}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.024742557, y: 0.9750372, z: -0.14951545, w: 0.16228208}
+  m_LocalPosition: {x: 15.736299, y: 3.113855, z: -31.82102}
+  m_LocalScale: {x: 2.9315622, y: 2.9315622, z: 2.9315622}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 8

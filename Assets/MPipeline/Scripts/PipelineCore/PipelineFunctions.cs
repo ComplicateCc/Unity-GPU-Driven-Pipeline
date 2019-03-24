@@ -78,7 +78,7 @@ public unsafe static class PipelineFunctions
         instanceCountBufferValue[0] = PipelineBaseBuffer.CLUSTERVERTEXCOUNT;
         baseBuffer.instanceCountBuffer.SetData(instanceCountBufferValue);
         instanceCountBufferValue.Dispose();
-        baseBuffer.verticesBuffer = new ComputeBuffer(maximumLength * PipelineBaseBuffer.CLUSTERCLIPCOUNT, sizeof(float3));
+        baseBuffer.verticesBuffer = new ComputeBuffer(maximumLength * PipelineBaseBuffer.CLUSTERCLIPCOUNT, sizeof(Point));
         baseBuffer.clusterCount = 0;
 
 

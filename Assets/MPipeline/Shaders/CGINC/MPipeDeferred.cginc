@@ -2,7 +2,7 @@
 #define __MPIPEDEFERRED_INCLUDE__
 
 #define UNITY_PASS_DEFERRED
-
+#include "DecalShading.cginc"
 		struct Input {
 			float2 uv_MainTex;
 		};
@@ -158,6 +158,8 @@ void frag_surf (v2f_surf IN,
   out float depth : SV_TARGET5
 ) {
 	depth = IN.pos.z;
+	float2 screenUV = IN.screenPos.xy / IN.screenPos.z;
+	float linearEyeDepth = LinearEyeDepth(depth);
   // prepare and unpack data
   Input surfIN;
   surfIN.uv_MainTex = IN.pack0.xy;
@@ -167,7 +169,12 @@ void frag_surf (v2f_surf IN,
   float3x3 wdMatrix= float3x3(normalize(IN.worldTangent.xyz), normalize(IN.worldBinormal.xyz), normalize(IN.worldNormal.xyz));
   // call surface function
   surf (surfIN, o);
-  
+  #ifdef DECAL
+		//CalculateDecal(float2 uv, float linearDepth, float3 worldPos, out float4 color)
+	float4 decalColor;
+	CalculateDecal(screenUV, linearEyeDepth, worldPos, /*out*/ decalColor);
+	o.Albedo = lerp(o.Albedo, decalColor.rgb, decalColor.a);
+	#endif
   o.Normal = normalize(mul(o.Normal, wdMatrix));
   outEmission = ProceduralStandardSpecular_Deferred (o, worldViewDir, outGBuffer0, outGBuffer1, outGBuffer2); //GI neccessary here!
 	#ifdef LIGHTMAP
@@ -195,9 +202,9 @@ void frag_surf (v2f_surf IN,
 					outEmission.xyz +=max(0,  CalculateSunLight_NoShadow(standardData, -worldViewDir));
 					#endif
 					#endif
-					float linearEyeDepth = LinearEyeDepth(depth);
+
 					float Roughness = clamp(1 - standardData.smoothness, 0.02, 1);
-					float2 screenUV = IN.screenPos.xy / IN.screenPos.z;
+
 					#if SPOTLIGHT || POINTLIGHT
 					outEmission.xyz += max(0, CalculateLocalLight(screenUV, float4(worldPos, 1), linearEyeDepth, standardData.diffuseColor, o.Normal, outGBuffer1, Roughness, worldViewDir));
 					#endif

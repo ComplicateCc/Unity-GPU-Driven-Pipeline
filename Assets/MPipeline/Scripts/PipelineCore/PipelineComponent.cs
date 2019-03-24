@@ -24,12 +24,17 @@ namespace MPipeline
         }
     }
 
+    public struct Point
+    {
+        public float3 position;
+    }
+
     public struct DecalData
     {
         public float3x3 rotation;
         public float3 position;
-        public float3 extent;
-        public uint texIndex;
+        public float2 startUV;
+        public float2 endUV;
     }
 
     public struct PointLightStruct

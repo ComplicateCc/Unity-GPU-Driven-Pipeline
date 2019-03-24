@@ -37,10 +37,10 @@
             half frag (v2f i) : SV_Target
             {
                 half4 value = half4(
-                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, uint2(-1,-1)),
-                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, uint2(-1, 1)),
-                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, uint2(1,-1)),
-                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, uint2(1, 1))
+                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, int2(-1,-1)),
+                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, int2(-1, 1)),
+                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, int2(1,-1)),
+                    _MainTex.SampleLevel(sampler_MainTex, i.uv, _PreviousLevel, int2(1, 1))
                 );
                 value.xy = max(value.xy, value.zw);
                 return max(value.x, value.y);

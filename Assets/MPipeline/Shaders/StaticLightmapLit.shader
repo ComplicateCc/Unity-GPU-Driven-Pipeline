@@ -27,6 +27,7 @@ CGINCLUDE
 #pragma multi_compile _ LIGHTMAP_ON
 #pragma target 5.0
 #define LIGHTMAP
+#define DECAL
 #pragma multi_compile __ ENABLE_SUN
 			#pragma multi_compile __ ENABLE_SUNSHADOW
 			#pragma multi_compile __ POINTLIGHT

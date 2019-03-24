@@ -231,37 +231,7 @@ inline void ResolverAABB(sampler2D currColor, half Sharpness, half ExposureScale
     half4 BottomLeft = tex2D(currColor, uv + (int2(-1,  1) / screenSize));
     half4 BottomCenter = tex2D(currColor, uv + (int2(0,  1) / screenSize));
     half4 BottomRight = tex2D(currColor, uv + (int2(1,  1) / screenSize));
-    
-    // Resolver filtter 
-    #if AA_Filter
-        half SampleWeights[9];
-        SampleWeights[0] = HdrWeight4(TopLeft.rgb, ExposureScale);
-        SampleWeights[1] = HdrWeight4(TopCenter.rgb, ExposureScale);
-        SampleWeights[2] = HdrWeight4(TopRight.rgb, ExposureScale);
-        SampleWeights[3] = HdrWeight4(MiddleLeft.rgb, ExposureScale);
-        SampleWeights[4] = HdrWeight4(MiddleCenter.rgb, ExposureScale);
-        SampleWeights[5] = HdrWeight4(MiddleRight.rgb, ExposureScale);
-        SampleWeights[6] = HdrWeight4(BottomLeft.rgb, ExposureScale);
-        SampleWeights[7] = HdrWeight4(BottomCenter.rgb, ExposureScale);
-        SampleWeights[8] = HdrWeight4(BottomRight.rgb, ExposureScale);
 
-        half TotalWeight = SampleWeights[0] + SampleWeights[1] + SampleWeights[2] + SampleWeights[3] + SampleWeights[4] + SampleWeights[5] + SampleWeights[6] + SampleWeights[7] + SampleWeights[8];  
-        half4 Filtered = (TopLeft * SampleWeights[0] + TopCenter * SampleWeights[1] + TopRight * SampleWeights[2] + MiddleLeft * SampleWeights[3] + MiddleCenter * SampleWeights[4] + MiddleRight * SampleWeights[5] + BottomLeft * SampleWeights[6] + BottomCenter * SampleWeights[7] + BottomRight * SampleWeights[8]) / TotalWeight;
-    #endif
-
-    half4 m1, m2, mean, stddev;
-	#if AA_VARIANCE
-	//
-        m1 = TopLeft + TopCenter + TopRight + MiddleLeft + MiddleCenter + MiddleRight + BottomLeft + BottomCenter + BottomRight;
-        m2 = TopLeft * TopLeft + TopCenter * TopCenter + TopRight * TopRight + MiddleLeft * MiddleLeft + MiddleCenter * MiddleCenter + MiddleRight * MiddleRight + BottomLeft * BottomLeft + BottomCenter * BottomCenter + BottomRight * BottomRight;
-
-        mean = m1 / 9;
-        stddev = sqrt(m2 / 9 - mean * mean);
-        
-        minColor = mean - AABBScale * stddev;
-        maxColor = mean + AABBScale * stddev;
-    //
-    #else 
     //
         minColor = min(TopLeft, min(TopCenter, min(TopRight, min(MiddleLeft, min(MiddleCenter, min(MiddleRight, min(BottomLeft, min(BottomCenter, BottomRight))))))));
         maxColor = max(TopLeft, max(TopCenter, max(TopRight, max(MiddleLeft, max(MiddleCenter, max(MiddleRight, max(BottomLeft, max(BottomCenter, BottomRight))))))));
@@ -271,17 +241,12 @@ inline void ResolverAABB(sampler2D currColor, half Sharpness, half ExposureScale
         maxColor = (maxColor - center) * AABBScale + center;
 
     //
-    #endif
 
-    #if AA_Filter
-        filterColor = Filtered;
-        minColor = min(minColor, Filtered);
-        maxColor = max(maxColor, Filtered);
-    #else 
+
         filterColor = MiddleCenter;
         minColor = min(minColor, MiddleCenter);
         maxColor = max(maxColor, MiddleCenter);
-    #endif
+
 }
 
 

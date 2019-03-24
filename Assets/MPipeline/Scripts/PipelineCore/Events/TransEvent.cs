@@ -40,6 +40,7 @@ namespace MPipeline
                 renderingLayerMask = (uint)cam.cam.cullingMask,
                 sortingLayerRange = SortingLayerRange.all
             };
+            data.buffer.SetRenderTarget(color: cam.targets.renderTargetIdentifier, depth: cam.targets.depthBuffer);
             data.ExecuteCommandBuffer();
             data.context.DrawRenderers(data.cullResults, ref drawSettings, ref filter);
         }

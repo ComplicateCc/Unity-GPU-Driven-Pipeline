@@ -25,6 +25,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2bb796fcf46451949826a32497c5f2ed, type: 2}
   - {fileID: 11400000, guid: 6fe05694a7e3c07469031a6ab5c74e0d, type: 2}
   - {fileID: 11400000, guid: bdee0411038a22f49a6293ec9d53091f, type: 2}
+  - {fileID: 11400000, guid: deff3fb17a799f3489668e79c0c70db4, type: 2}
   shaders:
     cbdrShader: {fileID: 7200000, guid: 32eda6600c320d948b7c69a6823d3bf9, type: 3}
     gpuFrustumCulling: {fileID: 7200000, guid: 27a4a69f28f2cb946a2de4928422fcd8, type: 3}
@@ -38,6 +39,8 @@ MonoBehaviour:
     probeCoeffShader: {fileID: 7200000, guid: 3f0b233c58577844abc54359d2126894, type: 3}
     texCopyShader: {fileID: 7200000, guid: f6e116db19c13064cad38faa281ae1c4, type: 3}
     reflectionCullingShader: {fileID: 7200000, guid: a1fa3016d1a7dba49b1e80f5c5d3139d,
+      type: 3}
+    decalCullingShader: {fileID: 7200000, guid: 4251381161337a3418145e51373db1e6,
       type: 3}
     taaShader: {fileID: 4800000, guid: 51bcf79c50dc92e47ba87821b61100c3, type: 3}
     ssrShader: {fileID: 4800000, guid: 18704a45733ea43459834cc74c454ac8, type: 3}

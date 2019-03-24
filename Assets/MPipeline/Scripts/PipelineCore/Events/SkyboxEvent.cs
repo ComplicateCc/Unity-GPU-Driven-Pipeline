@@ -28,7 +28,7 @@ namespace MPipeline
         public override void FrameUpdate(PipelineCamera camera, ref PipelineCommandData data)
         {
             SkyboxMatrixData skyData = IPerCameraData.GetProperty(camera, () => new SkyboxMatrixData(), this);
-            float4x4 proj = GL.GetGPUProjectionMatrix(camera.cam.projectionMatrix, false);
+            float4x4 proj = GL.GetGPUProjectionMatrix(camera.cam.nonJitteredProjectionMatrix, false);
             float4x4 viewProj;
             if (camera.cam.orthographic)
             {

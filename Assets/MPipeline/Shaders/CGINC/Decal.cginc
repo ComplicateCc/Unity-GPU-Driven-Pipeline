@@ -5,7 +5,7 @@ struct DecalData
 {
     float3x3 rotation;
     float3 position;
-    float3 extent;
-    uint texIndex;
+    float2 startUV;
+    float2 endUV;
 };
 #endif

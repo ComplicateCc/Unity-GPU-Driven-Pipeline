@@ -39,14 +39,14 @@ namespace MPipeline
     public unsafe class MeshCombiner : MonoBehaviour
     {
 #if UNITY_EDITOR
-        public void GetPoints(NativeList<float3> points, NativeList<int> triangles, Mesh targetMesh, Transform transform)
+        public void GetPoints(NativeList<Point> points, NativeList<int> triangles, Mesh targetMesh, Transform transform)
         {
             int originLength = points.Length;
             Vector3[] vertices = targetMesh.vertices;
             points.AddRange(vertices.Length);
             for (int i = originLength; i < vertices.Length + originLength; ++i)
             {
-                ref float3 pt = ref points[i];
+                ref float3 pt = ref points[i].position;
                 int len = i - originLength;
                 pt = transform.localToWorldMatrix.MultiplyPoint(vertices[len]);
             }
@@ -56,7 +56,7 @@ namespace MPipeline
                 for (int i = 0; i < triangleArray.Length; ++i)
                 {
                     triangleArray[i] += originLength;
-                    ref float3 pt = ref points[triangleArray[i]];
+                    ref float3 pt = ref points[triangleArray[i]].position;
                 }
                 triangles.AddRange(triangleArray);
             }
@@ -74,19 +74,19 @@ namespace MPipeline
                 sumVertexLength += allFilters[i].sharedMesh.vertexCount;
             }
             sumTriangleLength = (int)(sumVertexLength * 1.5);
-            NativeList<float3> points = new NativeList<float3>(sumVertexLength, Allocator.Temp);
+            NativeList<Point> points = new NativeList<Point>(sumVertexLength, Allocator.Temp);
             NativeList<int> triangles = new NativeList<int>(sumTriangleLength, Allocator.Temp);
             for (int i = 0; i < allFilters.Length; ++i)
             {
                 Mesh mesh = allFilters[i].sharedMesh;
                 GetPoints(points, triangles, mesh, allFilters[i].transform);
             }
-            float3 less = points[0];
-            float3 more = points[0];
+            float3 less = points[0].position;
+            float3 more = points[0].position;
 
             for (int i = 1; i < points.Length; ++i)
             {
-                float3 current = points[i];
+                float3 current = points[i].position;
                 if (less.x > current.x) less.x = current.x;
                 if (more.x < current.x) more.x = current.x;
                 if (less.y > current.y) less.y = current.y;
@@ -108,12 +108,13 @@ namespace MPipeline
 
         public struct CombinedModel
         {
-            public NativeList<float3> allPoints;
+            public NativeList<Point> allPoints;
             public NativeList<int> triangles;
             public Bounds bound;
         }
         public string modelName = "TestFile";
-
+        [Range(100, 500)]
+        public int voxelCount = 100;
         [EasyButtons.Button]
         public void TryThis()
         {
@@ -141,7 +142,7 @@ namespace MPipeline
                 }
             }
             CombinedModel model = ProcessCluster(GetComponentsInChildren<MeshRenderer>());
-            property.clusterCount = ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName);
+            property.clusterCount = ClusterGenerator.GenerateCluster(model.allPoints, model.triangles, model.bound, modelName, voxelCount);
             res.clusterProperties.Add(property);
             if (save)
                 AssetDatabase.CreateAsset(res, "Assets/Resources/MapMat/SceneManager.asset");

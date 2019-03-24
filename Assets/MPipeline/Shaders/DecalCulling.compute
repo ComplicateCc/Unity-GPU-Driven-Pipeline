@@ -24,7 +24,7 @@ void ClusterCulling (uint3 id : SV_DispatchThreadID)
     for(uint i = 0; i < _Count; ++i)
     {
         DecalData data = _DecalBuffer[i];
-        if(BoxIntersect(data.extent, data.rotation, data.position, planes) > 0.5)
+        if(BoxIntersect(0.5, data.rotation, data.position, planes) > 0.5)
         {
             _DecalCountBuffer[bufferID + count] = i;
             count++;

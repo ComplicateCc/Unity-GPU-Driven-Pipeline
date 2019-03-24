@@ -11,6 +11,7 @@
 		{
 			Tags{ "LightMode" = "Transparent" "Queue" = "Transparent"}
 						ZTest less
+						ZWrite off
 						Cull back
 						Blend srcAlpha OneMinusSrcAlpha
 			Pass
@@ -62,7 +63,7 @@
 		v2f o;
 		o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
 		float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
-		o.pos = mul(_NonJitterTextureVP, worldPos);
+		o.pos = mul(UNITY_MATRIX_VP, worldPos);
 		  o.screenUV = ComputeScreenPos(o.pos);
 		  worldPos /= worldPos.w;
 		  o.worldPos = worldPos.xyz;

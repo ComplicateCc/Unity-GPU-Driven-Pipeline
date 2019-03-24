@@ -126,7 +126,10 @@ namespace MPipeline
             LightFilter.cubemapVPMatrices = cubemapVPMatrices;
             LightFilter.spotLightMatrices = spotLightMatrices;
             Transform camTrans = cam.cam.transform;
-            lightingHandle = (new LightFilter { cullPlane = VectorUtility.GetPlane(camTrans.forward, camTrans.position + camTrans.forward * localLightDistance) }).Schedule(allLights.Count, 1);
+            lightingHandle = (new LightFilter {
+                camPos = cam.cam.transform.position,
+                lightDist = localLightDistance
+            }).Schedule(allLights.Count, 1);
             if (SunLight.current != null && SunLight.current.enabled && SunLight.current.enableShadow)
             {
                 clipDistances = (float*)UnsafeUtility.Malloc(SunLight.CASCADECLIPSIZE * sizeof(float), 16, Allocator.Temp);
@@ -423,7 +426,8 @@ namespace MPipeline
             public static NativeList<SpotLightMatrix> spotLightMatrices;
             public static int pointLightCount = 0;
             public static int spotLightCount = 0;
-            public float4 cullPlane;
+            public float3 camPos;
+            public float lightDist;
             public static void Clear()
             {
                 pointLightCount = 0;
@@ -529,7 +533,8 @@ namespace MPipeline
                         currentPtr->lightColor = new float3(col.r, col.g, col.b) / (4 * Mathf.PI);
                         currentPtr->sphere = i.localToWorldMatrix.GetColumn(3);
                         currentPtr->sphere.w = i.range;
-                        if (mlight.useShadow && VectorUtility.SphereIntersect(currentPtr->sphere, cullPlane))
+                        float dist = lightDist + currentPtr->sphere.w;
+                        if (mlight.useShadow && lengthsq(currentPtr->sphere.xyz - camPos) < (dist * dist))
                         {
                             currentPtr->shadowIndex = cubemapVPMatrices.ConcurrentAdd(new CubemapViewProjMatrix
                             {
@@ -566,7 +571,8 @@ namespace MPipeline
                         currentSpot->lightRight = normalize((Vector3)i.localToWorldMatrix.GetColumn(1));
                         currentSpot->smallAngle = Mathf.Deg2Rad * mlight.smallSpotAngle * 0.5f;
                         currentSpot->nearClip = mlight.spotNearClip;
-                        if (mlight.useShadow && VectorUtility.ConeIntersect(currentSpot->lightCone, cullPlane))
+                        float3 dir = normalize(currentSpot->lightCone.vertex - camPos);
+                        if (mlight.useShadow && VectorUtility.ConeIntersect(currentSpot->lightCone, VectorUtility.GetPlane(dir, camPos + dir * lightDist)))
                         {
                             currentSpot->vpMatrix = i.localToWorldMatrix;
                             currentSpot->shadowIndex = spotLightMatrices.ConcurrentAdd(new SpotLightMatrix
